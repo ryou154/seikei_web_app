@@ -69,3 +69,7 @@ APIキーはコードやGitHubには直接書かないでください。
 ### 起動設定
 
 Dockerfileを含めているため、Cloud Runではこのリポジトリをビルドして `node server.js` で起動できます。Cloud Run側から `PORT` 環境変数が渡され、`server.js` がそのポートで起動します。
+
+### Gemini画像生成モデル
+
+Cloud Run版では利用枠を抑えるため、画像生成モデルに gemini-3.1-flash-lite-image を使用しています。

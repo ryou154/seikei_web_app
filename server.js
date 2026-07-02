@@ -57,7 +57,7 @@ async function handleGeminiEdit(request, response) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gemini-3.1-flash-image",
+        model: "gemini-3.1-flash-lite-image",
         input: [
           { type: "text", text: prompt },
           {
