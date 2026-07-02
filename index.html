@@ -1,0 +1,175 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI骨格フィット・整形シミュレーター</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Face Design Match</p>
+      <h1>AI骨格フィット・整形シミュレーター</h1>
+      <p class="lead">顔画像と希望内容をもとに、AI分析風のシミュレーション結果とおすすめクリニックを表示します。</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel input-panel" aria-labelledby="input-title">
+      <h2 id="input-title">シミュレーション入力</h2>
+
+      <label class="field">
+        <span>顔画像</span>
+        <input id="face-image" type="file" accept="image/*">
+      </label>
+
+      <div class="preview" id="image-preview">
+        <span>画像を選択するとプレビューが表示されます</span>
+      </div>
+
+      <div class="camera-box">
+        <div class="camera-actions">
+          <button id="start-camera-button" type="button" class="sub-button">カメラを起動</button>
+          <button id="capture-button" type="button" class="sub-button" disabled>写真を撮る</button>
+          <button id="stop-camera-button" type="button" class="sub-button" disabled>カメラを停止</button>
+        </div>
+        <video id="camera-preview" class="camera-preview hidden" autoplay playsinline></video>
+        <canvas id="capture-canvas" class="hidden"></canvas>
+        <p id="camera-message" class="notice">カメラ撮影でも顔画像を登録できます。</p>
+      </div>
+
+      <label class="field">
+        <span>理想のイメージ</span>
+        <textarea id="request-text" placeholder="例：自然な二重にしたい、輪郭をシャープにしたい、鼻筋を整えたい"></textarea>
+      </label>
+
+      <div class="choice-grid">
+        <label class="field">
+          <span>なりたい雰囲気</span>
+          <select id="style-select">
+            <option value="kawaii">かわいい系</option>
+            <option value="cool">クール系</option>
+            <option value="korean">韓国アイドル風</option>
+            <option value="doll">ドール系</option>
+            <option value="natural">ナチュラル美人</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>目元</span>
+          <select id="eye-select">
+            <option value="wide">ぱっちり二重</option>
+            <option value="cat">切れ長・猫目</option>
+            <option value="soft">やさしいたれ目</option>
+            <option value="natural">自然な目元</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>鼻</span>
+          <select id="nose-select">
+            <option value="high">鼻筋を高く</option>
+            <option value="small">小鼻を小さく</option>
+            <option value="sharp">鼻先をシャープに</option>
+            <option value="natural">自然な鼻</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>輪郭</span>
+          <select id="face-select">
+            <option value="vline">Vライン小顔</option>
+            <option value="oval">卵型フェイス</option>
+            <option value="sharp">シャープな輪郭</option>
+            <option value="natural">自然な輪郭</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="field">
+        <span>変化の強さ</span>
+        <div class="range-control">
+          <output id="change-strength-value" for="change-strength">50%</output>
+          <input id="change-strength" type="range" min="0" max="100" value="50">
+        </div>
+      </label>
+
+      <label class="field">
+        <span>After画像の作成方法</span>
+        <select id="image-engine">
+          <option value="gemini">Gemini画像生成</option>
+          <option value="local">ローカル簡易生成</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>探したい地域</span>
+        <input id="region-input" type="text" placeholder="例：東京、新宿、横浜、大阪">
+      </label>
+
+      <label class="field">
+        <span>重視したいこと</span>
+        <select id="priority">
+          <option value="natural">自然さを重視</option>
+          <option value="balance">顔全体のバランスを重視</option>
+          <option value="cost">費用を抑えたい</option>
+          <option value="downtime">ダウンタイムを短くしたい</option>
+        </select>
+      </label>
+
+      <button id="simulate-button" type="button">AIシミュレーションを実行</button>
+      <p class="notice">この画面は学習用の参考シミュレーションです。医療診断ではありません。</p>
+    </section>
+
+    <section class="panel result-panel" aria-labelledby="result-title">
+      <div class="result-heading">
+        <div>
+          <p class="eyebrow">Result</p>
+          <h2 id="result-title">分析結果</h2>
+        </div>
+        <button id="save-button" type="button" disabled>履歴に保存</button>
+      </div>
+
+      <div id="empty-result" class="empty-state">
+        入力後にシミュレーションを実行すると、ここに結果が表示されます。
+      </div>
+
+      <div id="result-content" class="hidden">
+        <div class="comparison">
+          <div class="image-card">
+            <p>Before</p>
+            <div id="before-image" class="image-placeholder">選択画像</div>
+          </div>
+          <div class="image-card after">
+            <p>After</p>
+            <div id="after-image" class="after-preview">予測イメージ</div>
+          </div>
+        </div>
+
+        <div class="analysis-box">
+          <h3>AI分析コメント</h3>
+          <p id="analysis-text"></p>
+        </div>
+
+        <div>
+          <h3>おすすめクリニック</h3>
+          <div id="hospital-list" class="hospital-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel history-panel" aria-labelledby="history-title">
+      <div class="result-heading">
+        <div>
+          <p class="eyebrow">History</p>
+          <h2 id="history-title">保存履歴</h2>
+        </div>
+        <button id="clear-history-button" type="button">履歴を削除</button>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
