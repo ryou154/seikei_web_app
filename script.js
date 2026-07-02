@@ -326,10 +326,15 @@ async function renderResult(result) {
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
   } catch (error) {
     console.error(error);
-    afterImage.innerHTML = `<div class="loading-state">Gemini生成に失敗しました。${error.message}<br>ローカル簡易生成に切り替えました。</div>`;
-    setTimeout(() => {
-      afterImage.innerHTML = `<img src="${createAfterImage(result.profile)}" alt="シミュレーション後の予測イメージ">`;
-    }, 800);
+    const localImage = createAfterImage(result.profile);
+    afterImage.innerHTML = `
+      <div class="gemini-error">
+        <strong>Gemini生成に失敗しました。</strong>
+        <span>${error.message}</span>
+        <small>下には確認用としてローカル簡易生成の画像を表示しています。</small>
+      </div>
+      <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
+    `;
   }
 
   hospitalList.innerHTML = result.hospitals.map((hospital) => `
