@@ -49,7 +49,7 @@ async function handleGeminiEdit(request, response) {
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const geminiResponse = await fetch(
-    "https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-image:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/interactions",
     {
       method: "POST",
       headers: {
@@ -57,17 +57,13 @@ async function handleGeminiEdit(request, response) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        contents: [
+        model: "gemini-3.1-flash-image",
+        input: [
+          { type: "text", text: prompt },
           {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: image.mimeType,
-                  data: image.base64
-                }
-              }
-            ]
+            type: "image",
+            mime_type: image.mimeType,
+            data: image.base64
           }
         ]
       })
@@ -83,17 +79,18 @@ async function handleGeminiEdit(request, response) {
     return;
   }
 
-  const imagePart = data.candidates?.[0]?.content?.parts?.find((part) => part.inlineData);
+  const outputImage = data.output_image;
 
-  if (!imagePart) {
+  if (!outputImage?.data) {
     sendJson(response, 502, {
-      error: "Geminiから画像が返りませんでした。"
+      error: "Geminiから画像が返りませんでした。",
+      detail: data.error?.message || data.message || "No output_image in Gemini response"
     });
     return;
   }
 
   sendJson(response, 200, {
-    image: `data:${imagePart.inlineData.mimeType || "image/png"};base64,${imagePart.inlineData.data}`
+    image: `data:${outputImage.mime_type || "image/png"};base64,${outputImage.data}`
   });
 }
 

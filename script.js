@@ -326,7 +326,7 @@ async function renderResult(result) {
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
   } catch (error) {
     console.error(error);
-    afterImage.innerHTML = `<div class="loading-state">Gemini生成に失敗しました。ローカル簡易生成に切り替えました。</div>`;
+    afterImage.innerHTML = `<div class="loading-state">Gemini生成に失敗しました。${error.message}<br>ローカル簡易生成に切り替えました。</div>`;
     setTimeout(() => {
       afterImage.innerHTML = `<img src="${createAfterImage(result.profile)}" alt="シミュレーション後の予測イメージ">`;
     }, 800);
@@ -369,7 +369,7 @@ async function createGeminiAfterImage(result) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Gemini生成に失敗しました。");
+    throw new Error(data.detail || data.error || "Gemini生成に失敗しました。");
   }
 
   return data.image;
