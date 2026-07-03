@@ -359,7 +359,7 @@ async function createGeminiAfterImage(result) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      image: selectedImageData,
+      image: await resizeImageForGemini(selectedImageData),
       requestText: result.requestText,
       profile: result.profile,
       labels: {
@@ -380,6 +380,29 @@ async function createGeminiAfterImage(result) {
   return data.image;
 }
 
+
+function resizeImageForGemini(imageData) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.addEventListener("load", () => {
+      const maxSize = 768;
+      const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(image, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.78));
+    });
+
+    image.addEventListener("error", () => reject(new Error("画像の軽量化に失敗しました。")));
+    image.src = imageData;
+  });
+}
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");
   const width = 720;

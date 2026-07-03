@@ -48,28 +48,51 @@ async function handleGeminiEdit(request, response) {
   const body = await readJsonBody(request);
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
-  const geminiResponse = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/interactions",
-    {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": apiKey,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gemini-3.1-flash-lite-image",
-        input: [
-          { type: "text", text: prompt },
-          {
-            type: "image",
-            mime_type: image.mimeType,
-            data: image.base64
-          }
-        ]
-      })
-    }
-  );
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000);
+  let geminiResponse;
 
+  try {
+    geminiResponse = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
+      {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": apiKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gemini-3.1-flash-lite-image",
+          input: [
+            { type: "text", text: prompt },
+            {
+              type: "image",
+              mime_type: image.mimeType,
+              data: image.base64
+            }
+          ],
+          response_format: {
+            type: "image",
+            mime_type: "image/jpeg",
+            aspect_ratio: "1:1",
+            image_size: "1K"
+          }
+        }),
+        signal: controller.signal
+      }
+    );
+  } catch (error) {
+    if (error.name === "AbortError") {
+      sendJson(response, 504, {
+        error: "Gemini画像生成がタイムアウトしました。画像を小さくするか、少し時間を置いて再実行してください。"
+      });
+      return;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   const data = await geminiResponse.json();
 
   if (!geminiResponse.ok) {
