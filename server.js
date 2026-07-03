@@ -49,7 +49,7 @@ async function handleGeminiEdit(request, response) {
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000);
+  const timeoutId = setTimeout(() => controller.abort(), 180000);
   let geminiResponse;
 
   try {
@@ -123,17 +123,11 @@ function buildGeminiPrompt(body) {
   const requestText = body.requestText || "選択された理想イメージを反映";
 
   return [
-    "Edit the uploaded face photo into a realistic cosmetic-surgery after simulation.",
-    "Keep the same person, same pose, same hairstyle, same clothes, same background, and natural human facial anatomy.",
-    "Do not turn the person into an illustration, doll, anime character, mask, or different person.",
-    "Make the result look like a plausible post-procedure beauty simulation, not a diagnosis.",
-    `Desired style: ${labels.style || "natural beauty"}.`,
-    `Eyes: ${labels.eye || "natural eyes"}.`,
-    `Nose: ${labels.nose || "natural nose"}.`,
-    `Face shape: ${labels.face || "natural face line"}.`,
-    `User request in Japanese: ${requestText}.`,
-    `Change strength is ${strength} percent out of 100. Use visible but realistic changes.`,
-    "Return only the edited image."
+    "Realistically edit this face photo as a cosmetic-surgery after simulation.",
+    "Keep the same person, pose, hair, clothes, and background. Keep natural human anatomy.",
+    `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}.`,
+    `User request: ${requestText}. Strength: ${strength}%.`,
+    "Do not make anime, doll, mask, or a different person. Return only one edited image."
   ].join(" ");
 }
 
