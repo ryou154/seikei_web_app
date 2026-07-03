@@ -107,7 +107,7 @@ async function handleGeminiEdit(request, response) {
   if (!outputImage?.data) {
     sendJson(response, 502, {
       error: "Geminiから画像が返りませんでした。",
-      detail: data.error?.message || data.message || "No output_image in Gemini response"
+      detail: summarizeGeminiResponse(data)
     });
     return;
   }
@@ -117,20 +117,52 @@ async function handleGeminiEdit(request, response) {
   });
 }
 
+function summarizeGeminiResponse(data) {
+  const texts = [];
+  collectGeminiText(data, texts);
+  return texts.slice(0, 3).join(" / ") || data?.error?.message || data?.message || "No output_image in Gemini response";
+}
+
+function collectGeminiText(value, texts) {
+  if (!value || texts.length >= 3) return;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed && trimmed.length < 500) texts.push(trimmed);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectGeminiText(item, texts);
+    return;
+  }
+
+  if (typeof value === "object") {
+    for (const [key, child] of Object.entries(value)) {
+      if (/text|message|reason|finish|blocked|safety|detail/i.test(key)) {
+        collectGeminiText(child, texts);
+      }
+    }
+  }
+}
+
 function buildGeminiPrompt(body) {
   const labels = body.labels || {};
   const strength = body.profile?.strength ?? 50;
   const requestText = body.requestText || "選択された理想イメージを反映";
 
   return [
-    "Realistically edit this face photo as a cosmetic-surgery after simulation.",
-    "Keep the same person, pose, hair, clothes, and background. Keep natural human anatomy.",
+    "Create one realistic beauty-retouch after image from the uploaded face photo.",
+    "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
+    "Keep the same person, pose, hairstyle, clothes, lighting, and background.",
+    "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
-    "Do not make anime, doll, mask, or a different person. Return only one edited image."
+    "Make subtle but visible facial balance improvements based on the requested style.",
+    "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
+    "Return only the edited image."
   ].join(" ");
 }
-
 function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://localhost:${port}`);
   const urlPath = decodeURIComponent(requestUrl.pathname);
