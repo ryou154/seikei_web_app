@@ -49,7 +49,7 @@ async function handleGeminiEdit(request, response) {
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 180000);
+  const timeoutId = setTimeout(() => controller.abort(), 290000);
   let geminiResponse;
 
   try {
@@ -84,7 +84,7 @@ async function handleGeminiEdit(request, response) {
   } catch (error) {
     if (error.name === "AbortError") {
       sendJson(response, 504, {
-        error: "Gemini画像生成がタイムアウトしました。画像を小さくするか、少し時間を置いて再実行してください。"
+        error: "Gemini画像生成が約5分以内に完了しませんでした。画像を小さくするか、少し時間を置いて再実行してください。"
       });
       return;
     }
