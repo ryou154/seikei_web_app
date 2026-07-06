@@ -102,7 +102,7 @@ async function handleGeminiEdit(request, response) {
     return;
   }
 
-  const outputImage = data.output_image;
+  const outputImage = extractGeminiImage(data);
 
   if (!outputImage?.data) {
     sendJson(response, 502, {
@@ -117,6 +117,34 @@ async function handleGeminiEdit(request, response) {
   });
 }
 
+function extractGeminiImage(data) {
+  if (data?.output_image?.data) return data.output_image;
+
+  const images = [];
+  collectGeminiImages(data, images);
+  return images[0] || null;
+}
+
+function collectGeminiImages(value, images) {
+  if (!value || images.length > 0) return;
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectGeminiImages(item, images);
+    return;
+  }
+
+  if (typeof value !== "object") return;
+
+  const mimeType = value.mime_type || value.mimeType;
+  if (typeof value.data === "string" && /^image\//.test(mimeType || "")) {
+    images.push({ data: value.data, mime_type: mimeType });
+    return;
+  }
+
+  for (const child of Object.values(value)) {
+    collectGeminiImages(child, images);
+  }
+}
 function summarizeGeminiResponse(data) {
   const texts = [];
   collectGeminiText(data, texts);
