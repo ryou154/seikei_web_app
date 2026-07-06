@@ -178,6 +178,11 @@ function buildGeminiPrompt(body) {
   const labels = body.labels || {};
   const strength = body.profile?.strength ?? 50;
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const strengthGuide = strength >= 75
+    ? "Apply a bold, clearly noticeable makeover: visibly refine the eyes, nose impression, face outline, jawline, cheek balance, and overall facial proportions while keeping a realistic human face."
+    : strength >= 45
+      ? "Apply a moderate makeover: the eyes, nose impression, face outline, and overall facial balance should be noticeably improved but still natural."
+      : "Apply a light natural retouch: keep changes gentle, but still make the requested style visible.";
 
   return [
     "Create one realistic beauty-retouch after image from the uploaded face photo.",
@@ -186,7 +191,8 @@ function buildGeminiPrompt(body) {
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
-    "Make subtle but visible facial balance improvements based on the requested style.",
+    strengthGuide,
+    "At high strength, the Before and After must be easy to tell apart at a glance, but must not become unrealistic.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
     "Return only the edited image."
   ].join(" ");
