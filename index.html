@@ -11,12 +11,18 @@
     <div>
       <p class="eyebrow">Face Design Match</p>
       <h1>AI骨格フィット・整形シミュレーター</h1>
-      <p class="lead">顔画像と希望内容をもとに、AI分析風のシミュレーション結果とおすすめクリニックを表示します。</p>
+      <p class="lead">顔画像と希望内容をもとに、AI After予測・顔バランス解析・おすすめクリニックをまとめて表示します。</p>
+      <div class="hero-points" aria-label="主な機能">
+        <span>Gemini After生成</span>
+        <span>スマホ撮影対応</span>
+        <span>地域別クリニック提案</span>
+      </div>
     </div>
   </header>
 
   <main class="layout">
     <section class="panel input-panel" aria-labelledby="input-title">
+      <p class="section-kicker">Step 01</p>
       <h2 id="input-title">シミュレーション入力</h2>
 
       <label class="field">
@@ -117,7 +123,7 @@
         </select>
       </label>
 
-      <button id="simulate-button" type="button">AIシミュレーションを実行</button>
+      <button id="simulate-button" type="button" class="main-action">AIシミュレーションを実行</button>
       <p class="notice">この画面は学習用の参考シミュレーションです。医療診断ではありません。</p>
     </section>
 
@@ -135,6 +141,21 @@
       </div>
 
       <div id="result-content" class="hidden">
+        <div id="scan-panel" class="scan-panel" aria-live="polite">
+          <div class="scan-visual">
+            <span></span>
+          </div>
+          <div class="scan-copy">
+            <p class="section-kicker">AI Scan</p>
+            <h3>顔バランス解析</h3>
+            <div id="scan-steps" class="scan-steps">
+              <span>顔位置を確認</span>
+              <span>目元・鼻筋を解析</span>
+              <span>輪郭バランスを反映</span>
+            </div>
+          </div>
+        </div>
+
         <div class="comparison">
           <div class="image-card">
             <p>Before</p>

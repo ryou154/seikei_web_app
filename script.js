@@ -23,6 +23,8 @@ const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const scanPanel = document.getElementById("scan-panel");
+const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
 const hospitalList = document.getElementById("hospital-list");
 const historyList = document.getElementById("history-list");
@@ -318,6 +320,7 @@ async function renderResult(result) {
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   analysisText.textContent = result.analysis;
+  await runScanAnimation(result.profile);
 
   try {
     const generatedImage = result.profile.imageEngine === "gemini"
@@ -348,6 +351,40 @@ async function renderResult(result) {
   `).join("");
 }
 
+function runScanAnimation(profile) {
+  if (!scanPanel || !scanSteps) {
+    return Promise.resolve();
+  }
+
+  const labels = [
+    `顔位置を確認中`,
+    `${optionLabels.eye[profile.eye]}を解析`,
+    `${optionLabels.nose[profile.nose]}を反映`,
+    `${optionLabels.face[profile.face]}を調整`,
+    `変化強度 ${profile.strength}% でAfter設計`
+  ];
+
+  scanSteps.innerHTML = labels.map((label, index) => `<span class="${index === 0 ? "active" : ""}">${label}</span>`).join("");
+  scanPanel.classList.add("is-scanning");
+
+  return new Promise((resolve) => {
+    let index = 0;
+    const timer = setInterval(() => {
+      index += 1;
+      const items = scanSteps.querySelectorAll("span");
+      items.forEach((item, itemIndex) => {
+        item.classList.toggle("active", itemIndex === Math.min(index, items.length - 1));
+        item.classList.toggle("done", itemIndex < index);
+      });
+
+      if (index >= items.length) {
+        clearInterval(timer);
+        scanPanel.classList.remove("is-scanning");
+        resolve();
+      }
+    }, 360);
+  });
+}
 async function createGeminiAfterImage(result) {
   if (location.protocol === "file:") {
     throw new Error("Gemini生成はローカルサーバー起動時のみ使えます。");
