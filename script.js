@@ -386,7 +386,9 @@ function resizeImageForGemini(imageData) {
     const image = new Image();
 
     image.addEventListener("load", () => {
-      const maxSize = 512;
+      const isMobile = window.matchMedia("(max-width: 700px)").matches || /iPhone|iPad|Android/i.test(navigator.userAgent);
+      const maxSize = isMobile ? 384 : 768;
+      const jpegQuality = isMobile ? 0.6 : 0.75;
       const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -396,10 +398,10 @@ function resizeImageForGemini(imageData) {
       canvas.width = width;
       canvas.height = height;
       context.drawImage(image, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.65));
+      resolve(canvas.toDataURL("image/jpeg", jpegQuality));
     });
 
-    image.addEventListener("error", () => reject(new Error("画像の軽量化に失敗しました。")));
+    image.addEventListener("error", () => reject(new Error("画像の軽量化に失敗しました。iPhoneの場合は、写真設定を『互換性優先』にするか、カメラで撮影して試してください。")));
     image.src = imageData;
   });
 }
