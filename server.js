@@ -179,20 +179,22 @@ function buildGeminiPrompt(body) {
   const strength = body.profile?.strength ?? 50;
   const requestText = body.requestText || "選択された理想イメージを反映";
   const strengthGuide = strength >= 75
-    ? "Apply a bold, clearly noticeable makeover: visibly refine the eyes, nose impression, face outline, jawline, cheek balance, and overall facial proportions while keeping a realistic human face."
-    : strength >= 45
-      ? "Apply a moderate makeover: the eyes, nose impression, face outline, and overall facial balance should be noticeably improved but still natural."
-      : "Apply a light natural retouch: keep changes gentle, but still make the requested style visible.";
+    ? "Apply a strong visual beauty design transformation. Make the Before and After clearly different by enhancing eyelid appearance, brighter eye impression, clearer nose bridge appearance, sharper face outline appearance, smaller-face impression, V-line style contour appearance, and balanced polished portrait aesthetics. Keep the same identity and a realistic human face."
+    : strength >= 60
+      ? "Apply a medium-strong visual beauty design transformation. The eyes, nose bridge appearance, face outline appearance, smaller-face impression, and portrait balance should be clearly improved while keeping the same identity and realism."
+      : strength >= 35
+        ? "Apply a moderate beauty design retouch. Improve eye impression, nose bridge appearance, face outline appearance, and overall balance in a natural but noticeable way."
+        : "Apply a light natural beauty retouch. Keep changes gentle, but still make the requested style visible.";
 
   return [
-    "Create one realistic beauty-retouch after image from the uploaded face photo.",
+    "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
     "Keep the same person, pose, hairstyle, clothes, lighting, and background.",
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
     strengthGuide,
-    "At high strength, the Before and After must be easy to tell apart at a glance, but must not become unrealistic.",
+    "For stronger settings, the Before and After must be easy to tell apart at a glance by changing the visual impression, not by making a non-human or different-person result.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
     "Return only the edited image."
   ].join(" ");
