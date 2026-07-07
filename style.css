@@ -470,6 +470,19 @@ button:disabled {
   gap: 8px;
 }
 
+.camera-flip-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.camera-flip-option input {
+  width: auto;
+  accent-color: var(--primary);
+}
 .camera-preview {
   width: 100%;
   max-height: 260px;

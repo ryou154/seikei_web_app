@@ -40,6 +40,10 @@
           <button id="capture-button" type="button" class="sub-button" disabled>写真を撮る</button>
           <button id="stop-camera-button" type="button" class="sub-button" disabled>カメラを停止</button>
         </div>
+        <label class="camera-flip-option">
+          <input id="camera-flip-fix" type="checkbox" checked>
+          <span>前面カメラの左右反転を補正する</span>
+        </label>
         <video id="camera-preview" class="camera-preview hidden" autoplay playsinline></video>
         <canvas id="capture-canvas" class="hidden"></canvas>
         <p id="camera-message" class="notice">カメラ撮影でも顔画像を登録できます。</p>

@@ -6,6 +6,7 @@ const stopCameraButton = document.getElementById("stop-camera-button");
 const cameraPreview = document.getElementById("camera-preview");
 const captureCanvas = document.getElementById("capture-canvas");
 const cameraMessage = document.getElementById("camera-message");
+const cameraFlipFixInput = document.getElementById("camera-flip-fix");
 const requestTextInput = document.getElementById("request-text");
 const styleSelect = document.getElementById("style-select");
 const eyeSelect = document.getElementById("eye-select");
@@ -175,9 +176,18 @@ captureButton.addEventListener("click", () => {
   captureCanvas.width = videoWidth;
   captureCanvas.height = videoHeight;
   const context = captureCanvas.getContext("2d");
+
+  if (cameraFlipFixInput?.checked) {
+    context.translate(videoWidth, 0);
+    context.scale(-1, 1);
+  }
+
   context.drawImage(cameraPreview, 0, 0, videoWidth, videoHeight);
+  context.setTransform(1, 0, 0, 1, 0, 0);
   setSelectedImage(captureCanvas.toDataURL("image/png"));
-  cameraMessage.textContent = "撮影した写真を顔画像として登録しました。";
+  cameraMessage.textContent = cameraFlipFixInput?.checked
+    ? "左右反転を補正して、撮影した写真を顔画像として登録しました。"
+    : "撮影した写真を顔画像として登録しました。";
 });
 
 stopCameraButton.addEventListener("click", stopCamera);
