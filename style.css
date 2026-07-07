@@ -483,6 +483,10 @@ button:disabled {
   width: auto;
   accent-color: var(--primary);
 }
+.camera-preview.is-flipped {
+  transform: scaleX(-1);
+}
+
 .camera-preview {
   width: 100%;
   max-height: 260px;

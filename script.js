@@ -36,7 +36,12 @@ let cameraStream = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
+syncCameraPreviewFlip();
+cameraFlipFixInput?.addEventListener("change", syncCameraPreviewFlip);
 
+function syncCameraPreviewFlip() {
+  cameraPreview.classList.toggle("is-flipped", Boolean(cameraFlipFixInput?.checked));
+}
 function updateStrengthValue() {
   changeStrengthValue.textContent = `${changeStrengthInput.value}%`;
 }
@@ -150,6 +155,7 @@ startCameraButton.addEventListener("click", async () => {
       audio: false
     });
     cameraPreview.srcObject = cameraStream;
+    syncCameraPreviewFlip();
     cameraPreview.classList.remove("hidden");
     captureButton.disabled = false;
     stopCameraButton.disabled = false;
