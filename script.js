@@ -445,15 +445,24 @@ function runScanAnimation(profile) {
     return Promise.resolve();
   }
 
-  const labels = [
-    `顔位置を確認中`,
-    `${optionLabels.eye[profile.eye]}を解析`,
-    `${optionLabels.nose[profile.nose]}を反映`,
-    `${optionLabels.face[profile.face]}を調整`,
-    `変化強度 ${profile.strength}% でAfter設計`
+  const designLabels = createDesignLabels(profile);
+  const partLabels = [
+    { key: "eye", label: designLabels.eye, suffix: "を解析" },
+    { key: "nose", label: designLabels.nose, suffix: "を反映" },
+    { key: "face", label: designLabels.face, suffix: "を調整" },
+    { key: "mouth", label: designLabels.mouth, suffix: "を反映" },
+    { key: "forehead", label: designLabels.forehead, suffix: "を確認" }
   ];
+  const labels = ["顔位置を確認中"];
 
-  scanSteps.innerHTML = labels.map((label, index) => `<span class="${index === 0 ? "active" : ""}">${label}</span>`).join("");
+  partLabels.forEach((part) => {
+    if (profile[part.key] !== "none" || profile.custom?.[part.key]) {
+      labels.push(part.label + part.suffix);
+    }
+  });
+
+  labels.push("変化強度 " + profile.strength + "% でAfter設計");
+  scanSteps.innerHTML = labels.map((label, index) => '<span class="' + (index === 0 ? 'active' : '') + '">' + label + '</span>').join("");
   scanPanel.classList.add("is-scanning");
 
   return new Promise((resolve) => {
