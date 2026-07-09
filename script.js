@@ -1,4 +1,4 @@
-const faceImageInput = document.getElementById("face-image");
+﻿const faceImageInput = document.getElementById("face-image");
 const imagePreview = document.getElementById("image-preview");
 const startCameraButton = document.getElementById("start-camera-button");
 const captureButton = document.getElementById("capture-button");
@@ -366,7 +366,6 @@ async function renderResult(result) {
     </article>
   `).join("");
 }
-
 
 function runScanAnimation(profile) {
   if (!scanPanel || !scanSteps) {
