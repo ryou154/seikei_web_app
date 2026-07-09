@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -35,16 +35,11 @@
       </div>
 
       <div class="camera-box">
-        <div class="camera-actions">
-          <button id="start-camera-button" type="button" class="sub-button">カメラを起動</button>
-          <button id="capture-button" type="button" class="sub-button" disabled>写真を撮る</button>
-          <button id="stop-camera-button" type="button" class="sub-button" disabled>カメラを停止</button>
-        </div>
+        <button id="start-camera-button" type="button" class="sub-button">カメラで撮影する</button>
         <label class="camera-flip-option">
           <input id="camera-flip-fix" type="checkbox" checked>
           <span>前面カメラの左右反転を補正する</span>
         </label>
-        <video id="camera-preview" class="camera-preview hidden" autoplay playsinline></video>
         <canvas id="capture-canvas" class="hidden"></canvas>
         <p id="camera-message" class="notice">カメラ撮影でも顔画像を登録できます。</p>
       </div>
@@ -195,6 +190,26 @@
     </section>
   </main>
 
+
+  <div id="camera-screen" class="camera-screen hidden" role="dialog" aria-modal="true" aria-labelledby="camera-screen-title">
+    <div class="camera-screen-inner">
+      <div class="camera-screen-header">
+        <div>
+          <p class="section-kicker">Camera</p>
+          <h2 id="camera-screen-title">写真を撮影</h2>
+        </div>
+        <button id="stop-camera-button" type="button" class="camera-close-button" disabled>閉じる</button>
+      </div>
+      <div class="camera-stage">
+        <video id="camera-preview" class="camera-preview" autoplay playsinline></video>
+        <div class="face-guide" aria-hidden="true"></div>
+      </div>
+      <p class="camera-help">顔がガイドの中央に入るようにして撮影してください。</p>
+      <div class="camera-screen-actions">
+        <button id="capture-button" type="button" class="main-action" disabled>この写真を使う</button>
+      </div>
+    </div>
+  </div>
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,8 +1,9 @@
-﻿const faceImageInput = document.getElementById("face-image");
+const faceImageInput = document.getElementById("face-image");
 const imagePreview = document.getElementById("image-preview");
 const startCameraButton = document.getElementById("start-camera-button");
 const captureButton = document.getElementById("capture-button");
 const stopCameraButton = document.getElementById("stop-camera-button");
+const cameraScreen = document.getElementById("camera-screen");
 const cameraPreview = document.getElementById("camera-preview");
 const captureCanvas = document.getElementById("capture-canvas");
 const cameraMessage = document.getElementById("camera-message");
@@ -156,11 +157,12 @@ startCameraButton.addEventListener("click", async () => {
     });
     cameraPreview.srcObject = cameraStream;
     syncCameraPreviewFlip();
-    cameraPreview.classList.remove("hidden");
+    cameraScreen.classList.remove("hidden");
+    document.body.classList.add("camera-open");
     captureButton.disabled = false;
     stopCameraButton.disabled = false;
     startCameraButton.disabled = true;
-    cameraMessage.textContent = "顔が中央に入るようにして「写真を撮る」を押してください。";
+    cameraMessage.textContent = "専用画面で写真を撮影してください。";
   } catch (error) {
     cameraMessage.textContent = "カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。";
   }
@@ -191,12 +193,13 @@ captureButton.addEventListener("click", () => {
   context.drawImage(cameraPreview, 0, 0, videoWidth, videoHeight);
   context.setTransform(1, 0, 0, 1, 0, 0);
   setSelectedImage(captureCanvas.toDataURL("image/png"));
-  cameraMessage.textContent = cameraFlipFixInput?.checked
+  const capturedMessage = cameraFlipFixInput?.checked
     ? "左右反転を補正して、撮影した写真を顔画像として登録しました。"
     : "撮影した写真を顔画像として登録しました。";
+  stopCamera(capturedMessage);
 });
 
-stopCameraButton.addEventListener("click", stopCamera);
+stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
   const requestText = requestTextInput.value.trim();
@@ -229,26 +232,29 @@ clearHistoryButton.addEventListener("click", () => {
   renderHistories();
 });
 
-window.addEventListener("beforeunload", stopCamera);
+window.addEventListener("beforeunload", () => stopCamera());
 
 function setSelectedImage(imageData) {
   selectedImageData = imageData;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
 }
 
-function stopCamera() {
+function stopCamera(message = "カメラを停止しました。") {
   if (!cameraStream) {
+    cameraScreen?.classList.add("hidden");
+    document.body.classList.remove("camera-open");
     return;
   }
 
   cameraStream.getTracks().forEach((track) => track.stop());
   cameraStream = null;
   cameraPreview.srcObject = null;
-  cameraPreview.classList.add("hidden");
+  cameraScreen?.classList.add("hidden");
+  document.body.classList.remove("camera-open");
   captureButton.disabled = true;
   stopCameraButton.disabled = true;
   startCameraButton.disabled = false;
-  cameraMessage.textContent = "カメラを停止しました。";
+  cameraMessage.textContent = message;
 }
 
 function createSimulationResult(requestText) {
