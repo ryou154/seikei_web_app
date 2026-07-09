@@ -181,18 +181,23 @@ captureButton.addEventListener("click", () => {
     return;
   }
 
-  captureCanvas.width = videoWidth;
-  captureCanvas.height = videoHeight;
+  const maxCaptureSize = 720;
+  const captureScale = Math.min(1, maxCaptureSize / Math.max(videoWidth, videoHeight));
+  const captureWidth = Math.max(1, Math.round(videoWidth * captureScale));
+  const captureHeight = Math.max(1, Math.round(videoHeight * captureScale));
+
+  captureCanvas.width = captureWidth;
+  captureCanvas.height = captureHeight;
   const context = captureCanvas.getContext("2d");
 
   if (cameraFlipFixInput?.checked) {
-    context.translate(videoWidth, 0);
+    context.translate(captureWidth, 0);
     context.scale(-1, 1);
   }
 
-  context.drawImage(cameraPreview, 0, 0, videoWidth, videoHeight);
+  context.drawImage(cameraPreview, 0, 0, captureWidth, captureHeight);
   context.setTransform(1, 0, 0, 1, 0, 0);
-  setSelectedImage(captureCanvas.toDataURL("image/png"));
+  setSelectedImage(captureCanvas.toDataURL("image/jpeg", 0.82));
   const capturedMessage = cameraFlipFixInput?.checked
     ? "左右反転を補正して、撮影した写真を顔画像として登録しました。"
     : "撮影した写真を顔画像として登録しました。";
@@ -446,8 +451,9 @@ function resizeImageForGemini(imageData) {
 
     image.addEventListener("load", () => {
       const isMobile = window.matchMedia("(max-width: 700px)").matches || /iPhone|iPad|Android/i.test(navigator.userAgent);
-      const maxSize = isMobile ? 384 : 768;
-      const jpegQuality = isMobile ? 0.6 : 0.75;
+      const isStrongChange = Number(changeStrengthInput.value) >= 60;
+      const maxSize = isMobile ? 320 : isStrongChange ? 512 : 640;
+      const jpegQuality = isMobile ? 0.56 : 0.68;
       const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));

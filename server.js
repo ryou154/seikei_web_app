@@ -1,4 +1,4 @@
-﻿const http = require("node:http");
+const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -49,7 +49,7 @@ async function handleGeminiEdit(request, response) {
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 290000);
+  const timeoutId = setTimeout(() => controller.abort(), 160000);
   let geminiResponse;
 
   try {
