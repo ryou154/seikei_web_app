@@ -28,7 +28,6 @@ const comparePanel = document.getElementById("compare-panel");
 const compareBefore = document.getElementById("compare-before");
 const compareAfter = document.getElementById("compare-after");
 const compareAfterWrap = document.getElementById("compare-after-wrap");
-const compareDivider = document.getElementById("compare-divider");
 const compareRange = document.getElementById("compare-range");
 const compareValue = document.getElementById("compare-value");
 const scanPanel = document.getElementById("scan-panel");
@@ -379,13 +378,11 @@ async function renderResult(result) {
 }
 
 function updateCompareSlider() {
-  if (!compareRange || !compareAfterWrap || !compareDivider || !compareValue) return;
+  if (!compareRange || !compareAfterWrap || !compareValue) return;
 
   const rawValue = Number(compareRange.value);
-  const value = `${rawValue}%`;
-  compareAfterWrap.style.clipPath = `inset(0 ${100 - rawValue}% 0 0)`;
-  compareDivider.style.left = value;
-  compareValue.textContent = value;
+  compareAfterWrap.style.opacity = String(rawValue / 100);
+  compareValue.textContent = `After ${rawValue}%`;
 }
 
 function renderCompareSlider(beforeSrc, afterSrc) {
