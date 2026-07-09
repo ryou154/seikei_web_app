@@ -10,9 +10,17 @@ const cameraMessage = document.getElementById("camera-message");
 const cameraFlipFixInput = document.getElementById("camera-flip-fix");
 const requestTextInput = document.getElementById("request-text");
 const styleSelect = document.getElementById("style-select");
+const styleCustomInput = document.getElementById("style-custom");
 const eyeSelect = document.getElementById("eye-select");
+const eyeCustomInput = document.getElementById("eye-custom");
 const noseSelect = document.getElementById("nose-select");
+const noseCustomInput = document.getElementById("nose-custom");
 const faceSelect = document.getElementById("face-select");
+const faceCustomInput = document.getElementById("face-custom");
+const mouthSelect = document.getElementById("mouth-select");
+const mouthCustomInput = document.getElementById("mouth-custom");
+const foreheadSelect = document.getElementById("forehead-select");
+const foreheadCustomInput = document.getElementById("forehead-custom");
 const changeStrengthInput = document.getElementById("change-strength");
 const changeStrengthValue = document.getElementById("change-strength-value");
 const imageEngineInput = document.getElementById("image-engine");
@@ -99,6 +107,7 @@ const hospitals = [
 ];
 const optionLabels = {
   style: {
+    none: "雰囲気は変更しない",
     kawaii: "かわいい系",
     cool: "クール系",
     korean: "韓国アイドル風",
@@ -106,22 +115,39 @@ const optionLabels = {
     natural: "ナチュラル美人"
   },
   eye: {
+    none: "目元は変更しない",
     wide: "ぱっちり二重",
     cat: "切れ長・猫目",
     soft: "やさしいたれ目",
     natural: "自然な目元"
   },
   nose: {
+    none: "鼻は変更しない",
     high: "鼻筋を高く",
     small: "小鼻を小さく",
     sharp: "鼻先をシャープに",
     natural: "自然な鼻"
   },
   face: {
+    none: "輪郭は変更しない",
     vline: "Vライン小顔",
     oval: "卵型フェイス",
     sharp: "シャープな輪郭",
     natural: "自然な輪郭"
+  },
+  mouth: {
+    none: "口元は変更しない",
+    full: "ふっくらした唇",
+    small: "小さめの口元",
+    smile: "口角を上げる",
+    natural: "自然な口元"
+  },
+  forehead: {
+    none: "おでこは変更しない",
+    round: "丸みのあるおでこ",
+    smooth: "なめらかなおでこ",
+    balanced: "顔全体と自然に調整",
+    natural: "自然なおでこ"
   }
 };
 
@@ -268,13 +294,24 @@ function createSimulationResult(requestText) {
     eye: eyeSelect.value,
     nose: noseSelect.value,
     face: faceSelect.value,
+    mouth: mouthSelect.value,
+    forehead: foreheadSelect.value,
+    custom: {
+      style: styleCustomInput.value.trim(),
+      eye: eyeCustomInput.value.trim(),
+      nose: noseCustomInput.value.trim(),
+      face: faceCustomInput.value.trim(),
+      mouth: mouthCustomInput.value.trim(),
+      forehead: foreheadCustomInput.value.trim()
+    },
     strength: Number(changeStrengthInput.value),
     imageEngine: imageEngineInput.value,
     region: regionInput.value.trim(),
     priority: priorityInput.value
   };
-  const keywords = buildKeywords(requestText, profile);
-  const analysis = createAnalysisText(requestText, profile);
+  const designLabels = createDesignLabels(profile);
+  const keywords = buildKeywords(requestText, profile, designLabels);
+  const analysis = createAnalysisText(requestText, profile, designLabels);
   const matchedHospitals = hospitals
     .map((hospital) => ({
       ...hospital,
@@ -286,12 +323,27 @@ function createSimulationResult(requestText) {
   return {
     requestText,
     profile,
-    category: optionLabels.style[profile.style],
+    designLabels,
+    category: designLabels.style,
     analysis,
     hospitals: matchedHospitals
   };
 }
 
+function createDesignLabels(profile) {
+  return {
+    style: getDesignLabel(profile, "style"),
+    eye: getDesignLabel(profile, "eye"),
+    nose: getDesignLabel(profile, "nose"),
+    face: getDesignLabel(profile, "face"),
+    mouth: getDesignLabel(profile, "mouth"),
+    forehead: getDesignLabel(profile, "forehead")
+  };
+}
+
+function getDesignLabel(profile, key) {
+  return profile.custom?.[key] || optionLabels[key]?.[profile[key]] || "変更しない";
+}
 
 function getHospitalScore(hospital, keywords, region) {
   const normalizedRegion = normalizeText(region);
@@ -316,27 +368,37 @@ function getHospitalScore(hospital, keywords, region) {
 function normalizeText(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
 }
-function buildKeywords(requestText, profile) {
+function buildKeywords(requestText, profile, designLabels = createDesignLabels(profile)) {
   return [
     requestText,
-    optionLabels.style[profile.style],
-    optionLabels.eye[profile.eye],
-    optionLabels.nose[profile.nose],
-    optionLabels.face[profile.face]
+    designLabels.style,
+    designLabels.eye,
+    designLabels.nose,
+    designLabels.face,
+    designLabels.mouth,
+    designLabels.forehead
   ].join(" ");
 }
 
-function createAnalysisText(requestText, profile) {
+function createAnalysisText(requestText, profile, designLabels = createDesignLabels(profile)) {
   const priorityText = {
-    natural: "自然さを少し残しながら、目・鼻・輪郭の変化が分かるように調整しています。",
+    natural: "自然さを少し残しながら、指定されたパーツの変化が分かるように調整しています。",
     balance: "顔全体のバランスを見ながら、パーツ単体ではなく全体の印象が変わるようにしています。",
     cost: "大きな変化を見せつつ、段階的な施術イメージとして考えやすい方向にしています。",
     downtime: "変化は大きめですが、画面上ではダウンタイム後の完成イメージとして表示しています。"
   };
-  const requestPart = requestText ? `入力内容「${requestText}」も反映しました。` : "選択した理想イメージを中心に作成しました。";
+  const requestPart = requestText ? `入力内容「${requestText}」も全体コメントとして反映しました。` : "選択した理想イメージを中心に作成しました。";
   const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺を優先して選んでいます。` : "おすすめクリニックは希望内容との相性を優先して選んでいます。";
+  const parts = [
+    `雰囲気：${designLabels.style}`,
+    `目元：${designLabels.eye}`,
+    `鼻：${designLabels.nose}`,
+    `輪郭：${designLabels.face}`,
+    `口：${designLabels.mouth}`,
+    `おでこ：${designLabels.forehead}`
+  ].join("、");
 
-  return `${requestPart} ${optionLabels.style[profile.style]}、${optionLabels.eye[profile.eye]}、${optionLabels.nose[profile.nose]}、${optionLabels.face[profile.face]}を組み合わせたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
+  return `${requestPart} ${parts}をもとにしたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
 }
 
 async function renderResult(result) {
@@ -618,47 +680,52 @@ function applyBeautyFinish(sourceCanvas, profile) {
 
 function getFaceAmount(faceType) {
   const amounts = {
+    none: 0,
     vline: 0.13,
     oval: 0.09,
     sharp: 0.11,
     natural: 0.06
   };
-  return amounts[faceType];
+  return amounts[faceType] ?? 0;
 }
 
 function getEyeAmount(eyeType) {
   const amounts = {
+    none: 0,
     wide: 0.13,
     cat: 0.09,
     soft: 0.08,
     natural: 0.05
   };
-  return amounts[eyeType];
+  return amounts[eyeType] ?? 0;
 }
 
 function getNoseAmount(noseType) {
   const amounts = {
+    none: 0,
     high: 0.08,
     small: 0.1,
     sharp: 0.11,
     natural: 0.04
   };
-  return amounts[noseType];
+  return amounts[noseType] ?? 0;
 }
 
 function getStyleAmount(styleType) {
   const amounts = {
+    none: 0,
     kawaii: 0.08,
     cool: 0.07,
     korean: 0.08,
     doll: 0.1,
     natural: 0.05
   };
-  return amounts[styleType];
+  return amounts[styleType] ?? 0;
 }
 
 function getStyleFilter(styleType) {
   const filters = {
+    none: "brightness(1.04) contrast(1.01) saturate(1.01)",
     kawaii: "brightness(1.08) contrast(1.02) saturate(1.05)",
     cool: "brightness(1.04) contrast(1.06) saturate(0.98)",
     korean: "brightness(1.09) contrast(1.02) saturate(1.02)",

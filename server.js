@@ -191,10 +191,10 @@ function buildGeminiPrompt(body) {
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
     "Keep the same person and realistic identity. Keep the general pose, hairstyle, clothes, lighting, and background, but it is acceptable to slightly reframe the portrait so the face is larger and the requested facial changes are easier to see.",
     "Preserve natural human anatomy and realistic skin texture.",
-    `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}.`,
+    `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
     strengthGuide,
-    "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible changes to eyes, nose bridge, nose tip, jawline, cheeks, and face contour while preserving identity and realistic human anatomy.",
+    "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible requested changes to eyes, nose bridge, nose tip, jawline, cheeks, mouth, lips, forehead, and face contour while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
     "Return only the edited image."
   ].join(" ");

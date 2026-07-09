@@ -49,46 +49,78 @@
         <textarea id="request-text" placeholder="例：自然な二重にしたい、輪郭をシャープにしたい、鼻筋を整えたい"></textarea>
       </label>
 
-      <div class="choice-grid">
-        <label class="field">
+      <div class="choice-grid part-grid">
+        <label class="field part-field">
           <span>なりたい雰囲気</span>
           <select id="style-select">
-            <option value="kawaii">かわいい系</option>
+            <option value="none">ここはいじらない</option>
+            <option value="kawaii" selected>かわいい系</option>
             <option value="cool">クール系</option>
             <option value="korean">韓国アイドル風</option>
             <option value="doll">ドール系</option>
             <option value="natural">ナチュラル美人</option>
           </select>
+          <input id="style-custom" class="part-input" type="text" placeholder="自由入力：例 韓国女優風、クール美人">
         </label>
 
-        <label class="field">
+        <label class="field part-field">
           <span>目元</span>
           <select id="eye-select">
-            <option value="wide">ぱっちり二重</option>
+            <option value="none">ここはいじらない</option>
+            <option value="wide" selected>ぱっちり二重</option>
             <option value="cat">切れ長・猫目</option>
             <option value="soft">やさしいたれ目</option>
             <option value="natural">自然な目元</option>
           </select>
+          <input id="eye-custom" class="part-input" type="text" placeholder="自由入力：例 平行二重、涙袋を強調">
         </label>
 
-        <label class="field">
+        <label class="field part-field">
           <span>鼻</span>
           <select id="nose-select">
-            <option value="high">鼻筋を高く</option>
+            <option value="none">ここはいじらない</option>
+            <option value="high" selected>鼻筋を高く</option>
             <option value="small">小鼻を小さく</option>
             <option value="sharp">鼻先をシャープに</option>
             <option value="natural">自然な鼻</option>
           </select>
+          <input id="nose-custom" class="part-input" type="text" placeholder="自由入力：例 鼻先を丸く、小鼻控えめ">
         </label>
 
-        <label class="field">
+        <label class="field part-field">
           <span>輪郭</span>
           <select id="face-select">
-            <option value="vline">Vライン小顔</option>
+            <option value="none">ここはいじらない</option>
+            <option value="vline" selected>Vライン小顔</option>
             <option value="oval">卵型フェイス</option>
             <option value="sharp">シャープな輪郭</option>
             <option value="natural">自然な輪郭</option>
           </select>
+          <input id="face-custom" class="part-input" type="text" placeholder="自由入力：例 面長を短く、頬をすっきり">
+        </label>
+
+        <label class="field part-field">
+          <span>口</span>
+          <select id="mouth-select">
+            <option value="none">ここはいじらない</option>
+            <option value="full">ふっくらした唇</option>
+            <option value="small">小さめの口元</option>
+            <option value="smile">口角を上げる</option>
+            <option value="natural">自然な口元</option>
+          </select>
+          <input id="mouth-custom" class="part-input" type="text" placeholder="自由入力：例 M字リップ、薄めの唇">
+        </label>
+
+        <label class="field part-field">
+          <span>おでこ</span>
+          <select id="forehead-select">
+            <option value="none">ここはいじらない</option>
+            <option value="round">丸みのあるおでこ</option>
+            <option value="smooth">なめらかなおでこ</option>
+            <option value="balanced">顔全体と自然に調整</option>
+            <option value="natural">自然なおでこ</option>
+          </select>
+          <input id="forehead-custom" class="part-input" type="text" placeholder="自由入力：例 おでこに丸み、前髪は維持">
         </label>
       </div>
 

@@ -140,6 +140,19 @@ h3 {
   gap: 12px;
 }
 
+.part-field {
+  align-content: start;
+}
+
+.part-input {
+  margin-top: -2px;
+  font-size: 13px;
+}
+
+.part-input::placeholder {
+  color: #8a8f9d;
+}
+
 input,
 textarea,
 select,
