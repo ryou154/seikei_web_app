@@ -171,6 +171,23 @@
           </div>
         </div>
 
+        <div id="compare-panel" class="compare-panel hidden">
+          <div class="compare-heading">
+            <div>
+              <p class="section-kicker">Compare</p>
+              <h3>Before / After 比較</h3>
+            </div>
+            <output id="compare-value" for="compare-range">50%</output>
+          </div>
+          <div class="compare-view" id="compare-view">
+            <img id="compare-before" class="compare-image" alt="Before比較画像">
+            <div id="compare-after-wrap" class="compare-after-wrap">
+              <img id="compare-after" class="compare-image" alt="After比較画像">
+            </div>
+            <div id="compare-divider" class="compare-divider" aria-hidden="true"></div>
+          </div>
+          <input id="compare-range" class="compare-range" type="range" min="0" max="100" value="50" aria-label="Before After 比較スライダー">
+        </div>
         <div class="analysis-box">
           <h3>AI分析コメント</h3>
           <p id="analysis-text"></p>

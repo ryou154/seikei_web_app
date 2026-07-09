@@ -24,6 +24,13 @@ const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const comparePanel = document.getElementById("compare-panel");
+const compareBefore = document.getElementById("compare-before");
+const compareAfter = document.getElementById("compare-after");
+const compareAfterWrap = document.getElementById("compare-after-wrap");
+const compareDivider = document.getElementById("compare-divider");
+const compareRange = document.getElementById("compare-range");
+const compareValue = document.getElementById("compare-value");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
@@ -38,6 +45,8 @@ changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
 syncCameraPreviewFlip();
 cameraFlipFixInput?.addEventListener("change", syncCameraPreviewFlip);
+compareRange?.addEventListener("input", updateCompareSlider);
+updateCompareSlider();
 
 function syncCameraPreviewFlip() {
   cameraPreview.classList.toggle("is-flipped", Boolean(cameraFlipFixInput?.checked));
@@ -343,6 +352,7 @@ async function renderResult(result) {
       ? await createGeminiAfterImage(result)
       : createAfterImage(result.profile);
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
+    renderCompareSlider(selectedImageData, generatedImage);
   } catch (error) {
     console.error(error);
     const localImage = createAfterImage(result.profile);
@@ -354,6 +364,7 @@ async function renderResult(result) {
       </div>
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
     `;
+    renderCompareSlider(selectedImageData, localImage);
   }
 
   hospitalList.innerHTML = result.hospitals.map((hospital) => `
@@ -367,6 +378,25 @@ async function renderResult(result) {
   `).join("");
 }
 
+function updateCompareSlider() {
+  if (!compareRange || !compareAfterWrap || !compareDivider || !compareValue) return;
+
+  const rawValue = Number(compareRange.value);
+  const value = `${rawValue}%`;
+  compareAfterWrap.style.clipPath = `inset(0 ${100 - rawValue}% 0 0)`;
+  compareDivider.style.left = value;
+  compareValue.textContent = value;
+}
+
+function renderCompareSlider(beforeSrc, afterSrc) {
+  if (!comparePanel || !compareBefore || !compareAfter || !compareRange) return;
+
+  compareBefore.src = beforeSrc;
+  compareAfter.src = afterSrc;
+  compareRange.value = 50;
+  comparePanel.classList.remove("hidden");
+  updateCompareSlider();
+}
 function runScanAnimation(profile) {
   if (!scanPanel || !scanSteps) {
     return Promise.resolve();
