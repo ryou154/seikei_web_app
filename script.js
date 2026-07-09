@@ -454,21 +454,34 @@ function resizeImageForGemini(imageData) {
       const isStrongChange = Number(changeStrengthInput.value) >= 60;
       const maxSize = isMobile ? 320 : isStrongChange ? 512 : 640;
       const jpegQuality = isMobile ? 0.56 : 0.68;
-      const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
-      const width = Math.max(1, Math.round(image.naturalWidth * scale));
-      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const sourceWidth = image.naturalWidth;
+      const sourceHeight = image.naturalHeight;
+      const sourceMin = Math.min(sourceWidth, sourceHeight);
+      const zoomRatio = isStrongChange ? 0.68 : 0.78;
+      const cropSize = Math.max(1, Math.round(sourceMin * zoomRatio));
+      const centerX = sourceWidth * 0.5;
+      const centerY = sourceHeight > sourceWidth ? sourceHeight * 0.42 : sourceHeight * 0.46;
+      const sourceX = clamp(centerX - cropSize / 2, 0, sourceWidth - cropSize);
+      const sourceY = clamp(centerY - cropSize / 2, 0, sourceHeight - cropSize);
+      const outputSize = Math.min(maxSize, cropSize);
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
 
-      canvas.width = width;
-      canvas.height = height;
-      context.drawImage(image, 0, 0, width, height);
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(image, sourceX, sourceY, cropSize, cropSize, 0, 0, outputSize, outputSize);
       resolve(canvas.toDataURL("image/jpeg", jpegQuality));
     });
 
     image.addEventListener("error", () => reject(new Error("画像の軽量化に失敗しました。iPhoneの場合は、写真設定を『互換性優先』にするか、カメラで撮影して試してください。")));
     image.src = imageData;
   });
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");

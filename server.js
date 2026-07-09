@@ -189,12 +189,12 @@ function buildGeminiPrompt(body) {
   return [
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
-    "Keep the same person, pose, hairstyle, clothes, lighting, and background.",
+    "Keep the same person and realistic identity. Keep the general pose, hairstyle, clothes, lighting, and background, but it is acceptable to slightly reframe the portrait so the face is larger and the requested facial changes are easier to see.",
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
     strengthGuide,
-    "For stronger settings, the Before and After must be easy to tell apart at a glance by changing the visual impression, not by making a non-human or different-person result.",
+    "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible changes to eyes, nose bridge, nose tip, jawline, cheeks, and face contour while preserving identity and realistic human anatomy.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
     "Return only the edited image."
   ].join(" ");
