@@ -662,6 +662,13 @@ body.camera-open {
   .camera-stage {
     aspect-ratio: 3 / 4;
   }
+
+  .face-guide {
+    width: min(52vw, 210px);
+    height: min(72vw, 290px);
+    max-height: 58%;
+    top: 52%;
+  }
   .hero-points span,
   .scan-steps span {
     width: 100%;
