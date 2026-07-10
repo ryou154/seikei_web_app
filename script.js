@@ -152,6 +152,13 @@ const optionLabels = {
   }
 };
 
+const priorityLabels = {
+  natural: "自然さを重視",
+  balance: "顔全体のバランスを重視",
+  visible: "変化を分かりやすく",
+  parts: "希望パーツを強く反映"
+};
+
 faceImageInput.addEventListener("change", () => {
   const file = faceImageInput.files[0];
 
@@ -481,6 +488,7 @@ function runScanAnimation(profile) {
     }
   });
 
+  labels.push("生成方針：" + (priorityLabels[profile.priority] || "自然さを重視"));
   labels.push("変化強度 " + profile.strength + "% でAfter設計");
   scanSteps.innerHTML = labels.map((label, index) => '<span class="' + (index === 0 ? 'active' : '') + '">' + label + '</span>').join("");
   scanPanel.classList.add("is-scanning");
