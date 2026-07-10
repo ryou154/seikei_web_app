@@ -48,12 +48,48 @@ async function handleGeminiEdit(request, response) {
   const body = await readJsonBody(request);
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
+  const retryPrompt = buildGeminiPrompt(body, { compact: true });
+  const attempts = [
+    { model: "gemini-3.1-flash-image", prompt },
+    { model: "gemini-3.1-flash-image", prompt: retryPrompt },
+    { model: "gemini-2.5-flash-image", prompt: retryPrompt }
+  ];
+  const errors = [];
+
+  for (const attempt of attempts) {
+    const result = await requestGeminiImage({
+      model: attempt.model,
+      prompt: attempt.prompt,
+      image
+    });
+
+    if (result.ok) {
+      sendJson(response, 200, {
+        image: `data:${result.image.mime_type || "image/png"};base64,${result.image.data}`,
+        model: attempt.model
+      });
+      return;
+    }
+
+    errors.push(result.error);
+
+    if (!shouldRetryGeminiError(result.status, result.error)) {
+      break;
+    }
+  }
+
+  sendJson(response, errors.at(-1)?.status || 502, {
+    error: errors.at(-1)?.message || "Gemini画像生成に失敗しました。",
+    detail: errors.map((error) => error.message).filter(Boolean).join(" / ")
+  });
+}
+
+async function requestGeminiImage({ model, prompt, image }) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 160000);
-  let geminiResponse;
 
   try {
-    geminiResponse = await fetch(
+    const geminiResponse = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         method: "POST",
@@ -62,7 +98,7 @@ async function handleGeminiEdit(request, response) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "gemini-3.1-flash-image",
+          model,
           input: [
             { type: "text", text: prompt },
             {
@@ -81,42 +117,56 @@ async function handleGeminiEdit(request, response) {
         signal: controller.signal
       }
     );
+
+    const data = await geminiResponse.json().catch(() => ({}));
+
+    if (!geminiResponse.ok) {
+      return {
+        ok: false,
+        status: geminiResponse.status,
+        error: {
+          status: geminiResponse.status,
+          message: data.error?.message || "Gemini API request failed"
+        }
+      };
+    }
+
+    const outputImage = extractGeminiImage(data);
+
+    if (!outputImage?.data) {
+      return {
+        ok: false,
+        status: 502,
+        error: {
+          status: 502,
+          message: summarizeGeminiResponse(data)
+        }
+      };
+    }
+
+    return { ok: true, image: outputImage };
   } catch (error) {
     if (error.name === "AbortError") {
-      sendJson(response, 504, {
-        error: "Gemini画像生成が約5分以内に完了しませんでした。画像を小さくするか、少し時間を置いて再実行してください。"
-      });
-      return;
+      return {
+        ok: false,
+        status: 504,
+        error: {
+          status: 504,
+          message: "Gemini画像生成が約5分以内に完了しませんでした。画像を小さくするか、少し時間を置いて再実行してください。"
+        }
+      };
     }
 
     throw error;
   } finally {
     clearTimeout(timeoutId);
   }
-  const data = await geminiResponse.json();
-
-  if (!geminiResponse.ok) {
-    sendJson(response, geminiResponse.status, {
-      error: data.error?.message || "Gemini API request failed"
-    });
-    return;
-  }
-
-  const outputImage = extractGeminiImage(data);
-
-  if (!outputImage?.data) {
-    sendJson(response, 502, {
-      error: "Geminiから画像が返りませんでした。",
-      detail: summarizeGeminiResponse(data)
-    });
-    return;
-  }
-
-  sendJson(response, 200, {
-    image: `data:${outputImage.mime_type || "image/png"};base64,${outputImage.data}`
-  });
 }
 
+function shouldRetryGeminiError(status, error) {
+  const message = String(error?.message || "").toLowerCase();
+  return status >= 500 || status === 429 || message.includes("internal error") || message.includes("no output_image");
+}
 function extractGeminiImage(data) {
   if (data?.output_image?.data) return data.output_image;
 
@@ -174,11 +224,12 @@ function collectGeminiText(value, texts) {
   }
 }
 
-function buildGeminiPrompt(body) {
+function buildGeminiPrompt(body, options = {}) {
   const labels = body.labels || {};
   const strength = body.profile?.strength ?? 50;
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const compact = Boolean(options.compact);
   const priorityGuide = {
     natural: "Generation priority: keep a natural, realistic result while making the requested changes visible.",
     balance: "Generation priority: optimize the whole-face balance so the eyes, nose, mouth, forehead, and contour harmonize together.",
@@ -202,7 +253,7 @@ function buildGeminiPrompt(body) {
     `User request: ${requestText}. Strength: ${strength}%.`,
     priorityGuide[generationPriority] || priorityGuide.natural,
     strengthGuide,
-    "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible requested changes to eyes, nose bridge, nose tip, jawline, cheeks, mouth, lips, forehead, and face contour while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
+    compact ? "Use a simple, stable edit. Keep identity, pose, lighting, background, and realistic anatomy. Apply the requested facial design changes clearly but avoid overprocessing." : "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible requested changes to eyes, nose bridge, nose tip, jawline, cheeks, mouth, lips, forehead, and face contour while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
     "Return only the edited image."
   ].join(" ");
