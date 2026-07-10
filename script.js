@@ -25,6 +25,7 @@ const changeStrengthInput = document.getElementById("change-strength");
 const changeStrengthValue = document.getElementById("change-strength-value");
 const imageEngineInput = document.getElementById("image-engine");
 const regionInput = document.getElementById("region-input");
+const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
 const saveButton = document.getElementById("save-button");
@@ -68,8 +69,8 @@ const hospitals = [
     name: "渋谷ナチュラル美容クリニック",
     area: "東京・渋谷",
     regions: ["東京", "渋谷", "関東"],
-    strengths: ["自然", "バランス", "鼻", "輪郭"],
-    tags: ["自然な変化", "全体バランス", "初回相談"],
+    strengths: ["自然", "バランス", "鼻", "輪郭", "費用", "予算", "初回相談"],
+    tags: ["自然な変化", "全体バランス", "費用相談"],
     description: "自然さを残しながら顔全体の印象を整える提案に向いています。"
   },
   {
@@ -84,24 +85,24 @@ const hospitals = [
     name: "大阪ビューティーバランス院",
     area: "大阪・梅田",
     regions: ["大阪", "梅田", "関西"],
-    strengths: ["鼻", "鼻筋", "バランス", "クール"],
-    tags: ["鼻筋デザイン", "顔全体のバランス", "関西エリア"],
+    strengths: ["鼻", "鼻筋", "バランス", "クール", "ダウンタイム", "短期"],
+    tags: ["鼻筋デザイン", "顔全体のバランス", "ダウンタイム相談"],
     description: "鼻筋や鼻先を含めた顔全体のバランス調整を提案します。"
   },
   {
     name: "名古屋フェイスラインクリニック",
     area: "愛知・名古屋",
     regions: ["愛知", "名古屋", "東海"],
-    strengths: ["輪郭", "小顔", "自然", "卵型"],
-    tags: ["輪郭相談", "卵型フェイス", "自然な小顔"],
+    strengths: ["輪郭", "小顔", "自然", "卵型", "費用", "段階的"],
+    tags: ["輪郭相談", "段階的プラン", "自然な小顔"],
     description: "輪郭を整えつつ、やりすぎない小顔イメージを提案します。"
   },
   {
     name: "福岡アイドルフェイス美容外科",
     area: "福岡・天神",
     regions: ["福岡", "天神", "九州"],
-    strengths: ["韓国", "かわいい", "二重", "鼻"],
-    tags: ["韓国アイドル風", "ぱっちり二重", "鼻先相談"],
+    strengths: ["韓国", "かわいい", "二重", "鼻", "ダウンタイム", "短期"],
+    tags: ["韓国アイドル風", "ぱっちり二重", "短期相談"],
     description: "華やかで写真映えする雰囲気のシミュレーションに向いています。"
   }
 ];
@@ -307,6 +308,7 @@ function createSimulationResult(requestText) {
     strength: Number(changeStrengthInput.value),
     imageEngine: imageEngineInput.value,
     region: regionInput.value.trim(),
+    clinicPriority: clinicPriorityInput.value,
     priority: priorityInput.value
   };
   const designLabels = createDesignLabels(profile);
@@ -315,7 +317,7 @@ function createSimulationResult(requestText) {
   const matchedHospitals = hospitals
     .map((hospital) => ({
       ...hospital,
-      score: getHospitalScore(hospital, keywords, profile.region)
+      score: getHospitalScore(hospital, keywords, profile.region, profile.clinicPriority)
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -345,9 +347,18 @@ function getDesignLabel(profile, key) {
   return profile.custom?.[key] || optionLabels[key]?.[profile[key]] || "変更しない";
 }
 
-function getHospitalScore(hospital, keywords, region) {
+function getHospitalScore(hospital, keywords, region, clinicPriority = "match") {
   const normalizedRegion = normalizeText(region);
   const normalizedKeywords = normalizeText(keywords);
+  const normalizedClinicText = normalizeText([
+    ...(hospital.strengths || []),
+    ...(hospital.tags || []),
+    hospital.description
+  ].join(" "));
+  const clinicPriorityKeywords = {
+    cost: ["費用", "予算", "初回相談", "段階的"],
+    downtime: ["ダウンタイム", "短期", "自然"]
+  };
   let score = 0;
 
   if (normalizedRegion) {
@@ -362,6 +373,9 @@ function getHospitalScore(hospital, keywords, region) {
   }
 
   score += hospital.strengths.filter((strength) => normalizedKeywords.includes(normalizeText(strength))).length * 2;
+
+  const clinicKeywords = clinicPriorityKeywords[clinicPriority] || [];
+  score += clinicKeywords.filter((keyword) => normalizedClinicText.includes(normalizeText(keyword))).length * 4;
   return score;
 }
 
@@ -383,12 +397,18 @@ function buildKeywords(requestText, profile, designLabels = createDesignLabels(p
 function createAnalysisText(requestText, profile, designLabels = createDesignLabels(profile)) {
   const priorityText = {
     natural: "自然さを少し残しながら、指定されたパーツの変化が分かるように調整しています。",
-    balance: "顔全体のバランスを見ながら、パーツ単体ではなく全体の印象が変わるようにしています。",
-    cost: "大きな変化を見せつつ、段階的な施術イメージとして考えやすい方向にしています。",
-    downtime: "変化は大きめですが、画面上ではダウンタイム後の完成イメージとして表示しています。"
+    balance: "顔全体のバランスを見ながら、パーツ単体ではなく全体の印象が整うようにしています。",
+    visible: "Beforeとの差が分かりやすいように、変化量をやや強めに反映しています。",
+    parts: "指定されたパーツの希望を優先して、目・鼻・輪郭・口・おでこの変化が伝わるようにしています。"
+  };
+  const clinicPriorityText = {
+    match: "希望内容との相性",
+    cost: "費用を抑えやすい相談",
+    downtime: "ダウンタイムを短くしやすい相談"
   };
   const requestPart = requestText ? `入力内容「${requestText}」も全体コメントとして反映しました。` : "選択した理想イメージを中心に作成しました。";
-  const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺を優先して選んでいます。` : "おすすめクリニックは希望内容との相性を優先して選んでいます。";
+  const clinicFocus = clinicPriorityText[profile.clinicPriority] || clinicPriorityText.match;
+  const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺と「${clinicFocus}」を優先して選んでいます。` : `おすすめクリニックは「${clinicFocus}」を優先して選んでいます。`;
   const parts = [
     `雰囲気：${designLabels.style}`,
     `目元：${designLabels.eye}`,
@@ -497,12 +517,7 @@ async function createGeminiAfterImage(result) {
       image: await resizeImageForGemini(selectedImageData),
       requestText: result.requestText,
       profile: result.profile,
-      labels: {
-        style: optionLabels.style[result.profile.style],
-        eye: optionLabels.eye[result.profile.eye],
-        nose: optionLabels.nose[result.profile.nose],
-        face: optionLabels.face[result.profile.face]
-      }
+      labels: result.designLabels
     })
   });
 

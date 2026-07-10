@@ -145,12 +145,21 @@
       </label>
 
       <label class="field">
-        <span>重視したいこと</span>
+        <span>クリニック選びで重視</span>
+        <select id="clinic-priority">
+          <option value="match">希望内容との相性を重視</option>
+          <option value="cost">費用を抑えたい</option>
+          <option value="downtime">ダウンタイムを短くしたい</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>生成方針</span>
         <select id="priority">
           <option value="natural">自然さを重視</option>
           <option value="balance">顔全体のバランスを重視</option>
-          <option value="cost">費用を抑えたい</option>
-          <option value="downtime">ダウンタイムを短くしたい</option>
+          <option value="visible">変化を分かりやすく</option>
+          <option value="parts">希望パーツを強く反映</option>
         </select>
       </label>
 

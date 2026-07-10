@@ -177,7 +177,14 @@ function collectGeminiText(value, texts) {
 function buildGeminiPrompt(body) {
   const labels = body.labels || {};
   const strength = body.profile?.strength ?? 50;
+  const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const priorityGuide = {
+    natural: "Generation priority: keep a natural, realistic result while making the requested changes visible.",
+    balance: "Generation priority: optimize the whole-face balance so the eyes, nose, mouth, forehead, and contour harmonize together.",
+    visible: "Generation priority: make the Before and After difference easy to recognize at a glance while preserving identity.",
+    parts: "Generation priority: strongly reflect the specified parts and custom requests. Requested eyes, nose, mouth, forehead, and contour changes should be visibly represented."
+  };
   const strengthGuide = strength >= 75
     ? "Apply a strong visual beauty design transformation. Make the Before and After clearly different by enhancing eyelid appearance, brighter eye impression, clearer nose bridge appearance, sharper face outline appearance, smaller-face impression, V-line style contour appearance, and balanced polished portrait aesthetics. Keep the same identity and a realistic human face."
     : strength >= 60
@@ -193,6 +200,7 @@ function buildGeminiPrompt(body) {
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
+    priorityGuide[generationPriority] || priorityGuide.natural,
     strengthGuide,
     "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible requested changes to eyes, nose bridge, nose tip, jawline, cheeks, mouth, lips, forehead, and face contour while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
