@@ -25,6 +25,8 @@ const changeStrengthInput = document.getElementById("change-strength");
 const changeStrengthValue = document.getElementById("change-strength-value");
 const imageEngineInput = document.getElementById("image-engine");
 const regionInput = document.getElementById("region-input");
+const budgetInput = document.getElementById("budget-select");
+const downtimeInput = document.getElementById("downtime-select");
 const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
@@ -315,6 +317,8 @@ function createSimulationResult(requestText) {
     strength: Number(changeStrengthInput.value),
     imageEngine: imageEngineInput.value,
     region: regionInput.value.trim(),
+    budget: budgetInput.value,
+    downtime: downtimeInput.value,
     clinicPriority: clinicPriorityInput.value,
     priority: priorityInput.value
   };
@@ -324,7 +328,8 @@ function createSimulationResult(requestText) {
   const matchedHospitals = hospitals
     .map((hospital) => ({
       ...hospital,
-      score: getHospitalScore(hospital, keywords, profile.region, profile.clinicPriority)
+      score: getHospitalScore(hospital, keywords, profile),
+      tags: [...hospital.tags, getHospitalClinicInfo(hospital).budgetLabel, getHospitalClinicInfo(hospital).downtimeLabel]
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -354,8 +359,8 @@ function getDesignLabel(profile, key) {
   return profile.custom?.[key] || optionLabels[key]?.[profile[key]] || "変更しない";
 }
 
-function getHospitalScore(hospital, keywords, region, clinicPriority = "match") {
-  const normalizedRegion = normalizeText(region);
+function getHospitalScore(hospital, keywords, profile) {
+  const normalizedRegion = normalizeText(profile.region);
   const normalizedKeywords = normalizeText(keywords);
   const normalizedClinicText = normalizeText([
     ...(hospital.strengths || []),
@@ -366,6 +371,7 @@ function getHospitalScore(hospital, keywords, region, clinicPriority = "match") 
     cost: ["費用", "予算", "初回相談", "段階的"],
     downtime: ["ダウンタイム", "短期", "自然"]
   };
+  const clinicInfo = getHospitalClinicInfo(hospital);
   let score = 0;
 
   if (normalizedRegion) {
@@ -373,19 +379,34 @@ function getHospitalScore(hospital, keywords, region, clinicPriority = "match") 
       const normalizedItem = normalizeText(item);
       return normalizedItem.includes(normalizedRegion) || normalizedRegion.includes(normalizedItem);
     });
-
-    if (regionMatched) {
-      score += 10;
-    }
+    if (regionMatched) score += 10;
   }
 
   score += hospital.strengths.filter((strength) => normalizedKeywords.includes(normalizeText(strength))).length * 2;
-
-  const clinicKeywords = clinicPriorityKeywords[clinicPriority] || [];
+  const clinicKeywords = clinicPriorityKeywords[profile.clinicPriority] || [];
   score += clinicKeywords.filter((keyword) => normalizedClinicText.includes(normalizeText(keyword))).length * 4;
+  if (profile.budget !== "any" && clinicInfo.budget === profile.budget) score += 7;
+  if (profile.downtime !== "any" && (clinicInfo.downtime === profile.downtime || clinicInfo.downtime === "flexible")) score += 7;
   return score;
 }
+function getHospitalClinicInfo(hospital) {
+  const catalog = {
+    "東京フェイスデザインクリニック": { budget: "20to40", budgetLabel: "費用目安：20〜40万円", downtime: "standard", downtimeLabel: "DT目安：1〜2週間" },
+    "渋谷ナチュラル美容クリニック": { budget: "under20", budgetLabel: "費用目安：20万円未満", downtime: "short", downtimeLabel: "DT目安：数日〜1週間" },
+    "ミライ輪郭美容外科": { budget: "over40", budgetLabel: "費用目安：40万円以上", downtime: "standard", downtimeLabel: "DT目安：1〜2週間" },
+    "大阪ビューティーバランス院": { budget: "20to40", budgetLabel: "費用目安：20〜40万円", downtime: "short", downtimeLabel: "DT目安：数日〜1週間" },
+    "名古屋フェイスラインクリニック": { budget: "under20", budgetLabel: "費用目安：20万円未満", downtime: "flexible", downtimeLabel: "DT目安：施術内容により相談" },
+    "福岡アイドルフェイス美容外科": { budget: "20to40", budgetLabel: "費用目安：20〜40万円", downtime: "short", downtimeLabel: "DT目安：数日〜1週間" }
+  };
+  return catalog[hospital.name] || { budget: "any", budgetLabel: "費用は要確認", downtime: "flexible", downtimeLabel: "DTは要確認" };
+}
 
+function createClinicSummary(profile) {
+  const budgetLabels = { any: "予算指定なし", under20: "予算：20万円未満", "20to40": "予算：20〜40万円", over40: "予算：40万円以上" };
+  const downtimeLabels = { any: "ダウンタイム指定なし", short: "ダウンタイム：短め", standard: "ダウンタイム：標準", flexible: "ダウンタイム：期間は問わない" };
+  const area = profile.region ? "地域：" + profile.region : "地域：全国から相性を優先";
+  return area + " / " + budgetLabels[profile.budget] + " / " + downtimeLabels[profile.downtime];
+}
 function normalizeText(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
 }
@@ -465,6 +486,7 @@ async function renderResult(result) {
       <p class="small">${hospital.area} / ${hospital.description}</p>
     </article>
   `).join("");
+  document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
 }
 
 function runScanAnimation(profile) {
