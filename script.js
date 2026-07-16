@@ -534,13 +534,15 @@ async function createGeminiAfterImage(result) {
     throw new Error("Gemini生成はローカルサーバー起動時のみ使えます。");
   }
 
+  const preparedImage = await resizeImageForGemini(selectedImageData);
   const response = await fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      image: await resizeImageForGemini(selectedImageData),
+      image: preparedImage.data,
+      aspectRatio: preparedImage.aspectRatio,
       requestText: result.requestText,
       profile: result.profile,
       labels: result.designLabels
@@ -564,27 +566,25 @@ function resizeImageForGemini(imageData) {
     image.addEventListener("load", () => {
       const isMobile = window.matchMedia("(max-width: 700px)").matches || /iPhone|iPad|Android/i.test(navigator.userAgent);
       const isStrongChange = Number(changeStrengthInput.value) >= 60;
-      const maxSize = isMobile ? 320 : isStrongChange ? 512 : 640;
-      const jpegQuality = isMobile ? 0.56 : 0.68;
+      const maxSize = isMobile ? 480 : isStrongChange ? 720 : 800;
+      const jpegQuality = isMobile ? 0.62 : 0.74;
       const sourceWidth = image.naturalWidth;
       const sourceHeight = image.naturalHeight;
-      const sourceMin = Math.min(sourceWidth, sourceHeight);
-      const zoomRatio = isStrongChange ? 0.68 : 0.78;
-      const cropSize = Math.max(1, Math.round(sourceMin * zoomRatio));
-      const centerX = sourceWidth * 0.5;
-      const centerY = sourceHeight > sourceWidth ? sourceHeight * 0.42 : sourceHeight * 0.46;
-      const sourceX = clamp(centerX - cropSize / 2, 0, sourceWidth - cropSize);
-      const sourceY = clamp(centerY - cropSize / 2, 0, sourceHeight - cropSize);
-      const outputSize = Math.min(maxSize, cropSize);
+      const scale = Math.min(1, maxSize / Math.max(sourceWidth, sourceHeight));
+      const outputWidth = Math.max(1, Math.round(sourceWidth * scale));
+      const outputHeight = Math.max(1, Math.round(sourceHeight * scale));
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
 
-      canvas.width = outputSize;
-      canvas.height = outputSize;
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
       context.imageSmoothingEnabled = true;
       context.imageSmoothingQuality = "high";
-      context.drawImage(image, sourceX, sourceY, cropSize, cropSize, 0, 0, outputSize, outputSize);
-      resolve(canvas.toDataURL("image/jpeg", jpegQuality));
+      context.drawImage(image, 0, 0, sourceWidth, sourceHeight, 0, 0, outputWidth, outputHeight);
+
+      const ratio = sourceWidth / sourceHeight;
+      const aspectRatio = ratio > 1.15 ? "4:3" : ratio < 0.87 ? "3:4" : "1:1";
+      resolve({ data: canvas.toDataURL("image/jpeg", jpegQuality), aspectRatio });
     });
 
     image.addEventListener("error", () => reject(new Error("画像の軽量化に失敗しました。iPhoneの場合は、写真設定を『互換性優先』にするか、カメラで撮影して試してください。")));

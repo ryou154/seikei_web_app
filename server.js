@@ -49,6 +49,7 @@ async function handleGeminiEdit(request, response) {
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const retryPrompt = buildGeminiPrompt(body, { compact: true });
+  const aspectRatio = normalizeAspectRatio(body.aspectRatio);
   const attempts = [
     { model: "gemini-3.1-flash-image", prompt },
     { model: "gemini-3.1-flash-image", prompt: retryPrompt },
@@ -60,7 +61,8 @@ async function handleGeminiEdit(request, response) {
     const result = await requestGeminiImage({
       model: attempt.model,
       prompt: attempt.prompt,
-      image
+      image,
+      aspectRatio
     });
 
     if (result.ok) {
@@ -84,7 +86,7 @@ async function handleGeminiEdit(request, response) {
   });
 }
 
-async function requestGeminiImage({ model, prompt, image }) {
+async function requestGeminiImage({ model, prompt, image, aspectRatio }) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 160000);
 
@@ -110,7 +112,7 @@ async function requestGeminiImage({ model, prompt, image }) {
           response_format: {
             type: "image",
             mime_type: "image/jpeg",
-            aspect_ratio: "1:1",
+            aspect_ratio: aspectRatio,
             image_size: "1K"
           }
         }),
@@ -224,6 +226,9 @@ function collectGeminiText(value, texts) {
   }
 }
 
+function normalizeAspectRatio(value) {
+  return ["1:1", "4:3", "3:4"].includes(value) ? value : "1:1";
+}
 function buildGeminiPrompt(body, options = {}) {
   const labels = body.labels || {};
   const strength = body.profile?.strength ?? 50;
@@ -247,7 +252,7 @@ function buildGeminiPrompt(body, options = {}) {
   return [
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
-    "Keep the same person and realistic identity. Keep the general pose, hairstyle, clothes, lighting, and background, but it is acceptable to slightly reframe the portrait so the face is larger and the requested facial changes are easier to see.",
+    "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
