@@ -58,86 +58,7 @@ function updateStrengthValue() {
   changeStrengthValue.textContent = `${changeStrengthInput.value}%`;
 }
 
-const hospitals = [
-  {
-    name: "湘南美容クリニック 新宿本院",
-    area: "東京・西新宿",
-    regions: ["東京", "新宿", "西新宿", "関東"],
-    strengths: ["二重", "目元", "鼻", "輪郭", "小顔", "若返り"],
-    tags: ["二重・目元", "鼻整形", "小顔・フェイスライン"],
-    description: "新宿本院の公式ページに掲載された対応施術をもとに表示しています。",
-    address: "東京都新宿区西新宿6-5-1 新宿アイランドタワー24F",
-    hours: "10:00～19:00",
-    sourceUrl: "https://www.s-b-c.net/clinic/branch/shinjuku/",
-    priceUrl: "https://www.s-b-c.net/charge_list/",
-    verifiedAt: "2026-07-16"
-  },
-  {
-    name: "TCB東京中央美容外科 新宿三丁目院",
-    area: "東京・新宿三丁目",
-    regions: ["東京", "新宿", "新宿三丁目", "関東"],
-    strengths: ["二重", "目元", "鼻", "唇", "輪郭", "小顔"],
-    tags: ["二重整形", "クマ取り", "鼻・口元・輪郭"],
-    description: "新宿三丁目院の公式ページに掲載された診療科目をもとに表示しています。",
-    address: "東京都新宿区新宿3-1-20 メットライフ新宿スクエア7F",
-    hours: "9:00～19:00",
-    sourceUrl: "https://aoki-tsuyoshi.com/clinic/shinjuku/shinjuku_sanchome",
-    priceUrl: "https://aoki-tsuyoshi.com/price",
-    verifiedAt: "2026-07-16"
-  },
-  {
-    name: "品川美容外科 新宿院",
-    area: "東京・新宿",
-    regions: ["東京", "新宿", "代々木", "関東"],
-    strengths: ["目元", "鼻", "あご", "輪郭", "小顔", "若返り"],
-    tags: ["目元", "鼻・あご", "小顔治療"],
-    description: "新宿院の公式ページに掲載された診療メニューをもとに表示しています。",
-    address: "東京都渋谷区代々木2-9-2 久保ビル6F",
-    hours: "10:00～20:00",
-    sourceUrl: "https://www.shinagawa.com/clinic_shinjuku/",
-    priceUrl: "https://www.shinagawa.com/price/",
-    verifiedAt: "2026-07-16"
-  },
-  {
-    name: "湘南美容クリニック 大阪梅田本院",
-    area: "大阪・梅田",
-    regions: ["大阪", "梅田", "大阪駅", "関西"],
-    strengths: ["二重", "目元", "鼻", "輪郭", "小顔", "若返り"],
-    tags: ["二重・目元", "小顔・フェイスライン", "美容皮膚科"],
-    description: "大阪梅田本院の公式ページに掲載された対応施術をもとに表示しています。",
-    address: "大阪府大阪市北区梅田3-2-123 イノゲート大阪13F",
-    hours: "9:00～18:00",
-    sourceUrl: "https://www.s-b-c.net/clinic/branch/osaka/",
-    priceUrl: "https://www.s-b-c.net/charge_list/",
-    verifiedAt: "2026-07-16"
-  },
-  {
-    name: "TCB東京中央美容外科 梅田大阪駅前院",
-    area: "大阪・梅田",
-    regions: ["大阪", "梅田", "東梅田", "関西"],
-    strengths: ["二重", "目元", "鼻", "唇", "輪郭", "小顔"],
-    tags: ["二重・目元", "クマ取り", "鼻整形"],
-    description: "梅田大阪駅前院の公式ページに掲載された得意施術をもとに表示しています。",
-    address: "大阪府大阪市北区曽根崎2-8-15 K'sスクエアビル3F",
-    hours: "9:00～19:00",
-    sourceUrl: "https://aoki-tsuyoshi.com/clinic/shinsaibashi/umedaosaka",
-    priceUrl: "https://aoki-tsuyoshi.com/price",
-    verifiedAt: "2026-07-16"
-  },
-  {
-    name: "品川美容外科 梅田院",
-    area: "大阪・梅田",
-    regions: ["大阪", "梅田", "北新地", "関西"],
-    strengths: ["二重", "目元", "鼻", "あご", "輪郭", "小顔"],
-    tags: ["二重・目元", "鼻・あご", "小顔治療"],
-    description: "梅田院の公式ページに掲載された診療メニューをもとに表示しています。",
-    address: "大阪府大阪市北区梅田1-11-4 大阪駅前第4ビル6F",
-    hours: "10:00～20:00",
-    sourceUrl: "https://www.shinagawa.com/clinic_umeda/",
-    priceUrl: "https://www.shinagawa.com/price/",
-    verifiedAt: "2026-07-16"
-  }
-];
+const hospitals = window.CLINIC_DATA || [];
 const optionLabels = {
   style: {
     none: "雰囲気は変更しない",
@@ -360,10 +281,11 @@ function createSimulationResult(requestText) {
     .map((hospital) => ({
       ...hospital,
       score: getHospitalScore(hospital, keywords, profile),
+      matchReasons: getHospitalMatchReasons(hospital, keywords, profile),
       tags: [...hospital.tags, "公式情報"]
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .slice(0, 5);
 
   return {
     requestText,
@@ -418,6 +340,20 @@ function getHospitalScore(hospital, keywords, profile) {
   score += clinicKeywords.filter((keyword) => normalizedClinicText.includes(normalizeText(keyword))).length * 2;
   if (hospital.priceUrl && profile.clinicPriority === "cost") score += 2;
   return score;
+}
+function getHospitalMatchReasons(hospital, keywords, profile) {
+  const normalizedKeywords = normalizeText(keywords);
+  const matchedStrengths = [...new Set((hospital.strengths || []).filter((strength) =>
+    normalizedKeywords.includes(normalizeText(strength))
+  ))].slice(0, 3);
+  const reasons = [];
+
+  if (matchedStrengths.length) reasons.push(`希望部位：${matchedStrengths.join("・")}`);
+  reasons.push(`地域：${hospital.area}`);
+  if (profile.clinicPriority === "cost") reasons.push("公式料金表を確認可能");
+  if (profile.clinicPriority === "downtime") reasons.push("ダウンタイムは施術ごとに公式ページで要確認");
+  if (!matchedStrengths.length) reasons.push("公式掲載メニューから候補化");
+  return reasons;
 }
 function createClinicSummary(profile) {
   const budgetLabels = { any: "予算指定なし", under20: "予算：20万円未満", "20to40": "予算：20〜40万円", over40: "予算：40万円以上" };
@@ -499,6 +435,7 @@ async function renderResult(result) {
     ? result.hospitals.map((hospital) => `
       <article class="hospital-card">
         <h4>${hospital.name}</h4>
+        <p class="hospital-match"><strong>一致理由</strong> ${hospital.matchReasons.join(" / ")}</p>
         <div class="tags">
           ${hospital.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
         </div>
@@ -512,7 +449,7 @@ async function renderResult(result) {
         <p class="verified-date">公式情報の確認日：${hospital.verifiedAt}</p>
       </article>
     `).join("")
-    : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪の公式情報に対応しています。</div>`;
+    : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
 }
 
