@@ -60,52 +60,82 @@ function updateStrengthValue() {
 
 const hospitals = [
   {
-    name: "東京フェイスデザインクリニック",
+    name: "湘南美容クリニック 新宿本院",
+    area: "東京・西新宿",
+    regions: ["東京", "新宿", "西新宿", "関東"],
+    strengths: ["二重", "目元", "鼻", "輪郭", "小顔", "若返り"],
+    tags: ["二重・目元", "鼻整形", "小顔・フェイスライン"],
+    description: "新宿本院の公式ページに掲載された対応施術をもとに表示しています。",
+    address: "東京都新宿区西新宿6-5-1 新宿アイランドタワー24F",
+    hours: "10:00～19:00",
+    sourceUrl: "https://www.s-b-c.net/clinic/branch/shinjuku/",
+    priceUrl: "https://www.s-b-c.net/charge_list/",
+    verifiedAt: "2026-07-16"
+  },
+  {
+    name: "TCB東京中央美容外科 新宿三丁目院",
+    area: "東京・新宿三丁目",
+    regions: ["東京", "新宿", "新宿三丁目", "関東"],
+    strengths: ["二重", "目元", "鼻", "唇", "輪郭", "小顔"],
+    tags: ["二重整形", "クマ取り", "鼻・口元・輪郭"],
+    description: "新宿三丁目院の公式ページに掲載された診療科目をもとに表示しています。",
+    address: "東京都新宿区新宿3-1-20 メットライフ新宿スクエア7F",
+    hours: "9:00～19:00",
+    sourceUrl: "https://aoki-tsuyoshi.com/clinic/shinjuku/shinjuku_sanchome",
+    priceUrl: "https://aoki-tsuyoshi.com/price",
+    verifiedAt: "2026-07-16"
+  },
+  {
+    name: "品川美容外科 新宿院",
     area: "東京・新宿",
-    regions: ["東京", "新宿", "関東"],
-    strengths: ["二重", "目元", "かわいい", "韓国", "ドール"],
-    tags: ["二重デザイン", "目元カウンセリング", "韓国風"],
-    description: "目元の印象を大きく変えるデザイン提案が得意なクリニックです。"
+    regions: ["東京", "新宿", "代々木", "関東"],
+    strengths: ["目元", "鼻", "あご", "輪郭", "小顔", "若返り"],
+    tags: ["目元", "鼻・あご", "小顔治療"],
+    description: "新宿院の公式ページに掲載された診療メニューをもとに表示しています。",
+    address: "東京都渋谷区代々木2-9-2 久保ビル6F",
+    hours: "10:00～20:00",
+    sourceUrl: "https://www.shinagawa.com/clinic_shinjuku/",
+    priceUrl: "https://www.shinagawa.com/price/",
+    verifiedAt: "2026-07-16"
   },
   {
-    name: "渋谷ナチュラル美容クリニック",
-    area: "東京・渋谷",
-    regions: ["東京", "渋谷", "関東"],
-    strengths: ["自然", "バランス", "鼻", "輪郭", "費用", "予算", "初回相談"],
-    tags: ["自然な変化", "全体バランス", "費用相談"],
-    description: "自然さを残しながら顔全体の印象を整える提案に向いています。"
-  },
-  {
-    name: "ミライ輪郭美容外科",
-    area: "神奈川・横浜",
-    regions: ["神奈川", "横浜", "関東"],
-    strengths: ["輪郭", "エラ", "小顔", "Vライン", "シャープ"],
-    tags: ["輪郭形成", "小顔相談", "Vライン"],
-    description: "フェイスラインやVライン小顔のシミュレーションに向いています。"
-  },
-  {
-    name: "大阪ビューティーバランス院",
+    name: "湘南美容クリニック 大阪梅田本院",
     area: "大阪・梅田",
-    regions: ["大阪", "梅田", "関西"],
-    strengths: ["鼻", "鼻筋", "バランス", "クール", "ダウンタイム", "短期"],
-    tags: ["鼻筋デザイン", "顔全体のバランス", "ダウンタイム相談"],
-    description: "鼻筋や鼻先を含めた顔全体のバランス調整を提案します。"
+    regions: ["大阪", "梅田", "大阪駅", "関西"],
+    strengths: ["二重", "目元", "鼻", "輪郭", "小顔", "若返り"],
+    tags: ["二重・目元", "小顔・フェイスライン", "美容皮膚科"],
+    description: "大阪梅田本院の公式ページに掲載された対応施術をもとに表示しています。",
+    address: "大阪府大阪市北区梅田3-2-123 イノゲート大阪13F",
+    hours: "9:00～18:00",
+    sourceUrl: "https://www.s-b-c.net/clinic/branch/osaka/",
+    priceUrl: "https://www.s-b-c.net/charge_list/",
+    verifiedAt: "2026-07-16"
   },
   {
-    name: "名古屋フェイスラインクリニック",
-    area: "愛知・名古屋",
-    regions: ["愛知", "名古屋", "東海"],
-    strengths: ["輪郭", "小顔", "自然", "卵型", "費用", "段階的"],
-    tags: ["輪郭相談", "段階的プラン", "自然な小顔"],
-    description: "輪郭を整えつつ、やりすぎない小顔イメージを提案します。"
+    name: "TCB東京中央美容外科 梅田大阪駅前院",
+    area: "大阪・梅田",
+    regions: ["大阪", "梅田", "東梅田", "関西"],
+    strengths: ["二重", "目元", "鼻", "唇", "輪郭", "小顔"],
+    tags: ["二重・目元", "クマ取り", "鼻整形"],
+    description: "梅田大阪駅前院の公式ページに掲載された得意施術をもとに表示しています。",
+    address: "大阪府大阪市北区曽根崎2-8-15 K'sスクエアビル3F",
+    hours: "9:00～19:00",
+    sourceUrl: "https://aoki-tsuyoshi.com/clinic/shinsaibashi/umedaosaka",
+    priceUrl: "https://aoki-tsuyoshi.com/price",
+    verifiedAt: "2026-07-16"
   },
   {
-    name: "福岡アイドルフェイス美容外科",
-    area: "福岡・天神",
-    regions: ["福岡", "天神", "九州"],
-    strengths: ["韓国", "かわいい", "二重", "鼻", "ダウンタイム", "短期"],
-    tags: ["韓国アイドル風", "ぱっちり二重", "短期相談"],
-    description: "華やかで写真映えする雰囲気のシミュレーションに向いています。"
+    name: "品川美容外科 梅田院",
+    area: "大阪・梅田",
+    regions: ["大阪", "梅田", "北新地", "関西"],
+    strengths: ["二重", "目元", "鼻", "あご", "輪郭", "小顔"],
+    tags: ["二重・目元", "鼻・あご", "小顔治療"],
+    description: "梅田院の公式ページに掲載された診療メニューをもとに表示しています。",
+    address: "大阪府大阪市北区梅田1-11-4 大阪駅前第4ビル6F",
+    hours: "10:00～20:00",
+    sourceUrl: "https://www.shinagawa.com/clinic_umeda/",
+    priceUrl: "https://www.shinagawa.com/price/",
+    verifiedAt: "2026-07-16"
   }
 ];
 const optionLabels = {
@@ -325,11 +355,12 @@ function createSimulationResult(requestText) {
   const designLabels = createDesignLabels(profile);
   const keywords = buildKeywords(requestText, profile, designLabels);
   const analysis = createAnalysisText(requestText, profile, designLabels);
-  const matchedHospitals = hospitals
+  const regionalHospitals = filterHospitalsByRegion(hospitals, profile.region);
+  const matchedHospitals = regionalHospitals
     .map((hospital) => ({
       ...hospital,
       score: getHospitalScore(hospital, keywords, profile),
-      tags: [...hospital.tags, getHospitalClinicInfo(hospital).budgetLabel, getHospitalClinicInfo(hospital).downtimeLabel]
+      tags: [...hospital.tags, "公式情報"]
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -359,8 +390,17 @@ function getDesignLabel(profile, key) {
   return profile.custom?.[key] || optionLabels[key]?.[profile[key]] || "変更しない";
 }
 
+function filterHospitalsByRegion(items, region) {
+  const normalizedRegion = normalizeText(region);
+  if (!normalizedRegion) return items;
+
+  return items.filter((hospital) => hospital.regions.some((item) => {
+    const normalizedItem = normalizeText(item);
+    return normalizedItem.includes(normalizedRegion) || normalizedRegion.includes(normalizedItem);
+  }));
+}
+
 function getHospitalScore(hospital, keywords, profile) {
-  const normalizedRegion = normalizeText(profile.region);
   const normalizedKeywords = normalizeText(keywords);
   const normalizedClinicText = normalizeText([
     ...(hospital.strengths || []),
@@ -368,39 +408,17 @@ function getHospitalScore(hospital, keywords, profile) {
     hospital.description
   ].join(" "));
   const clinicPriorityKeywords = {
-    cost: ["費用", "予算", "初回相談", "段階的"],
-    downtime: ["ダウンタイム", "短期", "自然"]
+    cost: ["料金", "費用"],
+    downtime: ["ダウンタイム", "短期"]
   };
-  const clinicInfo = getHospitalClinicInfo(hospital);
   let score = 0;
 
-  if (normalizedRegion) {
-    const regionMatched = hospital.regions.some((item) => {
-      const normalizedItem = normalizeText(item);
-      return normalizedItem.includes(normalizedRegion) || normalizedRegion.includes(normalizedItem);
-    });
-    if (regionMatched) score += 10;
-  }
-
-  score += hospital.strengths.filter((strength) => normalizedKeywords.includes(normalizeText(strength))).length * 2;
+  score += hospital.strengths.filter((strength) => normalizedKeywords.includes(normalizeText(strength))).length * 3;
   const clinicKeywords = clinicPriorityKeywords[profile.clinicPriority] || [];
-  score += clinicKeywords.filter((keyword) => normalizedClinicText.includes(normalizeText(keyword))).length * 4;
-  if (profile.budget !== "any" && clinicInfo.budget === profile.budget) score += 7;
-  if (profile.downtime !== "any" && (clinicInfo.downtime === profile.downtime || clinicInfo.downtime === "flexible")) score += 7;
+  score += clinicKeywords.filter((keyword) => normalizedClinicText.includes(normalizeText(keyword))).length * 2;
+  if (hospital.priceUrl && profile.clinicPriority === "cost") score += 2;
   return score;
 }
-function getHospitalClinicInfo(hospital) {
-  const catalog = {
-    "東京フェイスデザインクリニック": { budget: "20to40", budgetLabel: "費用目安：20〜40万円", downtime: "standard", downtimeLabel: "DT目安：1〜2週間" },
-    "渋谷ナチュラル美容クリニック": { budget: "under20", budgetLabel: "費用目安：20万円未満", downtime: "short", downtimeLabel: "DT目安：数日〜1週間" },
-    "ミライ輪郭美容外科": { budget: "over40", budgetLabel: "費用目安：40万円以上", downtime: "standard", downtimeLabel: "DT目安：1〜2週間" },
-    "大阪ビューティーバランス院": { budget: "20to40", budgetLabel: "費用目安：20〜40万円", downtime: "short", downtimeLabel: "DT目安：数日〜1週間" },
-    "名古屋フェイスラインクリニック": { budget: "under20", budgetLabel: "費用目安：20万円未満", downtime: "flexible", downtimeLabel: "DT目安：施術内容により相談" },
-    "福岡アイドルフェイス美容外科": { budget: "20to40", budgetLabel: "費用目安：20〜40万円", downtime: "short", downtimeLabel: "DT目安：数日〜1週間" }
-  };
-  return catalog[hospital.name] || { budget: "any", budgetLabel: "費用は要確認", downtime: "flexible", downtimeLabel: "DTは要確認" };
-}
-
 function createClinicSummary(profile) {
   const budgetLabels = { any: "予算指定なし", under20: "予算：20万円未満", "20to40": "予算：20〜40万円", over40: "予算：40万円以上" };
   const downtimeLabels = { any: "ダウンタイム指定なし", short: "ダウンタイム：短め", standard: "ダウンタイム：標準", flexible: "ダウンタイム：期間は問わない" };
@@ -477,15 +495,24 @@ async function renderResult(result) {
     `;
   }
 
-  hospitalList.innerHTML = result.hospitals.map((hospital) => `
-    <article class="hospital-card">
-      <h4>${hospital.name}</h4>
-      <div class="tags">
-        ${hospital.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
-      </div>
-      <p class="small">${hospital.area} / ${hospital.description}</p>
-    </article>
-  `).join("");
+  hospitalList.innerHTML = result.hospitals.length
+    ? result.hospitals.map((hospital) => `
+      <article class="hospital-card">
+        <h4>${hospital.name}</h4>
+        <div class="tags">
+          ${hospital.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+        </div>
+        <p class="hospital-detail"><strong>所在地</strong>${hospital.address}</p>
+        <p class="hospital-detail"><strong>診療時間</strong>${hospital.hours}</p>
+        <p class="small">${hospital.description}</p>
+        <div class="hospital-links">
+          <a href="${hospital.sourceUrl}" target="_blank" rel="noopener noreferrer">公式院ページ</a>
+          <a href="${hospital.priceUrl}" target="_blank" rel="noopener noreferrer">公式料金表</a>
+        </div>
+        <p class="verified-date">公式情報の確認日：${hospital.verifiedAt}</p>
+      </article>
+    `).join("")
+    : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
 }
 

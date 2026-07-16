@@ -711,3 +711,60 @@ body.camera-open {
     width: 100%;
   }
 }
+
+.hospital-detail {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.hospital-detail strong {
+  color: var(--ink);
+}
+
+.hospital-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.hospital-links a {
+  border: 1px solid #f3b8c5;
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.hospital-links a:hover {
+  background: var(--soft);
+}
+
+.verified-date {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.clinic-empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  color: var(--muted);
+  background: #fffafc;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.clinic-filter-note {
+  margin: -6px 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
