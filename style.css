@@ -783,3 +783,43 @@ body.camera-open {
   margin-right: 8px;
   color: #c92f54;
 }
+
+.doctor-info,
+.case-info {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #f0d8df;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.doctor-info p,
+.case-info p {
+  margin: 4px 0;
+  line-height: 1.55;
+}
+
+.doctor-info p b {
+  display: inline-block;
+  min-width: 64px;
+  color: #62535a;
+}
+
+.doctor-heading {
+  color: #c92f54;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.doctor-info a,
+.case-info a {
+  color: #b62049;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.case-meta {
+  color: #756a70;
+  font-size: 0.76rem;
+}

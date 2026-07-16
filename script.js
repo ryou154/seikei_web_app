@@ -322,11 +322,21 @@ function filterHospitalsByRegion(items, region) {
   }));
 }
 
+function matchesRequestedKeyword(label, keywords) {
+  const normalizedLabel = normalizeText(label);
+  const normalizedKeywords = normalizeText(keywords);
+  if (normalizedKeywords.includes(normalizedLabel) || normalizedLabel.includes(normalizedKeywords)) return true;
+
+  const featureWords = ["二重", "目元", "クマ", "鼻", "口", "唇", "輪郭", "小顔", "若返り", "脂肪吸引", "豊胸", "ハイフ", "リフト"];
+  return featureWords.some((word) => normalizedLabel.includes(word) && normalizedKeywords.includes(word));
+}
 function getHospitalScore(hospital, keywords, profile) {
   const normalizedKeywords = normalizeText(keywords);
   const normalizedClinicText = normalizeText([
     ...(hospital.strengths || []),
     ...(hospital.tags || []),
+    ...(hospital.doctor?.specialties || []),
+    ...(hospital.doctor?.qualifications || []),
     hospital.description
   ].join(" "));
   const clinicPriorityKeywords = {
@@ -335,7 +345,10 @@ function getHospitalScore(hospital, keywords, profile) {
   };
   let score = 0;
 
-  score += hospital.strengths.filter((strength) => normalizedKeywords.includes(normalizeText(strength))).length * 3;
+  score += hospital.strengths.filter((strength) => matchesRequestedKeyword(strength, keywords)).length * 3;
+  score += (hospital.doctor?.specialties || [])
+    .filter((specialty) => matchesRequestedKeyword(specialty, keywords))
+    .length * 4;
   const clinicKeywords = clinicPriorityKeywords[profile.clinicPriority] || [];
   score += clinicKeywords.filter((keyword) => normalizedClinicText.includes(normalizeText(keyword))).length * 2;
   if (hospital.priceUrl && profile.clinicPriority === "cost") score += 2;
@@ -344,11 +357,17 @@ function getHospitalScore(hospital, keywords, profile) {
 function getHospitalMatchReasons(hospital, keywords, profile) {
   const normalizedKeywords = normalizeText(keywords);
   const matchedStrengths = [...new Set((hospital.strengths || []).filter((strength) =>
-    normalizedKeywords.includes(normalizeText(strength))
+    matchesRequestedKeyword(strength, keywords)
   ))].slice(0, 3);
   const reasons = [];
+  const matchedDoctorSpecialties = (hospital.doctor?.specialties || []).filter((specialty) =>
+    matchesRequestedKeyword(specialty, keywords)
+  );
 
   if (matchedStrengths.length) reasons.push(`希望部位：${matchedStrengths.join("・")}`);
+  if (matchedDoctorSpecialties.length) {
+    reasons.push(`担当医の得意分野：${matchedDoctorSpecialties.slice(0, 2).join("・")}`);
+  }
   reasons.push(`地域：${hospital.area}`);
   if (profile.clinicPriority === "cost") reasons.push("公式料金表を確認可能");
   if (profile.clinicPriority === "downtime") reasons.push("ダウンタイムは施術ごとに公式ページで要確認");
@@ -441,6 +460,19 @@ async function renderResult(result) {
         </div>
         <p class="hospital-detail"><strong>所在地</strong>${hospital.address}</p>
         <p class="hospital-detail"><strong>診療時間</strong>${hospital.hours}</p>
+        <div class="doctor-info">
+          <p class="doctor-heading">医師候補（指名可否を要確認）</p>
+          <p><strong>${hospital.doctor.name}</strong> <span>${hospital.doctor.title}</span></p>
+          <p><b>得意分野</b>${hospital.doctor.specialties.length ? hospital.doctor.specialties.join("・") : "公式プロフィール参照"}</p>
+          <p><b>資格</b>${hospital.doctor.qualifications.length ? hospital.doctor.qualifications.join("・") : "公式プロフィールで個別確認"}</p>
+          <a href="${hospital.doctor.sourceUrl}" target="_blank" rel="noopener noreferrer">医師の公式情報</a>
+        </div>
+        <div class="case-info">
+          <p class="doctor-heading">公式症例・施術件数</p>
+          <p>${hospital.cases.summary}</p>
+          <p class="case-meta">${hospital.cases.scope} / ${hospital.cases.period}</p>
+          <a href="${hospital.cases.sourceUrl}" target="_blank" rel="noopener noreferrer">公式症例を確認</a>
+        </div>
         <p class="small">${hospital.description}</p>
         <div class="hospital-links">
           <a href="${hospital.sourceUrl}" target="_blank" rel="noopener noreferrer">公式院ページ</a>
