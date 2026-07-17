@@ -110,6 +110,12 @@
     const eyeCenter = averagePoint(leftEyeCenter, rightEyeCenter);
     const eyeTilt = Math.atan2(rightEyeCenter.y - leftEyeCenter.y, rightEyeCenter.x - leftEyeCenter.x) * 180 / Math.PI;
     const centerOffset = Math.abs(noseTip.x - eyeCenter.x) / faceWidth * 100;
+    const horizontalSpan = Math.max(1, faceRight.x - faceLeft.x);
+    const verticalSpan = Math.max(1, chin.y - faceTop.y);
+    const yawRatio = ((noseTip.x - faceLeft.x) / horizontalSpan - 0.5) * 100;
+    const pitchRatio = ((noseTip.y - faceTop.y) / verticalSpan) * 100;
+    const faceCenterX = (faceLeft.x + faceRight.x) / 2;
+    const faceCenterY = (faceTop.y + chin.y) / 2;
 
     const metrics = {
       landmarkCount: landmarks.length,
@@ -120,7 +126,13 @@
       eyeTiltDegrees: round(eyeTilt),
       centerOffsetRatio: round(centerOffset),
       faceAspectLabel: describeFaceAspect(faceHeight / faceWidth),
-      poseLabel: describePose(eyeTilt, centerOffset)
+      poseLabel: describePose(eyeTilt, centerOffset),
+      yawRatio: round(yawRatio),
+      pitchRatio: round(pitchRatio),
+      faceWidthInFrame: round(faceWidth / width * 100),
+      faceHeightInFrame: round(faceHeight / height * 100),
+      frameCenterOffsetX: round(Math.abs(faceCenterX - width / 2) / width * 100),
+      frameCenterOffsetY: round(Math.abs(faceCenterY - height / 2) / height * 100)
     };
     const balanceScore = calculateBalanceScore(metrics);
     return {

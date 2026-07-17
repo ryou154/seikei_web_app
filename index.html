@@ -303,10 +303,25 @@
       <div class="camera-stage">
         <video id="camera-preview" class="camera-preview" autoplay playsinline></video>
         <div class="face-guide" aria-hidden="true"></div>
+        <div id="camera-direction" class="camera-direction" aria-hidden="true">正面</div>
       </div>
-      <p class="camera-help">顔がガイドの中央に入るようにして撮影してください。</p>
+      <div id="camera-scan-panel" class="camera-scan-panel" aria-live="polite">
+        <p id="camera-scan-status" class="camera-scan-status">顔をガイドの中央に合わせてください。</p>
+        <div id="camera-scan-steps" class="camera-scan-steps" aria-label="顔スキャンの進捗">
+          <span data-scan-step="front">正面</span>
+          <span data-scan-step="left">左</span>
+          <span data-scan-step="right">右</span>
+          <span data-scan-step="up">上</span>
+          <span data-scan-step="down">下</span>
+        </div>
+        <div class="camera-scan-progress" aria-hidden="true">
+          <span id="camera-scan-progress-bar"></span>
+        </div>
+      </div>
+      <p class="camera-help">動画は保存せず、端末内で顔の向きを確認します。最適な正面写真だけを登録します。</p>
       <div class="camera-screen-actions">
-        <button id="capture-button" type="button" class="main-action" disabled>この写真を使う</button>
+        <button id="capture-button" type="button" class="main-action" disabled>顔スキャンを開始</button>
+        <button id="manual-capture-button" type="button" class="sub-button" disabled>通常撮影を使う</button>
       </div>
     </div>
   </div>

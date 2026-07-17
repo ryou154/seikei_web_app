@@ -674,6 +674,7 @@ body.camera-open {
   gap: 14px;
   width: min(720px, 100%);
   max-height: min(92vh, 780px);
+  overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   padding: 18px;
@@ -728,16 +729,102 @@ body.camera-open {
   pointer-events: none;
 }
 
+.camera-direction {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  min-width: 88px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 7px 14px;
+  background: rgba(20, 21, 28, 0.76);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.camera-direction.is-detected {
+  border-color: #75d69b;
+  background: rgba(20, 111, 59, 0.82);
+}
+
+.camera-scan-panel {
+  display: grid;
+  gap: 9px;
+}
+
+.camera-scan-status {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.camera-scan-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.camera-scan-steps span {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.camera-scan-steps span.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #fff1f5;
+}
+
+.camera-scan-steps span.done {
+  border-color: #b9e8c9;
+  color: #237a43;
+  background: #eefaf2;
+}
+
+.camera-scan-progress {
+  overflow: hidden;
+  height: 5px;
+  border-radius: 999px;
+  background: #ececf1;
+}
+
+.camera-scan-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 180ms ease;
+}
+
 .camera-help {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   text-align: center;
 }
 
 .camera-screen-actions {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.camera-screen-actions .sub-button {
+  width: auto;
+  min-width: 132px;
 }
 
 @media (max-width: 860px) {
@@ -786,6 +873,14 @@ body.camera-open {
     height: min(72vw, 290px);
     max-height: 58%;
     top: 52%;
+  }
+
+  .camera-screen-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-screen-actions .sub-button {
+    width: 100%;
   }
   .hero-points span,
   .scan-steps span {
