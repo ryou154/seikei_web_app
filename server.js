@@ -235,6 +235,7 @@ function buildGeminiPrompt(body, options = {}) {
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
   const compact = Boolean(options.compact);
+  const genderGuide = buildGenderGuide(body.profile?.gender);
   const faceGeometryGuide = buildFaceGeometryGuide(body.faceAnalysis);
   const priorityGuide = {
     natural: "Generation priority: keep a natural, realistic result while making the requested changes visible.",
@@ -253,6 +254,7 @@ function buildGeminiPrompt(body, options = {}) {
   return [
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
+    genderGuide,
     "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
@@ -265,6 +267,18 @@ function buildGeminiPrompt(body, options = {}) {
     "Return only the edited image."
   ].join(" ");
 }
+function buildGenderGuide(value) {
+  if (value === "male") {
+    return "User-selected gender: male. Preserve the subject as the same male person and maintain his male gender presentation. Do not transform him into a female person. Apply the requested facial design within a realistic male face.";
+  }
+
+  if (value === "female") {
+    return "User-selected gender: female. Preserve the subject as the same female person and maintain her female gender presentation. Do not transform her into a male person. Apply the requested facial design within a realistic female face.";
+  }
+
+  return "Gender was not selected. Preserve the original gender presentation visible in the input image without changing it.";
+}
+
 function buildFaceGeometryGuide(value) {
   if (!value || typeof value !== "object") {
     return "No facial landmark measurements are available; infer the original proportions from the image.";

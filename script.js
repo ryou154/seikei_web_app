@@ -9,6 +9,7 @@ const captureCanvas = document.getElementById("capture-canvas");
 const cameraMessage = document.getElementById("camera-message");
 const cameraFlipFixInput = document.getElementById("camera-flip-fix");
 const requestTextInput = document.getElementById("request-text");
+const genderSelect = document.getElementById("gender-select");
 const styleSelect = document.getElementById("style-select");
 const styleCustomInput = document.getElementById("style-custom");
 const eyeSelect = document.getElementById("eye-select");
@@ -120,6 +121,11 @@ const priorityLabels = {
   parts: "希望パーツを強く反映"
 };
 
+const genderLabels = {
+  male: "男性",
+  female: "女性"
+};
+
 faceImageInput.addEventListener("change", () => {
   const file = faceImageInput.files[0];
 
@@ -209,6 +215,12 @@ simulateButton.addEventListener("click", async () => {
     return;
   }
 
+  if (!genderSelect.value) {
+    alert("性別を選択してください。");
+    genderSelect.focus();
+    return;
+  }
+
   latestResult = createSimulationResult(requestText);
   await renderResult(latestResult);
 });
@@ -261,6 +273,7 @@ function stopCamera(message = "カメラを停止しました。") {
 
 function createSimulationResult(requestText) {
   const profile = {
+    gender: genderSelect.value,
     style: styleSelect.value,
     eye: eyeSelect.value,
     nose: noseSelect.value,
@@ -421,6 +434,7 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
   const clinicFocus = clinicPriorityText[profile.clinicPriority] || clinicPriorityText.match;
   const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺と「${clinicFocus}」を優先して選んでいます。` : `おすすめクリニックは「${clinicFocus}」を優先して選んでいます。`;
   const parts = [
+    `性別：${genderLabels[profile.gender] || "未指定"}`,
     `雰囲気：${designLabels.style}`,
     `目元：${designLabels.eye}`,
     `鼻：${designLabels.nose}`,
@@ -635,6 +649,7 @@ function runScanAnimation(profile, faceAnalysis) {
   const labels = faceAnalysis?.ok
     ? createFaceScanLabels(faceAnalysis.metrics)
     : [faceAnalysis?.message || "顔位置を確認できませんでした"];
+  labels.push(`性別：${genderLabels[profile.gender] || "未指定"}として生成`);
 
   partLabels.forEach((part) => {
     if (profile[part.key] !== "none" || profile.custom?.[part.key]) {
