@@ -63,6 +63,26 @@
     return "中心にわずかなずれがある配置";
   }
 
+  function calculateBalanceScore(metrics) {
+    const penalty = (value, target, tolerance, weight) => (
+      Math.min(1, Math.abs(value - target) / tolerance) * weight
+    );
+    const totalPenalty = [
+      penalty(metrics.faceAspect, 1.32, 0.35, 25),
+      penalty(metrics.eyeWidthRatio, 20, 10, 20),
+      penalty(metrics.noseWidthRatio, 25, 15, 15),
+      penalty(metrics.mouthWidthRatio, 36, 20, 15),
+      penalty(metrics.centerOffsetRatio, 0, 10, 25)
+    ].reduce((total, value) => total + value, 0);
+    return Math.round(Math.max(0, Math.min(100, 100 - totalPenalty)));
+  }
+
+  function describeBalanceScore(score) {
+    if (score >= 85) return "基準比率に近いバランス";
+    if (score >= 70) return "おおむね安定したバランス";
+    return "撮影角度を含めて確認が必要";
+   }
+
   function calculateMetrics(landmarks, width, height) {
     const point = (index) => ({
       x: landmarks[index].x * width,
@@ -91,7 +111,7 @@
     const eyeTilt = Math.atan2(rightEyeCenter.y - leftEyeCenter.y, rightEyeCenter.x - leftEyeCenter.x) * 180 / Math.PI;
     const centerOffset = Math.abs(noseTip.x - eyeCenter.x) / faceWidth * 100;
 
-    return {
+    const metrics = {
       landmarkCount: landmarks.length,
       faceAspect: round(faceHeight / faceWidth, 2),
       eyeWidthRatio: round(((leftEyeWidth + rightEyeWidth) / 2) / faceWidth * 100),
@@ -101,6 +121,12 @@
       centerOffsetRatio: round(centerOffset),
       faceAspectLabel: describeFaceAspect(faceHeight / faceWidth),
       poseLabel: describePose(eyeTilt, centerOffset)
+    };
+    const balanceScore = calculateBalanceScore(metrics);
+    return {
+      ...metrics,
+      balanceScore,
+      balanceScoreLabel: describeBalanceScore(balanceScore)
     };
   }
 
@@ -119,5 +145,8 @@
     };
   }
 
-  window.FaceBalanceAnalyzer = { analyze };
+  window.FaceBalanceAnalyzer = {
+    analyze,
+    scoreMetrics: calculateBalanceScore
+  };
 })();

@@ -220,6 +220,30 @@
           </div>
         </div>
 
+        <section id="face-score-panel" class="face-score-panel hidden" aria-live="polite">
+          <div class="face-score-heading">
+            <div>
+              <p class="section-kicker">Balance Score</p>
+              <h3>顔バランススコア</h3>
+            </div>
+            <span id="score-delta" class="score-delta">After生成待ち</span>
+          </div>
+          <div class="face-score-comparison">
+            <div class="face-score-item">
+              <span>Before</span>
+              <p><strong id="before-score">--</strong><small>/100</small></p>
+              <small id="before-score-label">顔解析後に表示</small>
+            </div>
+            <span class="score-arrow" aria-hidden="true">→</span>
+            <div class="face-score-item after-score-item">
+              <span>After</span>
+              <p><strong id="after-score">--</strong><small>/100</small></p>
+              <small id="after-score-label">画像生成後に表示</small>
+            </div>
+          </div>
+          <p class="face-score-note">縦横比・目幅・鼻幅・口幅・中心線を同じ式で換算した2D写真上の参考値です。容姿の優劣、骨格、医療効果を判定する点数ではありません。</p>
+        </section>
+
         <div class="comparison">
           <div class="image-card">
             <p>Before</p>

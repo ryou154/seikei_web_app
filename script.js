@@ -41,6 +41,12 @@ const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
 const hospitalList = document.getElementById("hospital-list");
 const historyList = document.getElementById("history-list");
+const faceScorePanel = document.getElementById("face-score-panel");
+const beforeScoreValue = document.getElementById("before-score");
+const beforeScoreLabel = document.getElementById("before-score-label");
+const afterScoreValue = document.getElementById("after-score");
+const afterScoreLabel = document.getElementById("after-score-label");
+const scoreDelta = document.getElementById("score-delta");
 
 let selectedImageData = "";
 let latestResult = null;
@@ -435,6 +441,7 @@ async function renderResult(result) {
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
   analysisText.textContent = appendFaceAnalysis(result.analysis, result.faceAnalysis);
+  renderFaceScoreComparison(result.faceAnalysis, null);
   await runScanAnimation(result.profile, result.faceAnalysis);
 
   try {
@@ -442,9 +449,18 @@ async function renderResult(result) {
       ? await createGeminiAfterImage(result)
       : createAfterImage(result.profile);
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
+    result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
+    renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
+    analysisText.textContent = appendFaceScoreComparison(
+      appendFaceAnalysis(result.analysis, result.faceAnalysis),
+      result.faceAnalysis,
+      result.afterFaceAnalysis
+    );
   } catch (error) {
     console.error(error);
     const localImage = createAfterImage(result.profile);
+    result.afterFaceAnalysis = { ok: false, message: "Gemini生成失敗のためAfterスコアは算出していません。" };
+    renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     afterImage.innerHTML = `
       <div class="gemini-error">
         <strong>Gemini生成に失敗しました。</strong>
@@ -502,23 +518,80 @@ async function analyzeSelectedFace() {
   scanSteps.innerHTML = '<span class="active">顔ランドマークモデルを準備中</span>';
   scanPanel.classList.add("is-scanning");
 
+  latestFaceAnalysis = await analyzeFaceImage(selectedImageData);
+
+  analyzedImageData = selectedImageData;
+  return latestFaceAnalysis;
+}
+
+async function analyzeFaceImage(imageData) {
+  if (!window.FaceBalanceAnalyzer) {
+    return { ok: false, message: "顔解析機能を読み込めませんでした。" };
+  }
+
   let timeoutId = null;
   try {
-    latestFaceAnalysis = await Promise.race([
-      window.FaceBalanceAnalyzer.analyze(selectedImageData),
+    return await Promise.race([
+      window.FaceBalanceAnalyzer.analyze(imageData),
       new Promise((_, reject) => {
         timeoutId = setTimeout(() => reject(new Error("顔解析の読み込みがタイムアウトしました。")), 30000);
       })
     ]);
   } catch (error) {
     console.warn("Face landmark analysis failed", error);
-    latestFaceAnalysis = { ok: false, message: error.message || "顔ランドマークを検出できませんでした。" };
+    return { ok: false, message: error.message || "顔ランドマークを検出できませんでした。" };
   } finally {
     clearTimeout(timeoutId);
   }
+}
 
-  analyzedImageData = selectedImageData;
-  return latestFaceAnalysis;
+function renderFaceScoreComparison(beforeAnalysis, afterAnalysis) {
+  faceScorePanel.classList.remove("hidden");
+  renderScoreValue(beforeScoreValue, beforeScoreLabel, beforeAnalysis, "顔解析後に表示");
+  renderScoreValue(afterScoreValue, afterScoreLabel, afterAnalysis, "After画像を解析中");
+  scoreDelta.classList.remove("is-positive");
+
+  if (!beforeAnalysis?.ok) {
+    scoreDelta.textContent = "Before解析なし";
+    return;
+  }
+
+  if (!afterAnalysis) {
+    scoreDelta.textContent = "After解析中";
+    return;
+  }
+
+  if (!afterAnalysis.ok) {
+    scoreDelta.textContent = "After解析なし";
+    return;
+  }
+
+  const difference = afterAnalysis.metrics.balanceScore - beforeAnalysis.metrics.balanceScore;
+  if (difference > 0) {
+    scoreDelta.textContent = `+${difference}ポイント`;
+    scoreDelta.classList.add("is-positive");
+  } else if (difference < 0) {
+    scoreDelta.textContent = `${difference}ポイント`;
+  } else {
+    scoreDelta.textContent = "同じスコア";
+  }
+}
+
+function renderScoreValue(valueElement, labelElement, analysis, pendingLabel) {
+  if (!analysis) {
+    valueElement.textContent = "--";
+    labelElement.textContent = pendingLabel;
+    return;
+  }
+
+  if (!analysis.ok) {
+    valueElement.textContent = "--";
+    labelElement.textContent = analysis.message || "スコアを算出できませんでした";
+    return;
+  }
+
+  valueElement.textContent = analysis.metrics.balanceScore;
+  labelElement.textContent = analysis.metrics.balanceScoreLabel;
 }
 
 function appendFaceAnalysis(text, faceAnalysis) {
@@ -528,6 +601,22 @@ function appendFaceAnalysis(text, faceAnalysis) {
 
   const metrics = faceAnalysis.metrics;
   return `${text} 顔ランドマーク${metrics.landmarkCount}点を検出しました。顔の縦横比は${metrics.faceAspect}（${metrics.faceAspectLabel}）、目幅比${metrics.eyeWidthRatio}%、鼻幅比${metrics.noseWidthRatio}%、口幅比${metrics.mouthWidthRatio}%です。これらは2D写真上の参考値であり、骨格測定や医療診断ではありません。`;
+}
+
+function appendFaceScoreComparison(text, beforeAnalysis, afterAnalysis) {
+  if (!beforeAnalysis?.ok || !afterAnalysis?.ok) {
+    return text;
+  }
+
+  const beforeScore = beforeAnalysis.metrics.balanceScore;
+  const afterScore = afterAnalysis.metrics.balanceScore;
+  const difference = afterScore - beforeScore;
+  const differenceText = difference > 0
+    ? `プラス${difference}ポイント`
+    : difference < 0
+      ? `マイナス${Math.abs(difference)}ポイント`
+      : "同じ点数";
+  return `${text} 顔バランススコアはBefore ${beforeScore}点、After ${afterScore}点で、幾何比率上の差は${differenceText}です。点数は容姿の優劣や施術効果を表すものではありません。`;
 }
 
 function runScanAnimation(profile, faceAnalysis) {
