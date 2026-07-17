@@ -45,6 +45,8 @@ const historyList = document.getElementById("history-list");
 let selectedImageData = "";
 let latestResult = null;
 let cameraStream = null;
+let analyzedImageData = "";
+let latestFaceAnalysis = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -228,6 +230,8 @@ window.addEventListener("beforeunload", () => stopCamera());
 
 function setSelectedImage(imageData) {
   selectedImageData = imageData;
+  analyzedImageData = "";
+  latestFaceAnalysis = null;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
 }
 
@@ -429,8 +433,9 @@ async function renderResult(result) {
 
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
-  analysisText.textContent = result.analysis;
-  await runScanAnimation(result.profile);
+  result.faceAnalysis = await analyzeSelectedFace();
+  analysisText.textContent = appendFaceAnalysis(result.analysis, result.faceAnalysis);
+  await runScanAnimation(result.profile, result.faceAnalysis);
 
   try {
     const generatedImage = result.profile.imageEngine === "gemini"
@@ -485,7 +490,47 @@ async function renderResult(result) {
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
 }
 
-function runScanAnimation(profile) {
+async function analyzeSelectedFace() {
+  if (analyzedImageData === selectedImageData && latestFaceAnalysis) {
+    return latestFaceAnalysis;
+  }
+
+  if (!window.FaceBalanceAnalyzer) {
+    return { ok: false, message: "顔解析機能を読み込めませんでした。" };
+  }
+
+  scanSteps.innerHTML = '<span class="active">顔ランドマークモデルを準備中</span>';
+  scanPanel.classList.add("is-scanning");
+
+  let timeoutId = null;
+  try {
+    latestFaceAnalysis = await Promise.race([
+      window.FaceBalanceAnalyzer.analyze(selectedImageData),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("顔解析の読み込みがタイムアウトしました。")), 30000);
+      })
+    ]);
+  } catch (error) {
+    console.warn("Face landmark analysis failed", error);
+    latestFaceAnalysis = { ok: false, message: error.message || "顔ランドマークを検出できませんでした。" };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  analyzedImageData = selectedImageData;
+  return latestFaceAnalysis;
+}
+
+function appendFaceAnalysis(text, faceAnalysis) {
+  if (!faceAnalysis?.ok) {
+    return `${text} 顔バランス解析：${faceAnalysis?.message || "解析結果を取得できませんでした。"}`;
+  }
+
+  const metrics = faceAnalysis.metrics;
+  return `${text} 顔ランドマーク${metrics.landmarkCount}点を検出しました。顔の縦横比は${metrics.faceAspect}（${metrics.faceAspectLabel}）、目幅比${metrics.eyeWidthRatio}%、鼻幅比${metrics.noseWidthRatio}%、口幅比${metrics.mouthWidthRatio}%です。これらは2D写真上の参考値であり、骨格測定や医療診断ではありません。`;
+}
+
+function runScanAnimation(profile, faceAnalysis) {
   if (!scanPanel || !scanSteps) {
     return Promise.resolve();
   }
@@ -498,7 +543,9 @@ function runScanAnimation(profile) {
     { key: "mouth", label: designLabels.mouth, suffix: "を反映" },
     { key: "forehead", label: designLabels.forehead, suffix: "を確認" }
   ];
-  const labels = ["顔位置を確認中"];
+  const labels = faceAnalysis?.ok
+    ? createFaceScanLabels(faceAnalysis.metrics)
+    : [faceAnalysis?.message || "顔位置を確認できませんでした"];
 
   partLabels.forEach((part) => {
     if (profile[part.key] !== "none" || profile.custom?.[part.key]) {
@@ -529,6 +576,16 @@ function runScanAnimation(profile) {
     }, 360);
   });
 }
+function createFaceScanLabels(metrics) {
+  return [
+    `顔ランドマーク ${metrics.landmarkCount}点を検出`,
+    `顔の縦横比 ${metrics.faceAspect}（${metrics.faceAspectLabel}）`,
+    `目幅比 ${metrics.eyeWidthRatio}%・鼻幅比 ${metrics.noseWidthRatio}%`,
+    `口幅比 ${metrics.mouthWidthRatio}%・中心線ずれ ${metrics.centerOffsetRatio}%`,
+    `${metrics.poseLabel}・目線傾き ${Math.abs(metrics.eyeTiltDegrees)}°`
+  ];
+}
+
 async function createGeminiAfterImage(result) {
   if (location.protocol === "file:") {
     throw new Error("Gemini生成はローカルサーバー起動時のみ使えます。");
@@ -545,7 +602,8 @@ async function createGeminiAfterImage(result) {
       aspectRatio: preparedImage.aspectRatio,
       requestText: result.requestText,
       profile: result.profile,
-      labels: result.designLabels
+      labels: result.designLabels,
+      faceAnalysis: result.faceAnalysis?.ok ? result.faceAnalysis.metrics : null
     })
   });
 

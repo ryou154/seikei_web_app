@@ -235,6 +235,7 @@ function buildGeminiPrompt(body, options = {}) {
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
   const compact = Boolean(options.compact);
+  const faceGeometryGuide = buildFaceGeometryGuide(body.faceAnalysis);
   const priorityGuide = {
     natural: "Generation priority: keep a natural, realistic result while making the requested changes visible.",
     balance: "Generation priority: optimize the whole-face balance so the eyes, nose, mouth, forehead, and contour harmonize together.",
@@ -256,6 +257,7 @@ function buildGeminiPrompt(body, options = {}) {
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     `User request: ${requestText}. Strength: ${strength}%.`,
+    faceGeometryGuide,
     priorityGuide[generationPriority] || priorityGuide.natural,
     strengthGuide,
     compact ? "Use a simple, stable edit. Keep identity, pose, lighting, background, and realistic anatomy. Apply the requested facial design changes clearly but avoid overprocessing." : "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible requested changes to eyes, nose bridge, nose tip, jawline, cheeks, mouth, lips, forehead, and face contour while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
@@ -263,6 +265,29 @@ function buildGeminiPrompt(body, options = {}) {
     "Return only the edited image."
   ].join(" ");
 }
+function buildFaceGeometryGuide(value) {
+  if (!value || typeof value !== "object") {
+    return "No facial landmark measurements are available; infer the original proportions from the image.";
+  }
+
+  const number = (key, min, max) => {
+    const parsed = Number(value[key]);
+    return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
+  };
+  const faceAspect = number("faceAspect", 0.5, 2.5);
+  const eyeWidth = number("eyeWidthRatio", 1, 60);
+  const noseWidth = number("noseWidthRatio", 1, 60);
+  const mouthWidth = number("mouthWidthRatio", 1, 80);
+  const tilt = number("eyeTiltDegrees", -45, 45);
+  const offset = number("centerOffsetRatio", 0, 50);
+
+  if ([faceAspect, eyeWidth, noseWidth, mouthWidth, tilt, offset].some((item) => item === null)) {
+    return "Facial landmark measurements were incomplete; infer the original proportions from the image.";
+  }
+
+  return `MediaPipe measured the original 2D facial geometry: face height-to-width ratio ${faceAspect}, average eye-width ratio ${eyeWidth}%, nose-width ratio ${noseWidth}%, mouth-width ratio ${mouthWidth}%, eye-line tilt ${tilt} degrees, and centerline offset ${offset}%. Use these only as reference proportions for applying the requested relative changes. Do not treat them as bone measurements or a medical diagnosis.`;
+}
+
 function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://localhost:${port}`);
   const urlPath = decodeURIComponent(requestUrl.pathname);
