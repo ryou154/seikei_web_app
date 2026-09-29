@@ -6,7 +6,7 @@ if (-not $env:GEMINI_API_KEY) {
 }
 
 $localNode = Get-Command node -ErrorAction SilentlyContinue
-$codexNode = "C:\Users\ryour\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
+$codexNode = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
 
 if ($localNode) {
   & $localNode.Source ".\server.js"

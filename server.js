@@ -1,8 +1,9 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
-const { publicConfig, isConfigured, authorize } = require("./auth-server");
+const { authorize } = require("./auth-server");
 const { createAccountHandler } = require("./account-store");
+const firebaseConfig = require("./firebase-config");
 const handleAccount = createAccountHandler();
 
 const port = Number(process.env.PORT || 3000);
@@ -25,23 +26,16 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, result.status, result.data);
       return;
     }
-    if (request.method === "GET" && request.url === "/api/auth/config") {
-      sendJson(response, isConfigured() ? 200 : 503, isConfigured()
-        ? { config: publicConfig() }
-        : { error: "ログインの設定がまだ完了していません。管理者に確認してください。" });
+    if (request.method === "GET" && request.url === "/api/firebase-config") {
+      sendJson(response, 200, firebaseConfig);
       return;
     }
-    if (request.method === "GET" && request.url === "/api/auth/me") {
-      const access = await authorize(request);
-      sendJson(response, access.status, access.user ? { user: access.user } : { error: access.error });
+    if (request.method === "GET" && request.url === "/api/session") {
+      sendJson(response, 200, await authorize(request));
       return;
     }
     if (request.method === "POST" && request.url === "/api/gemini-edit") {
-      const access = await authorize(request);
-      if (!access.user) {
-        sendJson(response, access.status, { error: access.error });
-        return;
-      }
+      await authorize(request);
       await handleGeminiEdit(request, response);
       return;
     }
@@ -53,7 +47,7 @@ const server = http.createServer(async (request, response) => {
 
     sendJson(response, 405, { error: "Method not allowed" });
   } catch (error) {
-    sendJson(response, 500, { error: error.message || "Server error" });
+    sendJson(response, error.status || 500, { error: error.status ? error.message : "処理に失敗しました。時間をおいて再試行してください。" });
   }
 });
 
@@ -329,10 +323,11 @@ function buildFaceGeometryGuide(value) {
 function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://localhost:${port}`);
   const urlPath = decodeURIComponent(requestUrl.pathname);
-  // Serve only browser assets, never server code, secrets, or dependency files.
+  // Only explicitly public assets may be served. Never expose .env, source,
+  // dependencies, Git metadata or server-side access policy.
   const publicFiles = new Set([
-    "/", "/index.html", "/style.css", "/script.js", "/face-analysis.js",
-    "/auth.js", "/auth.css", "/account-data.js", "/data/clinics.js", "/data/clinic-details.js"
+    "/", "/index.html", "/style.css", "/script.js", "/auth-client.js",
+    "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js"
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
@@ -359,7 +354,9 @@ function serveStatic(request, response) {
     }
 
     response.writeHead(200, {
-      "Content-Type": mimeTypes[path.extname(filePath)] || "application/octet-stream"
+      "Content-Type": mimeTypes[path.extname(filePath)] || "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache"
     });
     response.end(content);
   });
@@ -395,8 +392,8 @@ function parseDataUrl(dataUrl) {
 
 function sendJson(response, statusCode, data) {
   response.writeHead(statusCode, {
-    "Cache-Control": "no-store",
-    "Content-Type": "application/json; charset=utf-8"
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
   });
   response.end(JSON.stringify(data));
 }

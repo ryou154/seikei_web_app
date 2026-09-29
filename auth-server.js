@@ -1,14 +1,6 @@
 const { initializeApp, getApps } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
-
-function publicConfig(env = process.env) {
-  return {
-    apiKey: env.FIREBASE_API_KEY || "",
-    authDomain: env.FIREBASE_AUTH_DOMAIN || "",
-    projectId: env.FIREBASE_PROJECT_ID || "",
-    appId: env.FIREBASE_APP_ID || ""
-  };
-}
+const firebaseConfig = require("./firebase-config");
 
 function allowedEmails(env = process.env) {
   return new Set((env.AUTH_ALLOWED_EMAILS || "").split(",")
@@ -16,39 +8,52 @@ function allowedEmails(env = process.env) {
 }
 
 function isConfigured(env = process.env) {
-  return Object.values(publicConfig(env)).every(Boolean) && allowedEmails(env).size > 0;
+  return Boolean(firebaseConfig.projectId) && allowedEmails(env).size > 0;
+}
+
+function deny(status, message) {
+  return Object.assign(new Error(message), { status });
 }
 
 function checkClaims(claims, env = process.env) {
-  if (!claims.email_verified) {
-    return { status: 403, error: "確認メールのリンクを開いて、メールアドレスを確認してください。" };
+  if (!isConfigured(env)) {
+    throw deny(503, "ログインの設定がまだ完了していません。管理者に確認してください。");
   }
-  if (!claims.uid || !allowedEmails(env).has(String(claims.email || "").toLowerCase())) {
-    return { status: 403, error: "このアカウントには利用権限がありません。管理者に確認してください。" };
+  if (!claims.uid || claims.email_verified !== true) {
+    throw deny(403, "確認メールのリンクを開いて、メールアドレスを確認してください。");
   }
-  return { status: 200, user: { uid: claims.uid, email: claims.email } };
+  if (!allowedEmails(env).has(String(claims.email || "").toLowerCase())) {
+    throw deny(403, "このアカウントには利用権限がありません。管理者に確認してください。");
+  }
+  return { uid: claims.uid, email: claims.email };
 }
 
-async function authorize(request, verify, env = process.env) {
-  if (!isConfigured(env)) {
-    return { status: 503, error: "ログインの設定がまだ完了していません。管理者に確認してください。" };
-  }
+async function authorize(request, verifyToken = verifyFirebaseToken, env = process.env) {
+  if (!isConfigured(env)) throw deny(503, "ログインの設定がまだ完了していません。管理者に確認してください。");
   const match = /^Bearer ([^\s]+)$/.exec(request.headers.authorization || "");
-  if (!match) return { status: 401, error: "ログインしてください。" };
+  if (!match) throw deny(401, "ログインしてください。");
+  let claims;
   try {
-    if (!verify) {
-      const app = getApps()[0] || initializeApp({ projectId: env.FIREBASE_PROJECT_ID });
-      verify = (token) => getAuth(app).verifyIdToken(token, true);
-    }
-    return checkClaims(await verify(match[1]), env);
+    claims = await verifyToken(match[1]);
   } catch (error) {
     const invalid = new Set([
       "auth/argument-error", "auth/invalid-id-token", "auth/id-token-expired",
       "auth/id-token-revoked", "auth/user-disabled", "auth/user-not-found"
     ]);
-    if (invalid.has(error.code)) return { status: 401, error: "ログインの有効期限が切れています。もう一度ログインしてください。" };
-    return { status: 503, error: "ログインを確認できませんでした。時間を置いて再実行してください。" };
+    if (invalid.has(error.code) || !error.code) {
+      throw deny(401, "ログインを確認できません。もう一度ログインしてください。");
+    }
+    throw deny(503, "ログインを確認できませんでした。時間を置いて再実行してください。");
   }
+  return checkClaims(claims, env);
 }
 
-module.exports = { publicConfig, allowedEmails, isConfigured, checkClaims, authorize };
+async function verifyFirebaseToken(token) {
+  // Never accept emulator tokens on the production server.
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error("Auth emulator is not supported");
+  const app = getApps()[0] || initializeApp({ projectId: firebaseConfig.projectId });
+  // Signature, issuer, audience and expiry are verified by the Admin SDK.
+  return getAuth(app).verifyIdToken(token, true);
+}
+
+module.exports = { allowedEmails, isConfigured, checkClaims, authorize };

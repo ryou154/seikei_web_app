@@ -91,7 +91,6 @@ function createAccountHandler({ authenticate = authorize, getStore } = {}) {
   return async (request) => {
     try {
       const access = await authenticate(request);
-      if (!access.user) return { status: access.status, data: { error: access.error } };
       const url = new URL(request.url, "http://localhost");
       const match = /^\/api\/account\/(settings|history)(?:\/([a-zA-Z0-9-]{16,64}))?$/.exec(url.pathname);
       if (!match || url.search || (match[1] === "settings" && match[2])) return { status: 404, data: { error: "Not found" } };
@@ -105,7 +104,7 @@ function createAccountHandler({ authenticate = authorize, getStore } = {}) {
         if (resource === "history") payload = { ...payload, id: validId(input.id), category: text(input.category, 500) };
       }
       // Never take an owner ID from the body, query string or route.
-      const uid = access.user.uid;
+      const uid = access.uid;
       const database = getStore();
       if (resource === "settings") {
         if (method === "GET") return { status: 200, data: { settings: await database.settings(uid) } };
@@ -118,7 +117,7 @@ function createAccountHandler({ authenticate = authorize, getStore } = {}) {
           : await database.deleteHistory(uid, id);
       return { status: 200, data: { entries, limit: HISTORY_LIMIT } };
     } catch (error) {
-      if (error instanceof InputError) return { status: error.status, data: { error: error.message } };
+      if (error instanceof InputError || error?.status) return { status: error.status, data: { error: error.message } };
       return { status: 503, data: { error: "クラウド保存に接続できませんでした。再試行してください。続く場合はFirestoreの接続設定・権限を確認してください。" } };
     }
   };

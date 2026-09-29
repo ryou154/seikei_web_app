@@ -410,7 +410,7 @@ function completeGuidedScan() {
 stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
-  if (!await window.AppAuth.requireUser()) return;
+  if (!window.AppAuth?.uid) return;
   const requestText = requestTextInput.value.trim();
 
   if (!selectedImageData) {
@@ -647,23 +647,30 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
 }
 
 async function renderResult(result) {
+  const ownerUid = window.AppAuth?.uid;
+  if (!ownerUid) return;
+  const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
-  saveButton.disabled = false;
+  saveButton.disabled = true;
 
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
+  if (!stillCurrent()) return;
   analysisText.textContent = appendFaceAnalysis(result.analysis, result.faceAnalysis);
   renderFaceScoreComparison(result.faceAnalysis, null);
   await runScanAnimation(result.profile, result.faceAnalysis);
+  if (!stillCurrent()) return;
 
   try {
     const generatedImage = result.profile.imageEngine === "gemini"
       ? await createGeminiAfterImage(result)
       : createAfterImage(result.profile);
+    if (!stillCurrent()) return;
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
+    if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(
       appendFaceAnalysis(result.analysis, result.faceAnalysis),
@@ -671,6 +678,7 @@ async function renderResult(result) {
       result.afterFaceAnalysis
     );
   } catch (error) {
+    if (!stillCurrent()) return;
     console.error(error);
     const localImage = createAfterImage(result.profile);
     result.afterFaceAnalysis = { ok: false, message: "Gemini生成失敗のためAfterスコアは算出していません。" };
@@ -678,7 +686,7 @@ async function renderResult(result) {
     afterImage.innerHTML = `
       <div class="gemini-error">
         <strong>Gemini生成に失敗しました。</strong>
-        <span>${error.message}</span>
+        <span>${escapeText(error.message)}</span>
         <small>下には確認用としてローカル簡易生成の画像を表示しています。</small>
       </div>
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
@@ -718,6 +726,7 @@ async function renderResult(result) {
     `).join("")
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
+  saveButton.disabled = false;
 }
 
 async function analyzeSelectedFace() {
@@ -900,10 +909,9 @@ async function createGeminiAfterImage(result) {
   }
 
   const preparedImage = await resizeImageForGemini(selectedImageData);
-  const response = await fetch("/api/gemini-edit", {
+  const response = await window.AppAuth.fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
-      ...await window.AppAuth.headers(),
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -1283,16 +1291,25 @@ function roundRectPath(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-let previousAccountId = null;
-window.addEventListener("app-auth-change", (event) => {
-  const nextId = event.detail?.uid || null;
-  if (previousAccountId && previousAccountId !== nextId) {
-    // Clear images and pending work as well as the history when switching users.
-    location.reload();
-    return;
-  }
-  previousAccountId = nextId;
-});
 window.AccountData.init({
   readSettings: () => ({ requestText: requestTextInput.value.trim(), profile: readProfile() })
+});
+
+window.addEventListener("app-locked", () => {
+  stopCamera();
+  selectedImageData = "";
+  analyzedImageData = "";
+  latestFaceAnalysis = null;
+  latestResult = null;
+  faceImageInput.value = "";
+  requestTextInput.value = "";
+  imagePreview.replaceChildren();
+  beforeImage.replaceChildren();
+  afterImage.replaceChildren();
+  historyList.replaceChildren();
+  hospitalList.replaceChildren();
+  analysisText.textContent = "";
+  resultContent.classList.add("hidden");
+  emptyResult.classList.remove("hidden");
+  saveButton.disabled = true;
 });

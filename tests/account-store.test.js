@@ -45,7 +45,7 @@ function fakeStore() {
 function setup(uid = "user-a") {
   const store = fakeStore();
   const handler = createAccountHandler({
-    authenticate: async () => ({ status: 200, user: { uid, email: `${uid}@example.com` } }),
+    authenticate: async () => ({ uid, email: `${uid}@example.com` }),
     getStore: () => store
   });
   return { store, handler };
@@ -65,8 +65,8 @@ test("rejects malformed, oversized and invalid settings", () => {
 });
 test("settings use verified uid and remain isolated", async () => {
   const store = fakeStore();
-  const handlerA = createAccountHandler({ authenticate: async () => ({ status: 200, user: { uid: "a" } }), getStore: () => store });
-  const handlerB = createAccountHandler({ authenticate: async () => ({ status: 200, user: { uid: "b" } }), getStore: () => store });
+  const handlerA = createAccountHandler({ authenticate: async () => ({ uid: "a" }), getStore: () => store });
+  const handlerB = createAccountHandler({ authenticate: async () => ({ uid: "b" }), getStore: () => store });
   const body = { requestText: "a", profile: profile(), ownerId: "b" };
   assert.equal((await handlerA(req("PUT", "/api/account/settings", body))).status, 200);
   assert.equal((await handlerB(req("GET", "/api/account/settings"))).data.settings, null);
@@ -89,7 +89,7 @@ test("history supports idempotent save, limit and deletion", async () => {
   assert.deepEqual(result.data.entries, []);
 });
 test("authentication, routes, methods and media type fail closed", async () => {
-  const denied = createAccountHandler({ authenticate: async () => ({ status: 401, error: "denied" }), getStore: () => assert.fail() });
+  const denied = createAccountHandler({ authenticate: async () => { throw Object.assign(new Error("denied"), { status: 401 }); }, getStore: () => assert.fail() });
   assert.equal((await denied(req("GET", "/api/account/history"))).status, 401);
   const { handler } = setup();
   assert.equal((await handler(req("GET", "/api/account/unknown"))).status, 404);
@@ -101,7 +101,7 @@ test("authentication, routes, methods and media type fail closed", async () => {
 });
 test("database failures return a generic error", async () => {
   const handler = createAccountHandler({
-    authenticate: async () => ({ status: 200, user: { uid: "a" } }),
+    authenticate: async () => ({ uid: "a" }),
     getStore: () => ({ history: async () => { throw new Error("private details"); } })
   });
   const result = await handler(req("GET", "/api/account/history"));

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI骨格フィット・整形シミュレーター</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="auth.css">
 </head>
 <body>
   <header class="app-header">
@@ -21,7 +20,37 @@
     </div>
   </header>
 
-  <main class="layout">
+  <section id="auth-panel" class="panel auth-panel" aria-labelledby="auth-title">
+    <h2 id="auth-title">ログイン</h2>
+    <p>チームで登録したメールアドレスを使用してください。</p>
+    <p id="auth-status" role="status" aria-live="polite">ログイン機能を読み込んでいます…</p>
+    <fieldset id="auth-controls" disabled>
+      <div id="auth-signed-out">
+        <button id="google-login" type="button">Googleでログイン</button>
+        <form id="email-login-form">
+          <label class="field"><span>メールアドレス</span><input id="auth-email" type="email" autocomplete="username" required></label>
+          <label class="field"><span>パスワード</span><input id="auth-password" type="password" autocomplete="current-password" required></label>
+          <div class="auth-buttons">
+            <button type="submit">メールでログイン</button>
+            <button id="email-register" type="button" class="sub-button">新規登録</button>
+            <button id="password-reset" type="button" class="sub-button">パスワードを忘れた方</button>
+          </div>
+          <p class="small">新規登録のパスワードは8文字以上です。登録後、届いたメールで本人確認してください。</p>
+        </form>
+      </div>
+      <div id="auth-signed-in" hidden>
+        <p id="auth-account"></p>
+        <div id="verification-actions" hidden class="auth-buttons">
+          <button id="verification-send" type="button">確認メールを送る</button>
+          <button id="verification-check" type="button" class="sub-button">メール確認後に続ける</button>
+        </div>
+        <button id="logout" type="button" class="sub-button">ログアウト・アカウントを切り替える</button>
+      </div>
+    </fieldset>
+    <noscript>ログインするにはJavaScriptを有効にしてください。</noscript>
+  </section>
+
+  <main id="app-content" class="layout" hidden>
     <section class="panel input-panel" aria-labelledby="input-title">
       <p class="section-kicker">Step 01</p>
       <h2 id="input-title">シミュレーション入力</h2>
@@ -338,8 +367,8 @@
   <script src="data/clinics.js"></script>
   <script src="data/clinic-details.js"></script>
   <script src="face-analysis.js"></script>
-  <script src="auth.js"></script>
   <script src="account-data.js"></script>
+  <script type="module" src="auth-client.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

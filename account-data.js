@@ -20,11 +20,10 @@
   }
 
   async function request(path, options = {}) {
-    const headers = await window.AppAuth.headers();
-    const response = await fetch(path, {
+    const response = await window.AppAuth.fetch(path, {
       ...options,
       cache: "no-store",
-      headers: { ...headers, ...(options.body ? { "Content-Type": "application/json" } : {}) }
+      headers: options.body ? { "Content-Type": "application/json" } : undefined
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "クラウド保存を利用できませんでした。");
@@ -32,7 +31,10 @@
   }
 
   async function withBusy(button, status, task) {
-    if (!await window.AppAuth.requireUser()) return;
+    if (!window.AppAuth?.uid) {
+      setStatus(status, "ログインしてください。", true);
+      return;
+    }
     button.disabled = true;
     setStatus(status, "処理中...");
     try {
@@ -73,7 +75,7 @@
 
   function renderHistory() {
     const list = controls.historyList;
-    if (!window.AppAuth.user) {
+    if (!window.AppAuth?.uid) {
       list.innerHTML = '<p class="small">履歴を見るにはログインしてください。</p>';
       return;
     }
@@ -112,7 +114,7 @@
   }
 
   async function loadHistory({ quiet = false } = {}) {
-    if (!window.AppAuth.user) {
+    if (!window.AppAuth?.uid) {
       histories = [];
       renderHistory();
       return;
@@ -190,8 +192,12 @@
       });
     });
     document.getElementById("history-reload").addEventListener("click", (event) => withBusy(event.currentTarget, controls.historyStatus, () => loadHistory()));
-    window.addEventListener("app-auth-change", () => loadHistory({ quiet: true }));
-    window.AppAuth.ready.then(() => loadHistory({ quiet: true }));
+    window.addEventListener("app-authorized", () => loadHistory({ quiet: true }));
+    window.addEventListener("app-locked", () => {
+      histories = [];
+      renderHistory();
+    });
+    if (window.AppAuth?.uid) loadHistory({ quiet: true });
     renderHistory();
   }
 
