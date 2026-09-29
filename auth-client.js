@@ -7,7 +7,7 @@ let generation = 0;
 
 function lock(message) {
   authorizedUid = null;
-  main.hidden = true;
+  if (main) main.hidden = true;
   status.textContent = message;
   window.dispatchEvent(new Event("app-locked"));
 }
@@ -77,9 +77,10 @@ try {
       if (session.uid !== user.uid) throw new Error("Session mismatch");
       authorizedUid = session.uid;
       lastAuthorizedUid = session.uid;
-      main.hidden = false;
+      if (main) main.hidden = false;
       status.textContent = "ログインしました。入力設定と履歴は利用者ごとにクラウド保存されます。";
       window.dispatchEvent(new Event("app-authorized"));
+      if (location.pathname.endsWith("/login.html") || location.pathname.endsWith("/index.html") || location.pathname === "/") location.replace("app.html");
     } catch {
       if (currentGeneration === generation) status.textContent = "ログインを確認できませんでした。ページを再読み込みしてください。";
     }

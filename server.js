@@ -326,7 +326,7 @@ function serveStatic(request, response) {
   // Only explicitly public assets may be served. Never expose .env, source,
   // dependencies, Git metadata or server-side access policy.
   const publicFiles = new Set([
-    "/", "/index.html", "/style.css", "/script.js", "/auth-client.js",
+    "/", "/index.html", "/login.html", "/app.html", "/style.css", "/script.js", "/auth-client.js",
     "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js"
   ]);
   if (!publicFiles.has(urlPath)) {
