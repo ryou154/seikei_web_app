@@ -2,7 +2,8 @@
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --omit=optional
 COPY . .
 
 ENV NODE_ENV=production

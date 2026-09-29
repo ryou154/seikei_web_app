@@ -1,3 +1,9 @@
+.account-data-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.account-data-actions button { min-height: 44px; }
+.history-card p, #settings-status, #history-status { overflow-wrap: anywhere; }
+#settings-status[data-error="true"], #history-status[data-error="true"] { color: #b42318; }
+
+
 :root {
   --primary: #e84d6a;
   --primary-dark: #b8324d;

@@ -1,6 +1,9 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { publicConfig, isConfigured, authorize } = require("./auth-server");
+const { createAccountHandler } = require("./account-store");
+const handleAccount = createAccountHandler();
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -17,7 +20,28 @@ const mimeTypes = {
 
 const server = http.createServer(async (request, response) => {
   try {
+    if (request.url.startsWith("/api/account/")) {
+      const result = await handleAccount(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.method === "GET" && request.url === "/api/auth/config") {
+      sendJson(response, isConfigured() ? 200 : 503, isConfigured()
+        ? { config: publicConfig() }
+        : { error: "ログインの設定がまだ完了していません。管理者に確認してください。" });
+      return;
+    }
+    if (request.method === "GET" && request.url === "/api/auth/me") {
+      const access = await authorize(request);
+      sendJson(response, access.status, access.user ? { user: access.user } : { error: access.error });
+      return;
+    }
     if (request.method === "POST" && request.url === "/api/gemini-edit") {
+      const access = await authorize(request);
+      if (!access.user) {
+        sendJson(response, access.status, { error: access.error });
+        return;
+      }
       await handleGeminiEdit(request, response);
       return;
     }
@@ -34,7 +58,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(port, () => {
-  console.log(`seikei_web_app is running at http://localhost:${port}`);
+  console.log(`seikei_web_app is running at http://localhost:${server.address().port}`);
 });
 
 async function handleGeminiEdit(request, response) {
@@ -305,6 +329,16 @@ function buildFaceGeometryGuide(value) {
 function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://localhost:${port}`);
   const urlPath = decodeURIComponent(requestUrl.pathname);
+  // Serve only browser assets, never server code, secrets, or dependency files.
+  const publicFiles = new Set([
+    "/", "/index.html", "/style.css", "/script.js", "/face-analysis.js",
+    "/auth.js", "/auth.css", "/account-data.js", "/data/clinics.js", "/data/clinic-details.js"
+  ]);
+  if (!publicFiles.has(urlPath)) {
+    response.writeHead(404);
+    response.end("Not found");
+    return;
+  }
   const relativePath = urlPath === "/"
     ? "index.html"
     : urlPath.replace(/^[/\\]+/, "");
@@ -361,6 +395,7 @@ function parseDataUrl(dataUrl) {
 
 function sendJson(response, statusCode, data) {
   response.writeHead(statusCode, {
+    "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8"
   });
   response.end(JSON.stringify(data));

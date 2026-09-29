@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI骨格フィット・整形シミュレーター</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="auth.css">
 </head>
 <body>
   <header class="app-header">
@@ -196,6 +197,12 @@
       </label>
 
       <button id="simulate-button" type="button" class="main-action">AIシミュレーションを実行</button>
+      <div class="account-data-actions">
+        <button id="settings-save" type="button">設定を保存</button>
+        <button id="settings-load" type="button">保存設定を読込</button>
+        <button id="settings-delete" type="button">保存設定を削除</button>
+      </div>
+      <p id="settings-status" class="notice" role="status" aria-live="polite"></p>
       <p class="notice">この画面は学習用の参考シミュレーションです。医療診断ではありません。</p>
     </section>
 
@@ -205,7 +212,7 @@
           <p class="eyebrow">Result</p>
           <h2 id="result-title">分析結果</h2>
         </div>
-        <button id="save-button" type="button" disabled>履歴に保存</button>
+        <button id="save-button" type="button" disabled>設定を履歴に保存</button>
       </div>
 
       <div id="empty-result" class="empty-state">
@@ -286,6 +293,9 @@
         </div>
         <button id="clear-history-button" type="button">履歴を削除</button>
       </div>
+      <p class="notice">本人専用のクラウド履歴（最新10件）。保存対象は入力設定のみで、写真・生成画像は含まれません。</p>
+      <button id="history-reload" type="button">履歴を再読込</button>
+      <p id="history-status" class="notice" role="status" aria-live="polite"></p>
       <div id="history-list" class="history-list"></div>
     </section>
   </main>
@@ -328,6 +338,8 @@
   <script src="data/clinics.js"></script>
   <script src="data/clinic-details.js"></script>
   <script src="face-analysis.js"></script>
+  <script src="auth.js"></script>
+  <script src="account-data.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

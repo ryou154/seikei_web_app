@@ -21,7 +21,9 @@ https://seikei-web-app-688786456161.asia-northeast1.run.app
 - 生成失敗時のローカル簡易After画像表示
 - AI分析風コメント
 - 地域入力に応じたおすすめクリニック表示
-- ブラウザ内の保存履歴
+- Googleまたはメール・パスワードでのログイン
+- ユーザー別の入力設定保存
+- Firestoreへの設定履歴保存（最新10件、画像は含まない）
 
 ## 使い方
 
@@ -51,7 +53,7 @@ $env:GEMINI_API_KEY="取得したGemini APIキー"
 http://localhost:3000
 ```
 
-`npm` が使えない環境でも、このアプリは外部パッケージを使っていないため動作できます。`start-server.ps1` はPCに入っているNode.js、またはCodex同梱のNode.jsを探して `server.js` を起動します。
+初回は `npm ci` を実行してください。Firebase AuthenticationとFirestoreを使うため、Google Application Default Credentialsと `.env` のFirebase設定も必要です。詳しくは `AUTH_SETUP.md` を確認してください。
 
 ## Gemini APIについて
 
@@ -81,6 +83,8 @@ gemini-2.5-flash-image
 - Google Cloud Build
 - Google Artifact Registry
 - Gemini API
+- Firebase Authentication
+- Cloud Firestore
 
 ### デプロイの流れ
 
@@ -96,6 +100,11 @@ Cloud Runのサービス設定で次の環境変数を設定します。
 
 ```text
 GEMINI_API_KEY=Google AI Studioで取得したAPIキー
+FIREBASE_API_KEY=Firebase WebアプリのapiKey
+FIREBASE_AUTH_DOMAIN=Firebase WebアプリのauthDomain
+FIREBASE_PROJECT_ID=対象プロジェクトID
+FIREBASE_APP_ID=Firebase WebアプリのappId
+AUTH_ALLOWED_EMAILS=利用を許可するメールアドレス（カンマ区切り）
 ```
 
 APIキーを変更した場合は、Cloud Runの「新しいリビジョンの編集とデプロイ」から環境変数を差し替えます。
@@ -162,7 +171,12 @@ seikei_web_app/
 ├─ index.html        画面HTML
 ├─ style.css         デザイン
 ├─ script.js         画面操作・画像処理・Gemini呼び出し
-├─ server.js         ローカル/Cloud Run用サーバー、Gemini API中継
+├─ auth.js           ログイン画面とFirebase Authentication連携
+├─ auth-server.js    Firebase IDトークン検証と利用者制限
+├─ account-data.js   設定・履歴の画面操作
+├─ account-store.js  Firestore保存API
+├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
+├─ server.js         Cloud Run用サーバー、認証・保存・Gemini API中継
 ├─ Dockerfile        Cloud Run用コンテナ設定
 ├─ package.json      Node.js起動設定
 ├─ start-server.ps1  ローカル起動用スクリプト

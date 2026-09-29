@@ -410,6 +410,7 @@ function completeGuidedScan() {
 stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
+  if (!await window.AppAuth.requireUser()) return;
   const requestText = requestTextInput.value.trim();
 
   if (!selectedImageData) {
@@ -427,23 +428,12 @@ simulateButton.addEventListener("click", async () => {
   await renderResult(latestResult);
 });
 
-saveButton.addEventListener("click", () => {
-  if (!latestResult) {
-    return;
-  }
-
-  const histories = getHistories();
-  histories.unshift({
-    ...latestResult,
-    savedAt: new Date().toLocaleString("ja-JP")
-  });
-  localStorage.setItem("seikeiHistories", JSON.stringify(histories.slice(0, 5)));
-  renderHistories();
+saveButton.addEventListener("click", async () => {
+  if (latestResult) await window.AccountData.saveHistory(latestResult);
 });
 
 clearHistoryButton.addEventListener("click", () => {
-  localStorage.removeItem("seikeiHistories");
-  renderHistories();
+  window.AccountData.clearHistory();
 });
 
 window.addEventListener("beforeunload", () => stopCamera());
@@ -477,8 +467,8 @@ function stopCamera(message = "カメラを停止しました。") {
   cameraMessage.textContent = message;
 }
 
-function createSimulationResult(requestText) {
-  const profile = {
+function readProfile() {
+  return {
     gender: genderSelect.value,
     style: styleSelect.value,
     eye: eyeSelect.value,
@@ -502,6 +492,10 @@ function createSimulationResult(requestText) {
     clinicPriority: clinicPriorityInput.value,
     priority: priorityInput.value
   };
+}
+
+function createSimulationResult(requestText) {
+  const profile = readProfile();
   const designLabels = createDesignLabels(profile);
   const keywords = buildKeywords(requestText, profile, designLabels);
   const analysis = createAnalysisText(requestText, profile, designLabels);
@@ -909,6 +903,7 @@ async function createGeminiAfterImage(result) {
   const response = await fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
+      ...await window.AppAuth.headers(),
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -1288,25 +1283,16 @@ function roundRectPath(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-function getHistories() {
-  return JSON.parse(localStorage.getItem("seikeiHistories") || "[]");
-}
-
-function renderHistories() {
-  const histories = getHistories();
-
-  if (histories.length === 0) {
-    historyList.innerHTML = `<p class="small">まだ保存された履歴はありません。</p>`;
+let previousAccountId = null;
+window.addEventListener("app-auth-change", (event) => {
+  const nextId = event.detail?.uid || null;
+  if (previousAccountId && previousAccountId !== nextId) {
+    // Clear images and pending work as well as the history when switching users.
+    location.reload();
     return;
   }
-
-  historyList.innerHTML = histories.map((history) => `
-    <article class="history-card">
-      <h4>${history.category}のシミュレーション</h4>
-      <p class="small">${history.savedAt}</p>
-      <p>${history.requestText || "選択式の理想イメージで作成"}</p>
-    </article>
-  `).join("");
-}
-
-renderHistories();
+  previousAccountId = nextId;
+});
+window.AccountData.init({
+  readSettings: () => ({ requestText: requestTextInput.value.trim(), profile: readProfile() })
+});
