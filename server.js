@@ -1,6 +1,8 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { authorize } = require("./auth-server");
+const firebaseConfig = require("./firebase-config");
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -17,7 +19,16 @@ const mimeTypes = {
 
 const server = http.createServer(async (request, response) => {
   try {
+    if (request.method === "GET" && request.url === "/api/firebase-config") {
+      sendJson(response, 200, firebaseConfig);
+      return;
+    }
+    if (request.method === "GET" && request.url === "/api/session") {
+      sendJson(response, 200, await authorize(request));
+      return;
+    }
     if (request.method === "POST" && request.url === "/api/gemini-edit") {
+      await authorize(request);
       await handleGeminiEdit(request, response);
       return;
     }
@@ -29,7 +40,7 @@ const server = http.createServer(async (request, response) => {
 
     sendJson(response, 405, { error: "Method not allowed" });
   } catch (error) {
-    sendJson(response, 500, { error: error.message || "Server error" });
+    sendJson(response, error.status || 500, { error: error.status ? error.message : "処理に失敗しました。時間をおいて再試行してください。" });
   }
 });
 
@@ -305,6 +316,17 @@ function buildFaceGeometryGuide(value) {
 function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://localhost:${port}`);
   const urlPath = decodeURIComponent(requestUrl.pathname);
+  // Only explicitly public assets may be served. Never expose .env, source,
+  // dependencies, Git metadata or server-side access policy.
+  const publicFiles = new Set([
+    "/", "/index.html", "/style.css", "/script.js", "/auth-client.js",
+    "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js"
+  ]);
+  if (!publicFiles.has(urlPath)) {
+    response.writeHead(404);
+    response.end("Not found");
+    return;
+  }
   const relativePath = urlPath === "/"
     ? "index.html"
     : urlPath.replace(/^[/\\]+/, "");
@@ -325,7 +347,9 @@ function serveStatic(request, response) {
     }
 
     response.writeHead(200, {
-      "Content-Type": mimeTypes[path.extname(filePath)] || "application/octet-stream"
+      "Content-Type": mimeTypes[path.extname(filePath)] || "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache"
     });
     response.end(content);
   });
@@ -361,7 +385,8 @@ function parseDataUrl(dataUrl) {
 
 function sendJson(response, statusCode, data) {
   response.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8"
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
   });
   response.end(JSON.stringify(data));
 }

@@ -1022,3 +1022,13 @@ body.camera-open {
   color: #756a70;
   font-size: 0.76rem;
 }
+[hidden] { display: none !important; }
+.auth-panel { max-width: 900px; margin: 20px auto; }
+.auth-panel fieldset { border: 0; padding: 0; min-width: 0; }
+.auth-panel input { width: 100%; box-sizing: border-box; }
+.auth-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+#auth-status { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .auth-panel { margin: 12px; }
+  .auth-buttons { flex-direction: column; }
+}

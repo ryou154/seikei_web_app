@@ -41,6 +41,8 @@ https://seikei-web-app-688786456161.asia-northeast1.run.app
 
 ```powershell
 cd seikei_web_app
+npm install -g pnpm@11.19.0
+pnpm install --frozen-lockfile --ignore-scripts
 $env:GEMINI_API_KEY="取得したGemini APIキー"
 .\start-server.ps1
 ```
@@ -51,7 +53,29 @@ $env:GEMINI_API_KEY="取得したGemini APIキー"
 http://localhost:3000
 ```
 
-`npm` が使えない環境でも、このアプリは外部パッケージを使っていないため動作できます。`start-server.ps1` はPCに入っているNode.js、またはCodex同梱のNode.jsを探して `server.js` を起動します。
+Node.js 22以上と依存パッケージのインストールが必要です。`start-server.ps1` はPCに入っているNode.js、またはCodex同梱のNode.jsを探して `server.js` を起動します。
+
+## Firebaseログイン
+
+Googleログイン、メール／パスワード登録、確認メールの再送、パスワード再設定、ログアウトに対応しています。
+初回登録後は、メール内の確認リンクを開き「メール確認後に続ける」を押してください。
+
+`firebase-config.js` にチームのFirebase Web接続情報を設定済みです。`FIREBASE_API_KEY`、`FIREBASE_AUTH_DOMAIN`、`FIREBASE_PROJECT_ID`、`FIREBASE_APP_ID` で上書きもできます。これらはブラウザ用の公開設定であり、Geminiキーやサービスアカウント秘密鍵ではありません。Geminiの既存環境変数はそのまま使用します。`.env` ファイルの自動読込は行いません。
+
+サーバーはFirebase Admin SDKでIDトークンの署名・期限・対象プロジェクトを検証し、メール確認済みの以下4名に限り `/api/session` と `/api/gemini-edit` を許可します。
+
+- c3337@oic.jp
+- c3241@oic.jp
+- c3122@oic.jp
+- c3201@oic.jp
+
+許可リストは `auth-server.js` で管理します。Firebase自体へのユーザー登録を制限するものではありません。署名検証には公開鍵を使用し、秘密鍵ファイルは不要です。トークン失効・アカウント無効化の即時検知は行わず、発行済みIDトークンは有効期限まで受け付けます。
+
+履歴はブラウザ内でFirebase UIDごとに分離します。旧バージョンの共有履歴は所有者を特定できないため自動移行・表示しません。別端末との同期やクラウド保存はありません。同じブラウザの開発者ツールを使える人から履歴を秘匿する仕組みではありません。
+
+Firebase ConsoleでGoogle・メール／パスワードを有効化し、Cloud Runのホスト名を承認済みドメインに追加してください。ローカルで試す場合は `localhost` も必要です。Googleログインはポップアップを使用します。
+
+テスト: `pnpm test`。デプロイ後は対象アカウントでGoogleログイン、メール登録・確認、再設定、ログアウトとアカウント切替を確認してください。確認メール・再設定メールの実送信は自動テストでは行いません。
 
 ## Gemini APIについて
 

@@ -410,6 +410,7 @@ function completeGuidedScan() {
 stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
+  if (!window.AppAuth?.uid) return;
   const requestText = requestTextInput.value.trim();
 
   if (!selectedImageData) {
@@ -428,7 +429,7 @@ simulateButton.addEventListener("click", async () => {
 });
 
 saveButton.addEventListener("click", () => {
-  if (!latestResult) {
+  if (!latestResult || !window.AppAuth?.uid) {
     return;
   }
 
@@ -437,12 +438,17 @@ saveButton.addEventListener("click", () => {
     ...latestResult,
     savedAt: new Date().toLocaleString("ja-JP")
   });
-  localStorage.setItem("seikeiHistories", JSON.stringify(histories.slice(0, 5)));
+  try {
+    localStorage.setItem(historyKey(), JSON.stringify(histories.slice(0, 5)));
+  } catch {
+    alert("履歴を保存できませんでした。ブラウザの保存容量・設定を確認してください。");
+  }
   renderHistories();
 });
 
 clearHistoryButton.addEventListener("click", () => {
-  localStorage.removeItem("seikeiHistories");
+  if (!window.AppAuth?.uid) return;
+  localStorage.removeItem(historyKey());
   renderHistories();
 });
 
@@ -653,23 +659,30 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
 }
 
 async function renderResult(result) {
+  const ownerUid = window.AppAuth?.uid;
+  if (!ownerUid) return;
+  const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
-  saveButton.disabled = false;
+  saveButton.disabled = true;
 
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
+  if (!stillCurrent()) return;
   analysisText.textContent = appendFaceAnalysis(result.analysis, result.faceAnalysis);
   renderFaceScoreComparison(result.faceAnalysis, null);
   await runScanAnimation(result.profile, result.faceAnalysis);
+  if (!stillCurrent()) return;
 
   try {
     const generatedImage = result.profile.imageEngine === "gemini"
       ? await createGeminiAfterImage(result)
       : createAfterImage(result.profile);
+    if (!stillCurrent()) return;
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
+    if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(
       appendFaceAnalysis(result.analysis, result.faceAnalysis),
@@ -677,6 +690,7 @@ async function renderResult(result) {
       result.afterFaceAnalysis
     );
   } catch (error) {
+    if (!stillCurrent()) return;
     console.error(error);
     const localImage = createAfterImage(result.profile);
     result.afterFaceAnalysis = { ok: false, message: "Gemini生成失敗のためAfterスコアは算出していません。" };
@@ -684,7 +698,7 @@ async function renderResult(result) {
     afterImage.innerHTML = `
       <div class="gemini-error">
         <strong>Gemini生成に失敗しました。</strong>
-        <span>${error.message}</span>
+        <span>${escapeText(error.message)}</span>
         <small>下には確認用としてローカル簡易生成の画像を表示しています。</small>
       </div>
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
@@ -724,6 +738,7 @@ async function renderResult(result) {
     `).join("")
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
+  saveButton.disabled = false;
 }
 
 async function analyzeSelectedFace() {
@@ -906,7 +921,7 @@ async function createGeminiAfterImage(result) {
   }
 
   const preparedImage = await resizeImageForGemini(selectedImageData);
-  const response = await fetch("/api/gemini-edit", {
+  const response = await window.AppAuth.fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -1288,8 +1303,23 @@ function roundRectPath(context, x, y, width, height, radius) {
   context.closePath();
 }
 
+function historyKey() {
+  return window.AppAuth?.uid ? `seikeiHistories:${window.AppAuth.uid}` : null;
+}
+
 function getHistories() {
-  return JSON.parse(localStorage.getItem("seikeiHistories") || "[]");
+  const key = historyKey();
+  if (!key) return [];
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value.filter((item) => item && typeof item === "object") : [];
+  } catch { return []; }
+}
+
+function escapeText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[char]));
 }
 
 function renderHistories() {
@@ -1302,11 +1332,31 @@ function renderHistories() {
 
   historyList.innerHTML = histories.map((history) => `
     <article class="history-card">
-      <h4>${history.category}のシミュレーション</h4>
-      <p class="small">${history.savedAt}</p>
-      <p>${history.requestText || "選択式の理想イメージで作成"}</p>
+      <h4>${escapeText(history.category)}のシミュレーション</h4>
+      <p class="small">${escapeText(history.savedAt)}</p>
+      <p>${escapeText(history.requestText || "選択式の理想イメージで作成")}</p>
     </article>
   `).join("");
 }
 
 renderHistories();
+
+window.addEventListener("app-authorized", renderHistories);
+window.addEventListener("app-locked", () => {
+  stopCamera();
+  selectedImageData = "";
+  analyzedImageData = "";
+  latestFaceAnalysis = null;
+  latestResult = null;
+  faceImageInput.value = "";
+  requestTextInput.value = "";
+  imagePreview.replaceChildren();
+  beforeImage.replaceChildren();
+  afterImage.replaceChildren();
+  historyList.replaceChildren();
+  hospitalList.replaceChildren();
+  analysisText.textContent = "";
+  resultContent.classList.add("hidden");
+  emptyResult.classList.remove("hidden");
+  saveButton.disabled = true;
+});
