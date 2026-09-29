@@ -18,10 +18,9 @@ test("unverified email cannot use the application", async () => {
 test("email verification cannot be a truthy string", async () => {
   await assert.rejects(authorize(request(), async () => ({ uid: "user1", email: "c3122@oic.jp", email_verified: "true" })), { status: 403 });
 });
-test("verified non-members and absent emails are denied", async () => {
-  for (const email of ["outsider@oic.jp", "c3122@oic.jp.attacker.example", undefined]) {
-    await assert.rejects(authorize(request(), async () => ({ uid: "outsider", email, email_verified: true })), { status: 403 });
-  }
+test("verified registered users are accepted", async () => {
+  const user = await authorize(request(), async () => ({ uid: "registered", email: "new-user@example.com", email_verified: true }));
+  assert.equal(user.uid, "registered");
 });
 test("all four verified members are accepted, with case-insensitive emails", async () => {
   for (const email of ["c3337@oic.jp", "c3241@oic.jp", "C3122@oic.jp", "c3201@oic.jp"]) {

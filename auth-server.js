@@ -2,9 +2,6 @@ const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const config = require("./firebase-config");
 
-const allowedEmails = new Set([
-  "c3337@oic.jp", "c3241@oic.jp", "c3122@oic.jp", "c3201@oic.jp"
-]);
 let firebaseAuth;
 
 function deny(status, message) {
@@ -22,9 +19,6 @@ async function authorize(request, verifyToken = verifyFirebaseToken) {
   }
   if (!claims.uid || claims.email_verified !== true) {
     throw deny(403, "確認メールのリンクを開いて、メールアドレスを確認してください。");
-  }
-  if (!allowedEmails.has(String(claims.email || "").toLowerCase())) {
-    throw deny(403, "このアカウントは利用対象ではありません。担当者に確認してください。");
   }
   return { uid: claims.uid, email: claims.email };
 }
