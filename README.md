@@ -10,6 +10,15 @@ Google Cloud Runで公開しています。
 
 https://seikei-web-app-688786456161.asia-northeast1.run.app
 
+## チーム開発資料
+
+- [全体開発設計書](docs/DEVELOPMENT_DESIGN.md)
+- [担当1: 履歴・結果画面](docs/01_history_ui_assignment.md)
+- [担当2: クリニック検索・公式情報整備](docs/02_clinic_search_assignment.md)
+- [担当3: 共通ナビゲーション・認証導線・QA](docs/03_navigation_qa_assignment.md)
+
+各担当は最新の `main` から指定ブランチを作り、指示書の所有範囲と完了条件に従って作業します。
+
 ## 主な機能
 
 - 顔画像のファイルアップロード
