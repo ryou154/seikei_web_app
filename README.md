@@ -10,15 +10,6 @@ Google Cloud Runで公開しています。
 
 https://seikei-web-app-688786456161.asia-northeast1.run.app
 
-## チーム開発資料
-
-- [全体開発設計書](docs/DEVELOPMENT_DESIGN.md)
-- [担当1: 履歴・結果画面](docs/01_history_ui_assignment.md)
-- [担当2: クリニック検索・公式情報整備](docs/02_clinic_search_assignment.md)
-- [担当3: 共通ナビゲーション・認証導線・QA](docs/03_navigation_qa_assignment.md)
-
-各担当は最新の `main` から指定ブランチを作り、指示書の所有範囲と完了条件に従って作業します。
-
 ## 主な機能
 
 - 顔画像のファイルアップロード
@@ -30,9 +21,7 @@ https://seikei-web-app-688786456161.asia-northeast1.run.app
 - 生成失敗時のローカル簡易After画像表示
 - AI分析風コメント
 - 地域入力に応じたおすすめクリニック表示
-- Googleまたはメール・パスワードでのログイン
-- ユーザー別の入力設定保存
-- Firestoreへの設定履歴保存（最新10件、画像は含まない）
+- ブラウザ内の保存履歴
 
 ## 使い方
 
@@ -73,20 +62,20 @@ Googleログイン、メール／パスワード登録、確認メールの再�
 
 `firebase-config.js` にチームのFirebase Web接続情報を設定済みです。`FIREBASE_API_KEY`、`FIREBASE_AUTH_DOMAIN`、`FIREBASE_PROJECT_ID`、`FIREBASE_APP_ID` で上書きもできます。これらはブラウザ用の公開設定であり、Geminiキーやサービスアカウント秘密鍵ではありません。Geminiの既存環境変数はそのまま使用します。`.env` ファイルの自動読込は行いません。
 
-サーバーはFirebase Admin SDKでIDトークンの署名・期限・対象プロジェクトを検証し、メール確認済みの以下4名に限り `/api/session` と `/api/gemini-edit` を許可します。
+サーバーはFirebase Admin SDKでIDトークンの署名・期限・対象プロジェクトを検証し、Firebaseに登録され、メール確認済みのユーザーに `/api/session` と `/api/gemini-edit` を許可します。未確認メールのユーザーは利用できません。
 
 - c3337@oic.jp
 - c3241@oic.jp
 - c3122@oic.jp
 - c3201@oic.jp
 
-許可リストはCloud Runの `AUTH_ALLOWED_EMAILS` 環境変数で管理します。Firebase自体へのユーザー登録を制限するものではありません。署名検証には公開鍵を使用し、秘密鍵ファイルは不要です。失効済みトークンと無効化されたアカウントもサーバー側で拒否します。
+Firebase自体へのユーザー登録を制限するものではありません。署名検証には公開鍵を使用し、秘密鍵ファイルは不要です。トークン失効・アカウント無効化の即時検知は行わず、発行済みIDトークンは有効期限まで受け付けます。
 
-入力設定と履歴はFirestoreへ保存し、Firebase UIDごとに分離します。写真・生成画像は保存しません。旧バージョンのブラウザ履歴は所有者を特定できないため自動移行しません。
+履歴はブラウザ内でFirebase UIDごとに分離します。旧バージョンの共有履歴は所有者を特定できないため自動移行・表示しません。別端末との同期やクラウド保存はありません。同じブラウザの開発者ツールを使える人から履歴を秘匿する仕組みではありません。
 
 Firebase ConsoleでGoogle・メール／パスワードを有効化し、Cloud Runのホスト名を承認済みドメインに追加してください。ローカルで試す場合は `localhost` も必要です。Googleログインはポップアップを使用します。
 
-テスト: `pnpm test`。デプロイ後は対象アカウントでGoogleログイン、メール登録・確認、再設定、ログアウト、アカウント切替、設定・履歴の保存を確認してください。確認メール・再設定メールの実送信は自動テストでは行いません。詳しい設定は `AUTH_SETUP.md` を確認してください。
+テスト: `pnpm test`。デプロイ後は対象アカウントでGoogleログイン、メール登録・確認、再設定、ログアウトとアカウント切替を確認してください。確認メール・再設定メールの実送信は自動テストでは行いません。
 
 ## Gemini APIについて
 
@@ -116,8 +105,6 @@ gemini-2.5-flash-image
 - Google Cloud Build
 - Google Artifact Registry
 - Gemini API
-- Firebase Authentication
-- Cloud Firestore
 
 ### デプロイの流れ
 
@@ -133,11 +120,6 @@ Cloud Runのサービス設定で次の環境変数を設定します。
 
 ```text
 GEMINI_API_KEY=Google AI Studioで取得したAPIキー
-FIREBASE_API_KEY=Firebase WebアプリのapiKey
-FIREBASE_AUTH_DOMAIN=Firebase WebアプリのauthDomain
-FIREBASE_PROJECT_ID=対象プロジェクトID
-FIREBASE_APP_ID=Firebase WebアプリのappId
-AUTH_ALLOWED_EMAILS=利用を許可するメールアドレス（カンマ区切り）
 ```
 
 APIキーを変更した場合は、Cloud Runの「新しいリビジョンの編集とデプロイ」から環境変数を差し替えます。
@@ -204,12 +186,7 @@ seikei_web_app/
 ├─ index.html        画面HTML
 ├─ style.css         デザイン
 ├─ script.js         画面操作・画像処理・Gemini呼び出し
-├─ auth.js           ログイン画面とFirebase Authentication連携
-├─ auth-server.js    Firebase IDトークン検証と利用者制限
-├─ account-data.js   設定・履歴の画面操作
-├─ account-store.js  Firestore保存API
-├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
-├─ server.js         Cloud Run用サーバー、認証・保存・Gemini API中継
+├─ server.js         ローカル/Cloud Run用サーバー、Gemini API中継
 ├─ Dockerfile        Cloud Run用コンテナ設定
 ├─ package.json      Node.js起動設定
 ├─ start-server.ps1  ローカル起動用スクリプト
