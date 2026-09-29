@@ -42,10 +42,13 @@ test("server source, credentials, Git and dependencies are not public", async ()
   }
 });
 test("login page starts locked and public assets are available", async () => {
-  const html = await (await fetch(base)).text();
-  assert.match(html, /id="app-content"[^>]*hidden/);
-  assert.match(html, /id="google-login"/);
-  assert.match(html, /id="password-reset"/);
+  const index = await (await fetch(base)).text();
+  const login = await (await fetch(`${base}/login.html`)).text();
+  const app = await (await fetch(`${base}/app.html`)).text();
+  assert.match(index, /location\.replace\("login\.html"\)/);
+  assert.match(login, /id="google-login"/);
+  assert.match(login, /id="password-reset"/);
+  assert.match(app, /id="app-content"/);
   for (const file of ["/auth-client.js", "/script.js", "/style.css", "/data/clinics.js", "/face-analysis.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }

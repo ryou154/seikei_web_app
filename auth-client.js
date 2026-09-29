@@ -80,6 +80,7 @@ try {
       main.hidden = false;
       status.textContent = "ログインしました。履歴はこのブラウザに、利用者ごとに保存されます。";
       window.dispatchEvent(new Event("app-authorized"));
+      if (location.pathname.endsWith("/login.html") || location.pathname.endsWith("/index.html") || location.pathname === "/") location.replace("app.html");
     } catch {
       if (currentGeneration === generation) status.textContent = "ログインを確認できませんでした。ページを再読み込みしてください。";
     }

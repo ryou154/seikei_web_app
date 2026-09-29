@@ -1023,6 +1023,7 @@ body.camera-open {
   font-size: 0.76rem;
 }
 [hidden] { display: none !important; }
+.app-page #auth-panel { display: none; }
 .auth-panel { max-width: 900px; margin: 20px auto; }
 .auth-panel fieldset { border: 0; padding: 0; min-width: 0; }
 .auth-panel input { width: 100%; box-sizing: border-box; }
