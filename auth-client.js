@@ -69,11 +69,16 @@ try {
     element("verification-actions").hidden = !user || user.emailVerified;
     element("auth-account").textContent = user?.email || "";
     notifyAuthState();
+    if (!user) {
+      // Wait for Firebase's initial state before redirecting a protected page.
+      // replace prevents Back from returning to this unauthenticated entry.
+      if (main) location.replace("login.html");
+      return;
+    }
     if (lastAuthorizedUid && lastAuthorizedUid !== user?.uid) {
       location.reload();
       return;
     }
-    if (!user) return;
     if (!user.emailVerified) {
       status.textContent = "メールの確認が必要です。確認メールのリンクを開いてから「メール確認後に続ける」を押してください。";
       return;
@@ -109,7 +114,8 @@ try {
         ++generation;
         lock("ログアウトしています…");
         await sdk.signOut(auth);
-        location.reload();
+        if (main) location.replace("login.html");
+        else location.reload();
       });
     },
     async fetch(url, options = {}) {

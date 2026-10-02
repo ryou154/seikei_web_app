@@ -6,9 +6,10 @@ const vm = require("node:vm");
 
 // Run the complete client with fake Firebase/network boundaries. No real emails,
 // passwords or accounts are created by these tests.
-async function setup() {
+async function setup(page = "/app.html") {
   const nodes = new Map();
   const document = { getElementById(id) {
+    if (id === "app-content" && page === "/login.html") return null;
     if (!nodes.has(id)) nodes.set(id, {
       hidden: id === "app-content", disabled: false, textContent: "", value: "",
       listeners: {}, addEventListener(event, fn) { this.listeners[event] = fn; },
@@ -17,7 +18,7 @@ async function setup() {
     return nodes.get(id);
   } };
   const auth = { currentUser: null };
-  const state = { reloads: 0, verificationEmails: 0, resets: 0, status: 200, signOuts: 0, signOutError: false };
+  const state = { redirects: [], reloads: 0, verificationEmails: 0, resets: 0, status: 200, signOuts: 0, signOutError: false };
   let observer;
   const sdk = {
     getAuth: () => auth,
@@ -38,7 +39,7 @@ async function setup() {
   const events = [];
   const context = vm.createContext({
     document, Headers, Event,
-    location: { pathname: "/app.html", reload() { state.reloads++; } },
+    location: { pathname: page, replace(url) { state.redirects.push(url); }, reload() { state.reloads++; } },
     window: { dispatchEvent(event) { events.push(event.type); } },
     importSDK: async (url) => url.endsWith("firebase-app.js") ? { initializeApp: () => ({}) } : sdk,
     fetch: async (url) => url === "/api/firebase-config"
@@ -50,6 +51,11 @@ async function setup() {
   const flush = async () => { await new Promise(setImmediate); };
   return {
     node: document.getElementById, state, events, api: context.window.AppAuth,
+    async signedOut() {
+      auth.currentUser = null;
+      observer(null);
+      await flush();
+    },
     async login(uid, emailVerified) {
       auth.currentUser = { uid, emailVerified, email: "member@example.com", getIdToken: async () => "token" };
       observer(auth.currentUser);
@@ -70,6 +76,35 @@ test("unverified account stays locked and can request a verification email", asy
   assert.equal(app.api.uid, null);
   await app.click("verification-send");
   assert.equal(app.state.verificationEmails, 1);
+});
+
+test("protected page waits for auth then redirects signed-out visitors", async () => {
+  const app = await setup();
+  assert.deepEqual(app.state.redirects, []);
+  assert.equal(app.node("app-content").hidden, true);
+  await app.signedOut();
+  assert.deepEqual(app.state.redirects, ["login.html"]);
+  assert.equal(app.node("app-content").hidden, true);
+  assert.equal(app.api.uid, null);
+});
+
+test("signed-out login page stays available without a redirect loop", async () => {
+  const app = await setup("/login.html");
+  await app.signedOut();
+  assert.deepEqual(app.state.redirects, []);
+  assert.equal(app.node("auth-signed-out").hidden, false);
+  assert.equal(app.node("auth-controls").disabled, false);
+});
+
+test("restored session stays on protected page, session loss returns to login", async () => {
+  const app = await setup();
+  await app.login("alice", true);
+  assert.deepEqual(app.state.redirects, []);
+  assert.equal(app.node("app-content").hidden, false);
+  await app.signedOut();
+  assert.deepEqual(app.state.redirects, ["login.html"]);
+  assert.equal(app.node("app-content").hidden, true);
+  assert.equal(app.state.reloads, 0);
 });
 test("verified but server-denied account stays locked", async () => {
   const app = await setup();
