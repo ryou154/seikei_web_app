@@ -85,6 +85,13 @@
   margin: 0;
 }
 
+.common-navigation__account .sub-button {
+  min-height: 44px;
+  height: 44px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+}
+
 .common-navigation__account[hidden] {
   display: none;
 }
