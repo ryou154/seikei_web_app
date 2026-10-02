@@ -36,7 +36,7 @@
   align-items: center;
   justify-content: center;
 
-  height: 44px;
+  height: 60px;
   margin: 0;
   padding: 0;
 
@@ -47,13 +47,12 @@
 .common-navigation__logo img {
   display: block;
   width: auto;
-  height: 44px;
+  height: 60px;
   object-fit: contain;
 }
 
 .common-navigation__logo:focus-visible {
-  outline: 3px solid var(--primary-dark, #b8324d);
-  outline-offset: 2px;
+  outline: none;
 }
 
 
