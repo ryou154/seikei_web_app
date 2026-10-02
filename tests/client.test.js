@@ -17,7 +17,7 @@ async function setup() {
     return nodes.get(id);
   } };
   const auth = { currentUser: null };
-  const state = { reloads: 0, verificationEmails: 0, resets: 0, status: 200 };
+  const state = { reloads: 0, verificationEmails: 0, resets: 0, status: 200, signOuts: 0, signOutError: false };
   let observer;
   const sdk = {
     getAuth: () => auth,
@@ -28,12 +28,17 @@ async function setup() {
     sendPasswordResetEmail: async () => { state.resets++; },
     signInWithEmailAndPassword: async () => { throw { code: "auth/invalid-credential" }; },
     signInWithPopup: async () => { throw { code: "auth/popup-blocked" }; },
-    signOut: async () => { auth.currentUser = null; observer(null); }
+    signOut: async () => {
+      state.signOuts++;
+      if (state.signOutError) throw { code: "auth/network-request-failed" };
+      auth.currentUser = null;
+      observer(null);
+    }
   };
   const events = [];
   const context = vm.createContext({
     document, Headers, Event,
-    location: { reload() { state.reloads++; } },
+    location: { pathname: "/app.html", reload() { state.reloads++; } },
     window: { dispatchEvent(event) { events.push(event.type); } },
     importSDK: async (url) => url.endsWith("firebase-app.js") ? { initializeApp: () => ({}) } : sdk,
     fetch: async (url) => url === "/api/firebase-config"
@@ -101,4 +106,39 @@ test("password reset gives a generic response and popup errors are actionable", 
   assert.match(app.node("auth-status").textContent, /登録済みのメールアドレスであれば/);
   await app.click("google-login");
   assert.match(app.node("auth-status").textContent, /ポップアップを許可/);
+});
+
+test("shared logout clears account state and prevents concurrent requests", async () => {
+  const app = await setup();
+  assert.equal(app.api.signedIn, false);
+  assert.equal(app.api.email, "");
+  await app.login("alice", true);
+  assert.equal(app.api.email, "member@example.com");
+  assert.equal(app.api.signedIn, true);
+  const pending = app.api.logout();
+  assert.equal(app.api.busy, true);
+  await app.api.logout();
+  await pending;
+  assert.equal(app.state.signOuts, 1);
+  assert.equal(app.api.busy, false);
+  assert.equal(app.api.signedIn, false);
+  assert.equal(app.api.email, "");
+  assert.equal(app.api.uid, null);
+  assert.equal(app.node("app-content").hidden, true);
+  assert.ok(app.events.includes("auth-state-changed"));
+});
+
+test("logout failure permits retry through the existing account button", async () => {
+  const app = await setup();
+  await app.login("alice", false);
+  app.state.signOutError = true;
+  await app.api.logout();
+  assert.equal(app.api.signedIn, true);
+  assert.equal(app.api.busy, false);
+  assert.equal(app.state.reloads, 0);
+  assert.match(app.node("auth-status").textContent, /通信できません/);
+  app.state.signOutError = false;
+  await app.click("logout");
+  assert.equal(app.state.signOuts, 2);
+  assert.equal(app.api.signedIn, false);
 });

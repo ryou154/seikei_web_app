@@ -28,7 +28,28 @@
   }
 
   nav.append(list);
+  const account = document.createElement("div");
+  account.className = "common-navigation__account";
+  const email = document.createElement("span");
+  email.className = "common-navigation__email";
+  const logout = document.createElement("button");
+  logout.type = "button";
+  logout.className = "sub-button";
+  logout.textContent = "ログアウト";
+  logout.addEventListener("click", () => window.AppAuth?.logout());
+  account.append(email, logout);
+  nav.append(account);
   container.replaceChildren(nav);
+
+  function updateAccount() {
+    const auth = window.AppAuth;
+    account.hidden = !auth?.signedIn;
+    email.textContent = auth?.signedIn ? `ログイン中：${auth.email}` : "";
+    logout.disabled = !auth?.signedIn || auth.busy;
+    logout.textContent = auth?.busy ? "処理中…" : "ログアウト";
+  }
+  window.addEventListener("auth-state-changed", updateAccount);
+  updateAccount();
 
   function updateCurrentPage() {
     const pageLinks = navigationLinks.filter((link) =>

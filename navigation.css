@@ -41,3 +41,21 @@
   outline: 3px solid var(--primary-dark, #b8324d);
   outline-offset: 2px;
 }
+
+.common-navigation__account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: min(1160px, 100%);
+  margin: 12px auto 0;
+}
+
+.common-navigation__account[hidden] {
+  display: none;
+}
+
+.common-navigation__email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

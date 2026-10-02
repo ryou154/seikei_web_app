@@ -4,6 +4,11 @@ const controls = element("auth-controls");
 const main = element("app-content");
 let authorizedUid = null;
 let generation = 0;
+let busy = false;
+
+function notifyAuthState() {
+  window.dispatchEvent(new Event("auth-state-changed"));
+}
 
 function lock(message) {
   authorizedUid = null;
@@ -42,11 +47,18 @@ try {
   }
 
   async function run(action) {
+    if (busy) return;
+    busy = true;
     controls.disabled = true;
+    notifyAuthState();
     status.textContent = "処理しています…";
     try { await action(); }
     catch (error) { status.textContent = messageFor(error); }
-    finally { controls.disabled = false; }
+    finally {
+      busy = false;
+      controls.disabled = false;
+      notifyAuthState();
+    }
   }
 
   async function checkSession(user) {
@@ -56,6 +68,7 @@ try {
     element("auth-signed-in").hidden = !user;
     element("verification-actions").hidden = !user || user.emailVerified;
     element("auth-account").textContent = user?.email || "";
+    notifyAuthState();
     if (lastAuthorizedUid && lastAuthorizedUid !== user?.uid) {
       location.reload();
       return;
@@ -88,6 +101,17 @@ try {
 
   window.AppAuth = {
     get uid() { return authorizedUid; },
+    get email() { return auth.currentUser?.email || ""; },
+    get signedIn() { return Boolean(auth.currentUser); },
+    get busy() { return busy; },
+    logout() {
+      return run(async () => {
+        ++generation;
+        lock("ログアウトしています…");
+        await sdk.signOut(auth);
+        location.reload();
+      });
+    },
     async fetch(url, options = {}) {
       const user = auth.currentUser;
       if (!authorizedUid || user?.uid !== authorizedUid) throw new Error("ログインしてください。");
@@ -140,14 +164,10 @@ try {
     await sdk.reload(auth.currentUser);
     await checkSession(auth.currentUser);
   }));
-  element("logout").addEventListener("click", () => run(async () => {
-    ++generation;
-    lock("ログアウトしています…");
-    await sdk.signOut(auth);
-    location.reload();
-  }));
+  element("logout").addEventListener("click", () => window.AppAuth.logout());
   sdk.onAuthStateChanged(auth, (user) => { void checkSession(user); }, () => lock("ログインを読み込めませんでした。再読み込みしてください。"));
   controls.disabled = false;
+  notifyAuthState();
 } catch {
   lock("ログイン機能を読み込めませんでした。インターネット接続を確認し、ページを再読み込みしてください。");
 }
