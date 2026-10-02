@@ -80,7 +80,7 @@
   function showPage(animate = true) {
     stopSlide();
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-    const heading = document.querySelector(".app-header h1");
+    const heading = document.querySelector(".app-header h1") || pageContent;
     if (heading) {
       heading.setAttribute("tabindex", "-1");
       heading.focus({ preventScroll: true });

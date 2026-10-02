@@ -49,7 +49,8 @@ test("navigation keeps the menu still, slides page content and resets scroll for
     const [file, id] = anchor.href.split("#");
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     assert.ok(html.indexOf('id="common-navigation"') < html.indexOf('id="page-transition-content"'));
-    assert.ok(html.indexOf('</header>') < html.indexOf('id="page-transition-content"'), 'title header stays outside animated content');
+    if (file === 'app.html') assert.ok(!html.includes('<header class="app-header">'));
+    else assert.ok(html.indexOf('</header>') < html.indexOf('id="page-transition-content"'));
     if (id) assert.ok(html.includes('id="' + id + '"'));
   }
   for (const event of ["pageshow", "app-authorized", "popstate", "hashchange"]) {
