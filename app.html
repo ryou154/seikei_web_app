@@ -244,8 +244,12 @@
           <p class="eyebrow">Result</p>
           <h2 id="result-title">分析結果</h2>
         </div>
-        <button id="save-button" type="button" disabled>設定を履歴に保存</button>
+        <div class="result-save-controls">
+          <label class="image-save-consent"><input id="save-images-consent" type="checkbox"> 顔写真とAfter画像も保存</label>
+          <button id="save-button" type="button" disabled>結果を履歴に保存</button>
+        </div>
       </div>
+      <p class="image-save-note">画像保存は任意です。チェックした場合のみ、本人専用のクラウド領域に保存します。</p>
 
       <div id="empty-result" class="empty-state">
         入力後にシミュレーションを実行すると、ここに結果が表示されます。
@@ -326,7 +330,7 @@
         </div>
         <button id="clear-history-button" type="button">履歴を削除</button>
       </div>
-      <p class="notice">本人専用のクラウド履歴（最新10件）。保存対象は入力設定のみで、写真・生成画像は含まれません。</p>
+      <p class="notice">本人専用のクラウド履歴（最新10件）。分析結果は保存され、写真・生成画像は保存時に同意した場合のみ含まれます。</p>
       <button id="history-reload" type="button">履歴を再読込</button>
       <p id="history-status" class="notice" role="status" aria-live="polite"></p>
       <div id="history-list" class="history-list"></div>

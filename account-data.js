@@ -2,6 +2,7 @@
   let readSettings;
   let histories = [];
   const controls = {};
+  const historyImageUrls = new Set();
   const profileFields = {
     gender: "gender-select", style: "style-select", eye: "eye-select",
     nose: "nose-select", face: "face-select", mouth: "mouth-select",
@@ -28,6 +29,15 @@
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "クラウド保存を利用できませんでした。");
     return data;
+  }
+
+  async function requestImage(path) {
+    const response = await window.AppAuth.fetch(path, { cache: "no-store" });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "保存画像を読み込めませんでした。");
+    }
+    return response.blob();
   }
 
   async function withBusy(button, status, task) {
@@ -74,6 +84,8 @@
   }
 
   function renderHistory() {
+    for (const url of historyImageUrls) URL.revokeObjectURL(url);
+    historyImageUrls.clear();
     const list = controls.historyList;
     if (!window.AppAuth?.uid) {
       list.innerHTML = '<p class="small">履歴を見るにはログインしてください。</p>';
@@ -107,8 +119,42 @@
       remove.type = "button";
       remove.textContent = "1件削除";
       remove.addEventListener("click", () => deleteHistory(entry.id, remove));
-      actions.append(load, remove);
-      card.append(title, date, description, actions);
+      const imageFlags = entry.result?.images || {};
+      const imageArea = document.createElement("div");
+      imageArea.className = "history-images";
+      if (imageFlags.before || imageFlags.after) {
+        const showImages = document.createElement("button");
+        showImages.type = "button";
+        showImages.textContent = "保存画像を表示";
+        showImages.addEventListener("click", () => withBusy(showImages, controls.historyStatus, async () => {
+          const kinds = ["before", "after"].filter((kind) => imageFlags[kind]);
+          const blobs = await Promise.all(kinds.map((kind) => requestImage(`/api/account/history/${encodeURIComponent(entry.id)}/images/${kind}`)));
+          imageArea.replaceChildren(...blobs.map((blob, index) => {
+            const figure = document.createElement("figure");
+            const label = document.createElement("figcaption");
+            label.textContent = kinds[index] === "before" ? "Before" : "After";
+            const image = document.createElement("img");
+            const url = URL.createObjectURL(blob);
+            historyImageUrls.add(url);
+            image.src = url;
+            image.alt = `${label.textContent}の保存画像`;
+            figure.append(label, image);
+            return figure;
+          }));
+          setStatus(controls.historyStatus, "保存画像を読み込みました。");
+        }));
+        actions.append(load, showImages, remove);
+      } else {
+        actions.append(load, remove);
+      }
+      const score = document.createElement("p");
+      score.className = "history-result-summary";
+      const beforeScore = entry.result?.beforeScore;
+      const afterScore = entry.result?.afterScore;
+      score.textContent = Number.isInteger(beforeScore) || Number.isInteger(afterScore)
+        ? `顔バランススコア: Before ${beforeScore ?? "-"} / After ${afterScore ?? "-"}`
+        : "顔バランススコア: 保存なし";
+      card.append(title, date, description, score, actions, imageArea);
       return card;
     }));
   }
@@ -131,6 +177,26 @@
     }
   }
 
+  function prepareImageForStorage(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener("load", () => {
+        const maxSize = 1200;
+        const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
+      });
+      image.addEventListener("error", () => reject(new Error("保存用画像の軽量化に失敗しました。")));
+      image.src = dataUrl;
+    });
+  }
+
   async function saveHistory(result) {
     await withBusy(document.getElementById("save-button"), controls.historyStatus, async () => {
       if (!result) return;
@@ -138,12 +204,41 @@
         id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 18)}`,
         requestText: result.requestText || "",
         profile: result.profile,
-        category: result.category || "設定"
+        category: result.category || "設定",
+        result: {
+          beforeScore: result.beforeScore ?? null,
+          afterScore: result.afterScore ?? null,
+          analysis: result.analysisText || result.analysis || "",
+          clinicNames: result.clinicNames || [],
+          generationModel: result.generationModel || "",
+          generationStatus: result.generationStatus || "unknown"
+        }
       };
       const data = await request("/api/account/history", { method: "PUT", body: JSON.stringify(payload) });
       histories = data.entries;
       renderHistory();
-      setStatus(controls.historyStatus, "設定をクラウド履歴に保存しました。画像は保存していません。");
+      if (!controls.imageConsent.checked) {
+        setStatus(controls.historyStatus, "分析結果をクラウド履歴に保存しました。画像は保存していません。");
+        return;
+      }
+      if (!result.beforeImage || !result.afterImage) {
+        throw new Error("分析結果は保存しましたが、保存対象の画像を確認できませんでした。");
+      }
+      try {
+        setStatus(controls.historyStatus, "分析結果を保存しました。画像を軽量化して保存しています...");
+        const [before, after] = await Promise.all([
+          prepareImageForStorage(result.beforeImage), prepareImageForStorage(result.afterImage)
+        ]);
+        const imageData = await request(`/api/account/history/${encodeURIComponent(payload.id)}/images`, {
+          method: "PUT", body: JSON.stringify({ before, after })
+        });
+        const saved = histories.find((entry) => entry.id === payload.id);
+        if (saved?.result) saved.result.images = imageData.images;
+        renderHistory();
+        setStatus(controls.historyStatus, "分析結果と画像を本人専用のクラウド領域に保存しました。");
+      } catch (error) {
+        throw new Error(`分析結果は保存しましたが、画像保存に失敗しました。${error.message}`);
+      }
     });
   }
 
@@ -175,6 +270,7 @@
     controls.settingsStatus = document.getElementById("settings-status");
     controls.historyStatus = document.getElementById("history-status");
     controls.historyList = document.getElementById("history-list");
+    controls.imageConsent = document.getElementById("save-images-consent");
     document.getElementById("settings-save").addEventListener("click", (event) => withBusy(event.currentTarget, controls.settingsStatus, async () => {
       await request("/api/account/settings", { method: "PUT", body: JSON.stringify(readSettings()) });
       setStatus(controls.settingsStatus, "現在の入力設定をクラウドに保存しました。");

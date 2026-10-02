@@ -21,7 +21,10 @@ https://seikei-web-app-688786456161.asia-northeast1.run.app
 - 生成失敗時のローカル簡易After画像表示
 - AI分析風コメント
 - 地域入力に応じたおすすめクリニック表示
-- ブラウザ内の保存履歴
+- Googleまたはメール・パスワードでのログイン
+- ユーザー別の入力設定保存
+- Firestoreへの分析結果・設定履歴保存（最新10件）
+- 明示的に同意した場合のBefore／After画像保存・再表示
 
 ## 使い方
 
@@ -71,7 +74,7 @@ Googleログイン、メール／パスワード登録、確認メールの再�
 
 Firebase自体へのユーザー登録を制限するものではありません。署名検証には公開鍵を使用し、秘密鍵ファイルは不要です。トークン失効・アカウント無効化の即時検知は行わず、発行済みIDトークンは有効期限まで受け付けます。
 
-履歴はブラウザ内でFirebase UIDごとに分離します。旧バージョンの共有履歴は所有者を特定できないため自動移行・表示しません。別端末との同期やクラウド保存はありません。同じブラウザの開発者ツールを使える人から履歴を秘匿する仕組みではありません。
+入力設定、分析結果、履歴はFirestoreへ保存し、Firebase UIDごとに分離します。顔写真とAfter画像は、保存時に利用者がチェックした場合だけCloud Storageへ保存します。画像取得にもログインが必要です。旧バージョンのブラウザ履歴は所有者を特定できないため自動移行しません。
 
 Firebase ConsoleでGoogle・メール／パスワードを有効化し、Cloud Runのホスト名を承認済みドメインに追加してください。ローカルで試す場合は `localhost` も必要です。Googleログインはポップアップを使用します。
 
@@ -105,6 +108,9 @@ gemini-2.5-flash-image
 - Google Cloud Build
 - Google Artifact Registry
 - Gemini API
+- Firebase Authentication
+- Cloud Firestore
+- Cloud Storage for Firebase
 
 ### デプロイの流れ
 
@@ -120,6 +126,11 @@ Cloud Runのサービス設定で次の環境変数を設定します。
 
 ```text
 GEMINI_API_KEY=Google AI Studioで取得したAPIキー
+FIREBASE_API_KEY=Firebase WebアプリのapiKey
+FIREBASE_AUTH_DOMAIN=Firebase WebアプリのauthDomain
+FIREBASE_PROJECT_ID=対象プロジェクトID
+FIREBASE_APP_ID=Firebase WebアプリのappId
+FIREBASE_STORAGE_BUCKET=Firebase Storageのバケット名
 ```
 
 APIキーを変更した場合は、Cloud Runの「新しいリビジョンの編集とデプロイ」から環境変数を差し替えます。
@@ -131,6 +142,15 @@ APIキーを変更した場合は、Cloud Runの「新しいリビジョンの�
 - 認証: パブリックアクセスを許可
 - 起動: `node server.js`
 - ポート: Cloud Runの `PORT` 環境変数を使用
+
+### 画像保存の設定
+
+1. Firebase Consoleの `Storage` からデフォルトバケットを作成する。
+2. バケット名をCloud Runの `FIREBASE_STORAGE_BUCKET` に設定する。
+3. Cloud Runの実行サービスアカウントへ、対象バケットに限定して `Storage オブジェクト ユーザー` を付与する。
+4. 新しいリビジョンをデプロイし、画像保存への同意をONにして保存・再表示・削除を確認する。
+
+画像は `users/{firebaseUid}/simulations/{historyId}/before` と `after` に保存します。公開URLは発行せず、Cloud Runがログイン済みの所有者を確認して返します。1枚5MB、1回の送信14MBを上限とし、JPEG・PNG・WebPだけを受け付けます。
 
 ## チームメンバーの操作権限
 
@@ -184,9 +204,18 @@ GitHub側でも、リポジトリに共同編集者として追加しておく�
 ```text
 seikei_web_app/
 ├─ index.html        画面HTML
+├─ login.html        ログイン画面
+├─ app.html          シミュレーション画面
 ├─ style.css         デザイン
 ├─ script.js         画面操作・画像処理・Gemini呼び出し
-├─ server.js         ローカル/Cloud Run用サーバー、Gemini API中継
+├─ auth-client.js    Firebase Authenticationとのブラウザ連携
+├─ auth-server.js    Firebase IDトークン検証と利用者制限
+├─ navigation.js     共通ナビゲーション
+├─ account-data.js   設定・履歴の画面操作
+├─ account-store.js  Firestore保存API
+├─ image-store.js    Cloud Storage画像保存API
+├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
+├─ server.js         Cloud Run用サーバー、認証・Firestore・Storage・Gemini API中継
 ├─ Dockerfile        Cloud Run用コンテナ設定
 ├─ package.json      Node.js起動設定
 ├─ start-server.ps1  ローカル起動用スクリプト

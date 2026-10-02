@@ -37,7 +37,7 @@ Browser
   |-- Cloud Run: 静的画面、認証API、Gemini API中継、保存API
         |-- Gemini API: After画像生成
         |-- Cloud Firestore: 設定、履歴、結果メタデータ
-        |-- Cloud Storage: Before／After画像（追加予定）
+        |-- Cloud Storage: 同意を得たBefore／After画像
 ```
 
 ブラウザからFirestoreやStorageへ直接書き込まず、Cloud Runで認証・所有者確認を行う。
@@ -69,26 +69,34 @@ users/{firebaseUid}/private/history
 
 親の `users/{firebaseUid}` ドキュメントにはフィールドを持たせないため、Firebase Consoleで「ドキュメントは存在しない」と表示されても異常ではない。
 
-履歴には現在、ID、作成日時、入力文、各パーツ設定、地域、予算、ダウンタイムなどを保存する。顔画像とAfter画像はまだ保存しない。
+履歴にはID、作成日時、入力文、各パーツ設定、地域、予算、ダウンタイムと次の結果を保存する。
 
-## 7. 画像保存追加後の構造
+```text
+result
+  beforeScore / afterScore
+  analysis
+  clinicNames[]
+  generationModel / generationStatus
+  images: { before, after }
+```
+
+## 7. 画像保存構造
 
 ```text
 Cloud Storage
-  users/{firebaseUid}/simulations/{historyId}/before.webp
-  users/{firebaseUid}/simulations/{historyId}/after.webp
+  users/{firebaseUid}/simulations/{historyId}/before
+  users/{firebaseUid}/simulations/{historyId}/after
 
-Firestore history entry
+Firestore history entry.result
   id
   savedAt
   requestText
   profile
   beforeScore
   afterScore
-  analysisSummary
-  clinicIds[]
+  analysis
+  clinicNames[]
   images: { before: true, after: true }
-  imageSchemaVersion
 ```
 
 FirestoreへBase64画像や巨大な画像本文を保存しない。Storage上の保存先はサーバーがFirebase UIDから決定し、クライアントから渡された所有者IDを信用しない。
@@ -105,19 +113,12 @@ FirestoreへBase64画像や巨大な画像本文を保存しない。Storage上�
 |GET/PUT/DELETE|`/api/account/settings`|設定の取得・保存・削除|
 |GET/PUT/DELETE|`/api/account/history`|履歴の取得・保存・全削除|
 |DELETE|`/api/account/history/{id}`|履歴1件削除|
-
-認証が必要なAPIは `Authorization: Bearer {Firebase ID token}` を必須とする。ブラウザでは `window.AppAuth.fetch()` を使う。
-
-### 画像保存APIの予定契約
-
-|Method|Path|用途|
-|---|---|---|
 |PUT|`/api/account/history/{id}/images`|Before／After画像保存|
 |GET|`/api/account/history/{id}/images/before`|Before画像取得|
 |GET|`/api/account/history/{id}/images/after`|After画像取得|
 |DELETE|`/api/account/history/{id}/images`|画像削除|
 
-実装時は画像形式、最大容量、最大画素、タイムアウト、所有者、削除失敗時の扱いをテストする。画像取得は認証付きBlobレスポンスとし、公開URLを履歴へ保存しない。
+認証が必要なAPIは `Authorization: Bearer {Firebase ID token}` を必須とする。ブラウザでは `window.AppAuth.fetch()` を使う。画像取得は認証付きBlobレスポンスとし、公開URLを履歴へ保存しない。
 
 ## 9. セキュリティ・プライバシー
 

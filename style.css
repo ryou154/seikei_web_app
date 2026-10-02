@@ -3,6 +3,23 @@
 .history-card p, #settings-status, #history-status { overflow-wrap: anywhere; }
 #settings-status[data-error="true"], #history-status[data-error="true"] { color: #b42318; }
 
+.result-save-controls { display: grid; justify-items: end; gap: 8px; }
+.image-save-consent { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
+.image-save-consent input { width: 18px; height: 18px; accent-color: var(--accent); }
+.image-save-note { margin: -8px 0 14px; color: var(--muted); font-size: 12px; text-align: right; }
+.history-result-summary { margin: 8px 0 0; color: var(--ink); font-size: 13px; font-weight: 700; }
+.history-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.history-images:empty { display: none; }
+.history-images figure { margin: 0; }
+.history-images figcaption { margin-bottom: 5px; font-size: 12px; font-weight: 800; }
+.history-images img { width: 100%; aspect-ratio: 1 / 1; border: 1px solid var(--line); border-radius: 6px; object-fit: contain; background: var(--soft); }
+@media (max-width: 600px) {
+  .result-heading { align-items: flex-start; }
+  .result-save-controls { justify-items: stretch; }
+  .image-save-consent { max-width: 180px; }
+  .image-save-note { text-align: left; }
+}
+
 
 :root {
   --primary: #e84d6a;

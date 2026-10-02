@@ -666,6 +666,7 @@ async function renderResult(result) {
   resultContent.classList.remove("hidden");
   saveButton.disabled = true;
 
+  result.beforeImage = selectedImageData;
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
@@ -676,10 +677,19 @@ async function renderResult(result) {
   if (!stillCurrent()) return;
 
   try {
-    const generatedImage = result.profile.imageEngine === "gemini"
-      ? await createGeminiAfterImage(result)
-      : createAfterImage(result.profile);
+    let generatedImage;
+    if (result.profile.imageEngine === "gemini") {
+      const generated = await createGeminiAfterImage(result);
+      generatedImage = generated.image;
+      result.generationModel = generated.model;
+      result.generationStatus = "gemini";
+    } else {
+      generatedImage = createAfterImage(result.profile);
+      result.generationModel = "local-canvas";
+      result.generationStatus = "local";
+    }
     if (!stillCurrent()) return;
+    result.afterImage = generatedImage;
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     if (!stillCurrent()) return;
@@ -693,6 +703,9 @@ async function renderResult(result) {
     if (!stillCurrent()) return;
     console.error(error);
     const localImage = createAfterImage(result.profile);
+    result.afterImage = localImage;
+    result.generationModel = "local-canvas-fallback";
+    result.generationStatus = "fallback";
     result.afterFaceAnalysis = { ok: false, message: "Gemini生成失敗のためAfterスコアは算出していません。" };
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     afterImage.innerHTML = `
@@ -704,6 +717,13 @@ async function renderResult(result) {
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
     `;
   }
+
+  result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
+  result.afterScore = result.afterFaceAnalysis?.ok ? result.afterFaceAnalysis.metrics.balanceScore : null;
+  result.analysisText = analysisText.textContent;
+  result.clinicNames = result.hospitals.map((hospital) => hospital.name);
+  result.generationModel ||= "unknown";
+  result.generationStatus ||= "unknown";
 
   hospitalList.innerHTML = result.hospitals.length
     ? result.hospitals.map((hospital) => `
@@ -951,7 +971,10 @@ async function createGeminiAfterImage(result) {
     throw new Error(data.detail || data.error || "Gemini生成に失敗しました。");
   }
 
-  return data.image;
+  return {
+    image: data.image,
+    model: data.model || "gemini"
+  };
 }
 
 

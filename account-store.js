@@ -27,6 +27,29 @@ function normalizeSettings(input) {
   profile.custom = Object.fromEntries(PARTS.map((key) => [key, text(source.custom[key], 500)]));
   return { requestText: text(input.requestText, 2000), profile };
 }
+function optionalScore(value) {
+  if (value === null || value === undefined) return null;
+  if (!Number.isInteger(value) || value < 0 || value > 100) throw new InputError("顔バランススコアが不正です。");
+  return value;
+}
+function normalizeResult(input) {
+  const source = object(input) ? input : {};
+  const clinicNames = Array.isArray(source.clinicNames) ? source.clinicNames : [];
+  if (clinicNames.length > 5) throw new InputError("クリニック候補は5件以内にしてください。");
+  const generationStatus = text(source.generationStatus || "unknown", 30);
+  if (!["gemini", "local", "fallback", "unknown"].includes(generationStatus)) {
+    throw new InputError("画像生成状態が不正です。");
+  }
+  return {
+    beforeScore: optionalScore(source.beforeScore),
+    afterScore: optionalScore(source.afterScore),
+    analysis: text(source.analysis || "", 8000),
+    clinicNames: clinicNames.map((name) => text(name, 200)),
+    generationModel: text(source.generationModel || "", 100),
+    generationStatus,
+    images: { before: false, after: false }
+  };
+}
 function validId(id) {
   if (typeof id !== "string" || !/^[a-zA-Z0-9-]{16,64}$/.test(id)) throw new InputError("履歴IDが不正です。");
   return id;
@@ -64,6 +87,17 @@ function createStore(db) {
         else tx.delete(target);
         return next;
       });
+    },
+    async updateHistory(uid, id, patch) {
+      const target = ref(uid, "history");
+      return db.runTransaction(async (tx) => {
+        const entries = (await tx.get(target)).data()?.entries || [];
+        const index = entries.findIndex((entry) => entry.id === id);
+        if (index < 0) return null;
+        const next = entries.map((entry, entryIndex) => entryIndex === index ? { ...entry, ...patch } : entry);
+        tx.set(target, { schemaVersion: 1, entries: next });
+        return next[index];
+      });
     }
   };
 }
@@ -85,7 +119,7 @@ function readBody(request) {
     request.on("aborted", () => reject(new InputError("通信が中断されました。")));
   });
 }
-function createAccountHandler({ authenticate = authorize, getStore } = {}) {
+function createAccountHandler({ authenticate = authorize, getStore, deleteImages = async () => {} } = {}) {
   let store;
   getStore ||= () => (store ||= createStore(new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID, databaseId: "(default)" })));
   return async (request) => {
@@ -101,7 +135,10 @@ function createAccountHandler({ authenticate = authorize, getStore } = {}) {
       if (method === "PUT") {
         const input = await readBody(request);
         payload = normalizeSettings(input);
-        if (resource === "history") payload = { ...payload, id: validId(input.id), category: text(input.category, 500) };
+        if (resource === "history") payload = {
+          ...payload, id: validId(input.id), category: text(input.category, 500),
+          result: normalizeResult(input.result)
+        };
       }
       // Never take an owner ID from the body, query string or route.
       const uid = access.uid;
@@ -112,9 +149,25 @@ function createAccountHandler({ authenticate = authorize, getStore } = {}) {
         await database.deleteSettings(uid);
         return { status: 200, data: { settings: null } };
       }
-      const entries = method === "GET" ? await database.history(uid)
-        : method === "PUT" ? await database.saveHistory(uid, payload)
-          : await database.deleteHistory(uid, id);
+      let entries;
+      if (method === "GET") {
+        entries = await database.history(uid);
+      } else if (method === "PUT") {
+        const previous = await database.history(uid);
+        entries = await database.saveHistory(uid, payload);
+        const keptIds = new Set(entries.map((entry) => entry.id));
+        try {
+          await deleteImages(uid, previous.filter((entry) => !keptIds.has(entry.id)));
+        } catch (error) {
+          console.error("Failed to clean up evicted history images", error);
+        }
+      } else {
+        const previous = await database.history(uid);
+        const removed = id ? previous.filter((entry) => entry.id === id) : previous;
+        entries = await database.deleteHistory(uid, id);
+        try { await deleteImages(uid, removed); }
+        catch (error) { console.error("Failed to clean up deleted history images", error); }
+      }
       return { status: 200, data: { entries, limit: HISTORY_LIMIT } };
     } catch (error) {
       if (error instanceof InputError || error?.status) return { status: error.status, data: { error: error.message } };
@@ -122,4 +175,4 @@ function createAccountHandler({ authenticate = authorize, getStore } = {}) {
     }
   };
 }
-module.exports = { createStore, createAccountHandler, normalizeSettings, HISTORY_LIMIT };
+module.exports = { createStore, createAccountHandler, normalizeSettings, normalizeResult, HISTORY_LIMIT };

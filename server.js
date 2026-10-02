@@ -1,10 +1,14 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
-const { createAccountHandler } = require("./account-store");
+const { createStore, createAccountHandler } = require("./account-store");
+const { createImageService } = require("./image-store");
 const firebaseConfig = require("./firebase-config");
-const handleAccount = createAccountHandler();
+const accountDatabase = createStore(new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" }));
+const imageService = createImageService({ historyStore: accountDatabase });
+const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -21,6 +25,10 @@ const mimeTypes = {
 
 const server = http.createServer(async (request, response) => {
   try {
+    if (imageService.matches(request.url)) {
+      sendResult(response, await imageService.handle(request));
+      return;
+    }
     if (request.url.startsWith("/api/account/")) {
       const result = await handleAccount(request);
       sendJson(response, result.status, result.data);
@@ -397,4 +405,13 @@ function sendJson(response, statusCode, data) {
     "Cache-Control": "no-store"
   });
   response.end(JSON.stringify(data));
+}
+
+function sendResult(response, result) {
+  if (result.body) {
+    response.writeHead(result.status, result.headers || {});
+    response.end(result.body);
+    return;
+  }
+  sendJson(response, result.status, result.data);
 }
