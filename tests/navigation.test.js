@@ -12,8 +12,15 @@ test("navigation destinations exist and a protected fragment is focused only aft
   let locked = true;
   let focused = 0;
   let scrolled = 0;
+  const slides = [];
+  let cancelled = 0;
+  const motion = { matches: false, addEventListener() {} };
+  const panel = { animate(frames, options) {
+    slides.push({ frames, options });
+    return { cancel() { cancelled++; } };
+  } };
   const target = {
-    closest: () => locked ? {} : null,
+    closest: (selector) => selector === "section" ? panel : locked ? {} : null,
     setAttribute() {},
     focus() { focused++; },
     scrollIntoView() { scrolled++; }
@@ -35,7 +42,10 @@ test("navigation destinations exist and a protected fragment is focused only aft
   vm.runInNewContext(fs.readFileSync(path.join(root, "navigation.js"), "utf8"), {
     document, URL,
     location,
-    window: { addEventListener(name, handler) { (events[name] ||= []).push(handler); } }
+    window: {
+      matchMedia: () => motion,
+      addEventListener(name, handler) { (events[name] ||= []).push(handler); }
+    }
   });
   assert.equal(anchors.length, 5);
   for (const anchor of anchors) {
@@ -45,12 +55,28 @@ test("navigation destinations exist and a protected fragment is focused only aft
   }
   assert.equal(focused, 0);
   assert.equal(scrolled, 0);
+  events.hashchange.forEach((handler) => handler());
+  assert.equal(slides.length, 0, "locked content must not animate");
   locked = false;
   events["app-authorized"].forEach((handler) => handler());
   assert.equal(focused, 1);
   assert.equal(scrolled, 1);
+  assert.equal(slides.length, 0, "auth entrance is handled by CSS without a second slide");
   events.hashchange.forEach((handler) => handler());
   assert.equal(focused, 2);
+  assert.equal(slides.length, 1);
+
+  location.hash = "#clinic-title";
+  events.hashchange.forEach((handler) => handler());
+  assert.equal(slides.at(-1).frames[0].transform, "translateX(32px)");
+  location.hash = "#history-title";
+  events.hashchange.forEach((handler) => handler());
+  assert.equal(slides.at(-1).frames[0].transform, "translateX(-32px)");
+  assert.equal(cancelled, 2, "rapid navigation cancels the previous slide");
+  motion.matches = true;
+  events.hashchange.forEach((handler) => handler());
+  assert.equal(slides.length, 3, "reduced motion preserves navigation without sliding");
+  assert.equal(cancelled, 3);
 
   const currentLabels = () => anchors
     .filter((anchor) => anchor.attributes["aria-current"] === "page")

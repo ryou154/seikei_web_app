@@ -66,7 +66,31 @@
   }
 
   // Authentication reveals the app asynchronously, after native fragment scrolling.
-  function focusDestination() {
+  let activeSlide;
+  let previousHash = location.hash;
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+
+  function stopSlide() {
+    activeSlide?.cancel();
+    activeSlide = undefined;
+  }
+
+  function slideDestination(target) {
+    stopSlide();
+    if (reducedMotion?.matches) return;
+    const panel = target.closest("section");
+    if (!panel?.animate) return;
+    const indexOf = (hash) => links.findIndex(({ href }) =>
+      new URL(href, location.href).hash === hash
+    );
+    const direction = indexOf(location.hash) < indexOf(previousHash) ? -1 : 1;
+    activeSlide = panel.animate([
+      { transform: `translateX(${direction * 32}px)`, opacity: 0 },
+      { transform: "translateX(0)", opacity: 1 }
+    ], { duration: 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  }
+
+  function focusDestination(animate = false) {
     const destination = links.find(({ href }) =>
       new URL(href, location.href).pathname === location.pathname &&
       new URL(href, location.href).hash === location.hash
@@ -77,15 +101,21 @@
     target.setAttribute("tabindex", "-1");
     target.focus({ preventScroll: true });
     target.scrollIntoView({ block: "start" });
+    if (animate) slideDestination(target);
   }
 
-  window.addEventListener("hashchange", focusDestination);
+  window.addEventListener("hashchange", () => {
+    focusDestination(true);
+    previousHash = location.hash;
+  });
   window.addEventListener("hashchange", updateCurrentPage);
-  window.addEventListener("app-authorized", focusDestination);
+  window.addEventListener("app-authorized", () => focusDestination());
+  window.addEventListener("auth-state-changed", stopSlide);
+  reducedMotion?.addEventListener("change", stopSlide);
   // Clicking the current fragment again should also return to its heading.
   nav.addEventListener("click", (event) => {
     const link = event.target.closest("a");
-    if (link && link.href === location.href) focusDestination();
+    if (link && link.href === location.href) focusDestination(true);
   });
   updateCurrentPage();
   focusDestination();

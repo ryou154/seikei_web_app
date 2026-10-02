@@ -59,3 +59,20 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Keep the menu still while the destination content slides into place.
+   Hidden protected content starts its entrance only when auth reveals it. */
+@keyframes page-slide-in {
+  from { opacity: 0; transform: translateX(32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    overflow-x: clip;
+  }
+
+  main:not([hidden]), body > #auth-panel:not([hidden]) {
+    animation: page-slide-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
