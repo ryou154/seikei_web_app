@@ -13,6 +13,18 @@ test("invalid or expired ID tokens are rejected", async () => {
 test("real Firebase verifier rejects a fabricated token", async () => {
   await assert.rejects(authorize(request("not-a-firebase-token")), { status: 401 });
 });
+
+test("expired-token SDK errors become a generic 401", async () => {
+  await assert.rejects(authorize(request(), async () => {
+    throw Object.assign(new Error("private token details"), { code: "auth/id-token-expired" });
+  }), (error) => error.status === 401 && !error.message.includes("private token details"));
+});
+
+test("malformed authorization is rejected before token verification", async () => {
+  for (const authorization of ["Basic abc", "Bearer", "Bearer a b", "Bearer "]) {
+    await assert.rejects(authorize({ headers: { authorization } }, () => assert.fail("must not verify")), { status: 401 });
+  }
+});
 test("unverified email cannot use the application", async () => {
   await assert.rejects(authorize(request(), async () => ({ uid: "user1", email: "c3122@oic.jp", email_verified: false })), { status: 403 });
 });
