@@ -65,58 +65,53 @@
     }
   }
 
-  // Authentication reveals the app asynchronously, after native fragment scrolling.
   let activeSlide;
-  let previousHash = location.hash;
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  // Hashes identify menu destinations; every navigation opens at the top.
+  window.history.scrollRestoration = "manual";
 
   function stopSlide() {
     activeSlide?.cancel();
     activeSlide = undefined;
   }
 
-  function slideDestination(target) {
+  function showPage(animate = true) {
     stopSlide();
-    if (reducedMotion?.matches) return;
-    const panel = target.closest("section");
-    if (!panel?.animate) return;
-    const indexOf = (hash) => links.findIndex(({ href }) =>
-      new URL(href, location.href).hash === hash
-    );
-    const direction = indexOf(location.hash) < indexOf(previousHash) ? -1 : 1;
-    activeSlide = panel.animate([
-      { transform: `translateX(${direction * 32}px)`, opacity: 0 },
-      { transform: "translateX(0)", opacity: 1 }
-    ], { duration: 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    const heading = document.querySelector(".app-header h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+    updateCurrentPage();
+    if (animate && !reducedMotion?.matches && document.body.animate) {
+      activeSlide = document.body.animate([
+        { transform: "translateX(100vw)" },
+        { transform: "translateX(0)" }
+      ], { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+    }
   }
 
-  function focusDestination(animate = false) {
-    const destination = links.find(({ href }) =>
-      new URL(href, location.href).pathname === location.pathname &&
-      new URL(href, location.href).hash === location.hash
-    );
-    if (!destination || !location.hash) return;
-    const target = document.getElementById(location.hash.slice(1));
-    if (!target || target.closest("[hidden]")) return;
-    target.setAttribute("tabindex", "-1");
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "start" });
-    if (animate) slideDestination(target);
-  }
-
-  window.addEventListener("hashchange", () => {
-    focusDestination(true);
-    previousHash = location.hash;
-  });
-  window.addEventListener("hashchange", updateCurrentPage);
-  window.addEventListener("app-authorized", () => focusDestination());
-  window.addEventListener("auth-state-changed", stopSlide);
-  reducedMotion?.addEventListener("change", stopSlide);
-  // Clicking the current fragment again should also return to its heading.
+  // Prevent native anchor scrolling before it jumps to a lower section.
   nav.addEventListener("click", (event) => {
     const link = event.target.closest("a");
-    if (link && link.href === location.href) focusDestination(true);
+    if (!link || event.defaultPrevented || event.button !== 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const destination = new URL(link.href, location.href);
+    if (destination.origin !== location.origin || destination.pathname !== location.pathname) return;
+    event.preventDefault();
+    if (destination.href !== location.href) window.history.pushState(null, "", destination.href);
+    showPage();
   });
-  updateCurrentPage();
-  focusDestination();
+  window.addEventListener("hashchange", () => showPage());
+  window.addEventListener("popstate", () => showPage());
+  window.addEventListener("pageshow", () => {
+    showPage();
+    // Follow the browser's initial fragment/restored-position handling.
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }));
+  });
+  window.addEventListener("app-authorized", () => showPage());
+  window.addEventListener("auth-state-changed", stopSlide);
+  reducedMotion?.addEventListener("change", stopSlide);
+  showPage(false);
 })();

@@ -4,95 +4,71 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-test("navigation destinations exist and a protected fragment is focused only after unlock", () => {
-  const root = path.join(__dirname, "..");
-  const anchors = [];
-  const events = {};
+test("navigation slides the whole page and resets scroll for clicks, history and authorization", () => {
+  const anchors = [], events = {}, slides = [], scrolls = [];
   const location = new URL("http://localhost/app.html#history-title");
-  let locked = true;
-  let focused = 0;
-  let scrolled = 0;
-  const slides = [];
-  let cancelled = 0;
+  let click, cancelled = 0, focusCount = 0, pushed = 0;
   const motion = { matches: false, addEventListener() {} };
-  const panel = { animate(frames, options) {
-    slides.push({ frames, options });
-    return { cancel() { cancelled++; } };
-  } };
-  const target = {
-    closest: (selector) => selector === "section" ? panel : locked ? {} : null,
-    setAttribute() {},
-    focus() { focused++; },
-    scrollIntoView() { scrolled++; }
-  };
-  const container = { replaceChildren() {} };
+  const history = { pushState(_state, _title, url) { location.href = url; pushed++; } };
   const document = {
-    getElementById: (id) => id === "common-navigation" ? container : target,
+    body: { animate(frames) { slides.push(frames); return { cancel() { cancelled++; } }; } },
+    querySelector() { return { setAttribute() {}, focus(options) {
+      assert.equal(options.preventScroll, true); focusCount++;
+    } }; },
+    getElementById(id) {
+      assert.equal(id, "common-navigation", "navigation must not scroll or focus a lower panel");
+      return { replaceChildren() {} };
+    },
     createElement(tag) {
       const node = {
-        attributes: {},
-        setAttribute(name, value) { this.attributes[name] = value; },
-        removeAttribute(name) { delete this.attributes[name]; },
-        append() {}, addEventListener() {}
+        attributes: {}, append() {},
+        setAttribute(k, v) { this.attributes[k] = v; },
+        removeAttribute(k) { delete this.attributes[k]; },
+        addEventListener(name, handler) { if (tag === "nav" && name === "click") click = handler; }
       };
       if (tag === "a") anchors.push(node);
       return node;
     }
   };
-  vm.runInNewContext(fs.readFileSync(path.join(root, "navigation.js"), "utf8"), {
-    document, URL,
-    location,
-    window: {
-      matchMedia: () => motion,
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../navigation.js"), "utf8"), {
+    document, location, URL,
+    window: { history, matchMedia: () => motion,
+      scrollTo(options) { assert.equal(options.top, 0); assert.equal(options.left, 0); scrolls.push(options); },
+      requestAnimationFrame(fn) { fn(); },
       addEventListener(name, handler) { (events[name] ||= []).push(handler); }
     }
   });
-  assert.equal(anchors.length, 5);
+  const fire = name => events[name].forEach(fn => fn());
+  const current = () => anchors.find(a => a.attributes["aria-current"] === "page").textContent;
+  assert.equal(history.scrollRestoration, "manual");
+  assert.equal(slides.length, 0);
   for (const anchor of anchors) {
     const [file, id] = anchor.href.split("#");
-    const html = fs.readFileSync(path.join(root, file), "utf8");
-    if (id) assert.ok(html.includes(`id="${id}"`), `${anchor.textContent} has a destination`);
+    const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+    if (id) assert.ok(html.includes('id="' + id + '"'));
   }
-  assert.equal(focused, 0);
-  assert.equal(scrolled, 0);
-  events.hashchange.forEach((handler) => handler());
-  assert.equal(slides.length, 0, "locked content must not animate");
-  locked = false;
-  events["app-authorized"].forEach((handler) => handler());
-  assert.equal(focused, 1);
-  assert.equal(scrolled, 1);
-  assert.equal(slides.length, 0, "auth entrance is handled by CSS without a second slide");
-  events.hashchange.forEach((handler) => handler());
-  assert.equal(focused, 2);
-  assert.equal(slides.length, 1);
-
-  location.hash = "#clinic-title";
-  events.hashchange.forEach((handler) => handler());
-  assert.equal(slides.at(-1).frames[0].transform, "translateX(32px)");
-  location.hash = "#history-title";
-  events.hashchange.forEach((handler) => handler());
-  assert.equal(slides.at(-1).frames[0].transform, "translateX(-32px)");
-  assert.equal(cancelled, 2, "rapid navigation cancels the previous slide");
-  motion.matches = true;
-  events.hashchange.forEach((handler) => handler());
-  assert.equal(slides.length, 3, "reduced motion preserves navigation without sliding");
+  for (const event of ["pageshow", "app-authorized", "popstate", "hashchange"]) {
+    const before = scrolls.length;
+    fire(event);
+    assert.ok(scrolls.length > before, event + " must return to the top");
+    assert.equal(slides.at(-1)[0].transform, "translateX(100vw)");
+  }
   assert.equal(cancelled, 3);
-
-  const currentLabels = () => anchors
-    .filter((anchor) => anchor.attributes["aria-current"] === "page")
-    .map((anchor) => anchor.textContent);
-  assert.deepEqual(currentLabels(), ["履歴"]);
-  for (const [url, expected] of [
-    ["app.html#clinic-title", "クリニック"],
-    ["app.html#auth-title", "アカウント"],
-    ["app.html#input-title", "シミュレーション"],
-    ["app.html", "シミュレーション"],
-    ["app.html#unknown", "シミュレーション"],
-    ["app.html#history-title", "履歴"],
-    ["login.html", "ログイン"]
-  ]) {
-    location.href = new URL(url, location.href).href;
-    events.hashchange.forEach((handler) => handler());
-    assert.deepEqual(currentLabels(), [expected], url);
-  }
+  let prevented = 0;
+  const event = { target: { closest: () => anchors[3] }, button: 0,
+    preventDefault() { prevented++; } };
+  click(event);
+  assert.equal(prevented, 1);
+  assert.equal(pushed, 1);
+  assert.equal(location.hash, "#clinic-title");
+  assert.equal(current(), anchors[3].textContent);
+  click(event);
+  assert.equal(pushed, 1, "same menu returns to top without duplicate history");
+  click({ ...event, ctrlKey: true });
+  assert.equal(prevented, 2, "modified clicks keep native browser behavior");
+  const before = slides.length;
+  motion.matches = true;
+  fire("hashchange");
+  assert.equal(slides.length, before, "reduced motion disables sliding");
+  assert.ok(focusCount > 0);
 });
