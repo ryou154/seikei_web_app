@@ -320,7 +320,8 @@ function serveStatic(request, response) {
   // dependencies, Git metadata or server-side access policy.
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/app.html", "/style.css", "/script.js", "/auth-client.js",
-    "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js"
+    "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
+    "/navigation.js", "/navigation.css"
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
