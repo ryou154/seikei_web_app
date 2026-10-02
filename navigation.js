@@ -16,17 +16,33 @@
     { href: "app.html#auth-title", label: "アカウント" }
   ];
 
+  const navigationLinks = [];
   for (const { href, label } of links) {
     const item = document.createElement("li");
     const link = document.createElement("a");
     link.href = href;
     link.textContent = label;
+    navigationLinks.push(link);
     item.append(link);
     list.append(item);
   }
 
   nav.append(list);
   container.replaceChildren(nav);
+
+  function updateCurrentPage() {
+    const pageLinks = navigationLinks.filter((link) =>
+      new URL(link.href, location.href).pathname === location.pathname
+    );
+    // The app opens at simulation when no known section is specified.
+    const current = pageLinks.find((link) =>
+      new URL(link.href, location.href).hash === location.hash
+    ) || pageLinks[0];
+    for (const link of navigationLinks) {
+      if (link === current) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    }
+  }
 
   // Authentication reveals the app asynchronously, after native fragment scrolling.
   function focusDestination() {
@@ -43,11 +59,13 @@
   }
 
   window.addEventListener("hashchange", focusDestination);
+  window.addEventListener("hashchange", updateCurrentPage);
   window.addEventListener("app-authorized", focusDestination);
   // Clicking the current fragment again should also return to its heading.
   nav.addEventListener("click", (event) => {
     const link = event.target.closest("a");
     if (link && link.href === location.href) focusDestination();
   });
+  updateCurrentPage();
   focusDestination();
 })();

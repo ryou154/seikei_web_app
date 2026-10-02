@@ -30,6 +30,13 @@
   background: var(--soft, #fff0f4);
 }
 
+.common-navigation__links a[aria-current="page"] {
+  background: var(--soft, #fff0f4);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
 .common-navigation__links a:focus-visible {
   outline: 3px solid var(--primary-dark, #b8324d);
   outline-offset: 2px;
