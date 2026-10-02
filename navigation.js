@@ -6,6 +6,16 @@
   nav.className = "common-navigation";
   nav.setAttribute("aria-label", "メインナビゲーション");
 
+  const logoLink = document.createElement("a");
+  logoLink.className = "common-navigation__logo";
+  logoLink.href = "app.html#input-title";
+  logoLink.setAttribute("aria-label", "シミュレーションのトップへ");
+  const logo = document.createElement("img");
+  logo.src = "ロゴ.png";
+  logo.alt = "MEYLON ロゴ";
+  logoLink.append(logo);
+  nav.append(logoLink);
+
   const list = document.createElement("ul");
   list.className = "common-navigation__links";
   const links = [

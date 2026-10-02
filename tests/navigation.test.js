@@ -42,10 +42,11 @@ test("navigation keeps the menu still, slides page content and resets scroll for
     }
   });
   const fire = name => events[name].forEach(fn => fn());
-  const current = () => anchors.find(a => a.attributes["aria-current"] === "page").textContent;
+  const menuAnchors = () => anchors.filter(a => a.textContent);
+  const current = () => menuAnchors().find(a => a.attributes["aria-current"] === "page").textContent;
   assert.equal(history.scrollRestoration, "manual");
   assert.equal(slides.length, 0);
-  for (const anchor of anchors) {
+  for (const anchor of menuAnchors()) {
     const [file, id] = anchor.href.split("#");
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
     assert.ok(html.indexOf('id="common-navigation"') < html.indexOf('id="page-transition-content"'));
@@ -61,13 +62,13 @@ test("navigation keeps the menu still, slides page content and resets scroll for
   }
   assert.equal(cancelled, 3);
   let prevented = 0;
-  const event = { target: { closest: () => anchors[3] }, button: 0,
+  const event = { target: { closest: () => menuAnchors()[3] }, button: 0,
     preventDefault() { prevented++; } };
   click(event);
   assert.equal(prevented, 1);
   assert.equal(pushed, 1);
   assert.equal(location.hash, "#clinic-title");
-  assert.equal(current(), anchors[3].textContent);
+  assert.equal(current(), menuAnchors()[3].textContent);
   click(event);
   assert.equal(pushed, 1, "same menu returns to top without duplicate history");
   click({ ...event, ctrlKey: true });
