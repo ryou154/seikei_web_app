@@ -62,6 +62,7 @@ let latestFaceAnalysis = null;
 let guidedScan = null;
 let guidedScanTimer = null;
 let guidedScanBusy = false;
+let privacyGeneration = 0;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -144,7 +145,9 @@ faceImageInput.addEventListener("change", () => {
   }
 
   const reader = new FileReader();
+  const imageGeneration = privacyGeneration;
   reader.addEventListener("load", () => {
+    if (imageGeneration !== privacyGeneration) return;
     setSelectedImage(reader.result);
   });
   reader.readAsDataURL(file);
@@ -159,13 +162,14 @@ const guidedScanSteps = [
 ];
 
 startCameraButton.addEventListener("click", async () => {
+  const cameraGeneration = privacyGeneration;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     cameraMessage.textContent = "このブラウザではカメラを使用できません。";
     return;
   }
 
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "user",
         width: { ideal: 960 },
@@ -173,6 +177,11 @@ startCameraButton.addEventListener("click", async () => {
       },
       audio: false
     });
+    if (cameraGeneration !== privacyGeneration) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    cameraStream = stream;
     cameraPreview.srcObject = cameraStream;
     syncCameraPreviewFlip();
     cameraScreen.classList.remove("hidden");
@@ -280,6 +289,7 @@ function scheduleGuidedScan(delay = 320) {
 
 async function processGuidedScanFrame() {
   if (!cameraStream || !guidedScan || guidedScanBusy) return;
+  const scanGeneration = privacyGeneration;
   guidedScanBusy = true;
 
   try {
@@ -290,6 +300,7 @@ async function processGuidedScanFrame() {
     }
 
     const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
+    if (scanGeneration !== privacyGeneration || !guidedScan) return;
     const step = guidedScanSteps[guidedScan.index];
     const accepted = isGuidedScanPoseAccepted(step.key, analysis.metrics);
     guidedScan.failures = 0;
@@ -307,6 +318,7 @@ async function processGuidedScanFrame() {
       cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics);
     }
   } catch (error) {
+    if (scanGeneration !== privacyGeneration || !guidedScan) return;
     guidedScan.failures += 1;
     guidedScan.stableFrames = 0;
     cameraDirection.classList.remove("is-detected");
@@ -741,9 +753,12 @@ async function analyzeSelectedFace() {
   scanSteps.innerHTML = '<span class="active">顔ランドマークモデルを準備中</span>';
   scanPanel.classList.add("is-scanning");
 
-  latestFaceAnalysis = await analyzeFaceImage(selectedImageData);
-
-  analyzedImageData = selectedImageData;
+  const analysisGeneration = privacyGeneration;
+  const imageData = selectedImageData;
+  const analysis = await analyzeFaceImage(imageData);
+  if (analysisGeneration !== privacyGeneration || imageData !== selectedImageData) return null;
+  latestFaceAnalysis = analysis;
+  analyzedImageData = imageData;
   return latestFaceAnalysis;
 }
 
@@ -844,6 +859,7 @@ function appendFaceScoreComparison(text, beforeAnalysis, afterAnalysis) {
 }
 
 function runScanAnimation(profile, faceAnalysis) {
+  const animationGeneration = privacyGeneration;
   if (!scanPanel || !scanSteps) {
     return Promise.resolve();
   }
@@ -878,6 +894,11 @@ function runScanAnimation(profile, faceAnalysis) {
   return new Promise((resolve) => {
     let index = 0;
     const timer = setInterval(() => {
+      if (animationGeneration !== privacyGeneration) {
+        clearInterval(timer);
+        resolve();
+        return;
+      }
       index += 1;
       const items = scanSteps.querySelectorAll("span");
       items.forEach((item, itemIndex) => {
@@ -1296,7 +1317,11 @@ window.AccountData.init({
 });
 
 window.addEventListener("app-locked", () => {
+  privacyGeneration++;
   stopCamera();
+  resetGuidedScan();
+  cameraPreview.srcObject = null;
+  captureCanvas.width = captureCanvas.width;
   selectedImageData = "";
   analyzedImageData = "";
   latestFaceAnalysis = null;
@@ -1309,6 +1334,13 @@ window.addEventListener("app-locked", () => {
   historyList.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
+  document.getElementById("clinic-summary").textContent = "";
+  scanSteps.replaceChildren();
+  scanPanel.classList.remove("is-scanning");
+  faceScorePanel.classList.add("hidden");
+  for (const element of [beforeScoreValue, beforeScoreLabel, afterScoreValue, afterScoreLabel, scoreDelta]) {
+    element.textContent = "";
+  }
   resultContent.classList.add("hidden");
   emptyResult.classList.remove("hidden");
   saveButton.disabled = true;

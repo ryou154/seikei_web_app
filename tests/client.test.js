@@ -96,6 +96,18 @@ test("signed-out login page stays available without a redirect loop", async () =
   assert.equal(app.node("auth-controls").disabled, false);
 });
 
+test("successful login redirects to app only after verification and authorization", async () => {
+  const app = await setup("/login.html");
+  await app.login("alice", false);
+  assert.deepEqual(app.state.redirects, []);
+  app.state.status = 403;
+  await app.login("alice", true);
+  assert.deepEqual(app.state.redirects, []);
+  app.state.status = 200;
+  await app.login("alice", true);
+  assert.deepEqual(app.state.redirects, ["app.html"]);
+});
+
 test("restored session stays on protected page, session loss returns to login", async () => {
   const app = await setup();
   await app.login("alice", true);
