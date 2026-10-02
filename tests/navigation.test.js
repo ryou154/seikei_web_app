@@ -4,18 +4,21 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-test("navigation slides the whole page and resets scroll for clicks, history and authorization", () => {
+test("navigation keeps the menu still, slides page content and resets scroll for clicks, history and authorization", () => {
   const anchors = [], events = {}, slides = [], scrolls = [];
   const location = new URL("http://localhost/app.html#history-title");
   let click, cancelled = 0, focusCount = 0, pushed = 0;
   const motion = { matches: false, addEventListener() {} };
   const history = { pushState(_state, _title, url) { location.href = url; pushed++; } };
   const document = {
-    body: { animate(frames) { slides.push(frames); return { cancel() { cancelled++; } }; } },
+    body: { animate() { assert.fail("the body and menu must not animate"); } },
     querySelector() { return { setAttribute() {}, focus(options) {
       assert.equal(options.preventScroll, true); focusCount++;
     } }; },
     getElementById(id) {
+      if (id === "page-transition-content") return { animate(frames) {
+        slides.push(frames); return { cancel() { cancelled++; } };
+      } };
       assert.equal(id, "common-navigation", "navigation must not scroll or focus a lower panel");
       return { replaceChildren() {} };
     },
@@ -45,6 +48,8 @@ test("navigation slides the whole page and resets scroll for clicks, history and
   for (const anchor of anchors) {
     const [file, id] = anchor.href.split("#");
     const html = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+    assert.ok(html.indexOf('id="common-navigation"') < html.indexOf('id="page-transition-content"'));
+    assert.ok(html.includes('id="page-transition-content"><header'));
     if (id) assert.ok(html.includes('id="' + id + '"'));
   }
   for (const event of ["pageshow", "app-authorized", "popstate", "hashchange"]) {

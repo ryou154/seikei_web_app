@@ -65,6 +65,8 @@
     }
   }
 
+  // The shared menu stays outside the animated content container.
+  const pageContent = document.getElementById("page-transition-content");
   let activeSlide;
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
   // Hashes identify menu destinations; every navigation opens at the top.
@@ -84,8 +86,8 @@
       heading.focus({ preventScroll: true });
     }
     updateCurrentPage();
-    if (animate && !reducedMotion?.matches && document.body.animate) {
-      activeSlide = document.body.animate([
+    if (animate && !reducedMotion?.matches && pageContent?.animate) {
+      activeSlide = pageContent.animate([
         { transform: "translateX(100vw)" },
         { transform: "translateX(0)" }
       ], { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
