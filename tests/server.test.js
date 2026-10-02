@@ -3,19 +3,27 @@ const assert = require("node:assert/strict");
 const { spawn } = require("node:child_process");
 const path = require("node:path");
 let child;
-const base = "http://127.0.0.1:31872";
+let base;
 before(async () => {
   child = spawn(process.execPath, ["server.js"], {
     cwd: path.join(__dirname, ".."),
     env: {
-      ...process.env, PORT: "31872", GEMINI_API_KEY: "",
+      ...process.env, PORT: "0", GEMINI_API_KEY: "",
       AUTH_ALLOWED_EMAILS: "c3337@oic.jp,c3241@oic.jp,c3122@oic.jp,c3201@oic.jp"
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("Server did not start")), 10000);
-    child.stdout.once("data", () => { clearTimeout(timer); resolve(); });
+    let output = "";
+    child.stdout.on("data", (data) => {
+      output += data.toString();
+      const match = output.match(/http:\/\/localhost:(\d+)/);
+      if (!match) return;
+      base = `http://127.0.0.1:${match[1]}`;
+      clearTimeout(timer);
+      resolve();
+    });
     child.once("error", reject);
     child.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Server exited: ${code}`)); });
   });
@@ -39,8 +47,29 @@ test("forged bearer tokens cannot invoke image generation", async () => {
   const response = await fetch(`${base}/api/gemini-edit`, { method: "POST", headers: { Authorization: "Bearer forged" } });
   assert.equal(response.status, 401);
 });
+
+test("history read, save and deletion reject missing or forged authentication over HTTP", async () => {
+  for (const authorization of [null, "Bearer forged"]) {
+    for (const [method, route] of [
+      ["GET", "/api/session"],
+      ["GET", "/api/account/history"],
+      ["PUT", "/api/account/history"],
+      ["DELETE", "/api/account/history"],
+      ["DELETE", "/api/account/history/history-0000000000000001"]
+    ]) {
+      const headers = authorization ? { Authorization: authorization } : {};
+      const response = await fetch(base + route, { method, headers,
+        ...(method === "PUT" ? { body: "invalid JSON" } : {}) });
+      assert.equal(response.status, 401, `${method} ${route} ${authorization}`);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      const data = await response.json();
+      assert.equal(typeof data.error, "string");
+      assert.equal(data.entries, undefined);
+    }
+  }
+});
 test("server source, credentials, Git and dependencies are not public", async () => {
-  for (const url of ["/.env", "/.git/config", "/server.js", "/auth-server.js", "/account-store.js", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/%2e%2e%5cserver.js"]) {
+  for (const url of ["/.env", "/.env.example", "/.git/config", "/server.js", "/server.js?download=1", "/auth-server.js", "/account-store.js", "/image-store.js", "/firestore.rules", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/tests/manual/responsive-preview.cjs", "/%2e%2e%5cserver.js"]) {
     assert.equal((await fetch(base + url)).status, 404, url);
   }
 });
@@ -51,8 +80,13 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(index, /location\.replace\("login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
-  assert.match(app, /id="app-content"/);
-  for (const file of ["/auth-client.js", "/account-data.js", "/script.js", "/style.css", "/data/clinics.js", "/face-analysis.js"]) {
+  assert.match(app, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
+  for (const html of [login, app]) {
+    assert.match(html, /id="common-navigation"/);
+    assert.match(html, /src="navigation\.js"/);
+    assert.match(html, /href="navigation\.css"/);
+  }
+  for (const file of ["/auth-client.js", "/account-data.js", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/data/clinics.js", "/face-analysis.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
 });

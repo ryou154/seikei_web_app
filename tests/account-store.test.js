@@ -108,3 +108,20 @@ test("database failures return a generic error", async () => {
   assert.equal(result.status, 503);
   assert.ok(!result.data.error.includes("private details"));
 });
+
+test("history ownership cannot be changed through payload or another user's deletion", async () => {
+  const store = fakeStore();
+  const a = createAccountHandler({ authenticate: async () => ({ uid: "a" }), getStore: () => store });
+  const b = createAccountHandler({ authenticate: async () => ({ uid: "b" }), getStore: () => store });
+  const id = "history-0000000000000001";
+  const body = { id, requestText: "private-a", category: "自然", profile: profile(), uid: "b", ownerId: "b" };
+  assert.equal((await a(req("PUT", "/api/account/history", body))).status, 200);
+  assert.deepEqual((await b(req("GET", "/api/account/history"))).data.entries, []);
+  for (const route of [`/api/account/history/${id}`, "/api/account/history"]) {
+    assert.equal((await b(req("DELETE", route))).status, 200);
+    const result = await a(req("GET", "/api/account/history"));
+    assert.equal(result.data.entries.length, 1);
+    assert.equal(result.data.entries[0].requestText, "private-a");
+    assert.equal(result.data.entries[0].ownerId, undefined);
+  }
+});
