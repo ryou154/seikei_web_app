@@ -54,7 +54,7 @@
   function updateAccount() {
     const auth = window.AppAuth;
     account.hidden = !auth?.signedIn;
-    email.textContent = auth?.signedIn ? `ログイン中：${auth.email}` : "";
+    email.textContent = "";
     logout.disabled = !auth?.signedIn || auth.busy;
     logout.textContent = auth?.busy ? "処理中…" : "ログアウト";
   }
