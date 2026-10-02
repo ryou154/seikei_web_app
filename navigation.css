@@ -50,8 +50,8 @@
   justify-content: flex-end;
   text-align: right;
   gap: 12px;
-  width: min(1160px, 100%);
-  margin: 12px auto 0;
+  width: 100%;
+  margin: 12px 0 0;
 }
 
 .common-navigation__account[hidden] {
