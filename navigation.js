@@ -127,3 +127,4 @@
   reducedMotion?.addEventListener("change", stopSlide);
   showPage(false);
 })();
+
