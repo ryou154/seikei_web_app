@@ -63,6 +63,11 @@
   overflow-wrap: anywhere;
 }
 
+/* This container receives programmatic focus after navigation, not user input. */
+#page-transition-content:focus {
+  outline: none;
+}
+
 /* Clip the page-wide slide without creating a horizontal scrollbar. */
 html {
   overflow-x: clip;
