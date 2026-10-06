@@ -8,7 +8,7 @@
 
   const logoLink = document.createElement("a");
   logoLink.className = "common-navigation__logo";
-  logoLink.href = "app.html#input-title";
+  logoLink.href = "/app.html#input-title";
   logoLink.setAttribute("aria-label", "シミュレーションのトップへ");
   const logo = document.createElement("img");
   logo.src = "ロゴ.png";
@@ -19,11 +19,11 @@
   const list = document.createElement("ul");
   list.className = "common-navigation__links";
   const links = [
-    { href: "login.html", label: "ログイン" },
-    { href: "app.html#input-title", label: "シミュレーション" },
-    { href: "app.html#history-title", label: "履歴" },
-    { href: "app.html#clinic-title", label: "クリニック" },
-    { href: "app.html#auth-title", label: "アカウント" }
+    { href: "/login.html", label: "ログイン" },
+    { href: "/app.html#input-title", label: "シミュレーション" },
+    { href: "/app.html#history-title", label: "履歴" },
+    { href: "/app.html#clinic-title", label: "クリニック" },
+    { href: "/mypage.html", label: "マイページ" }
   ];
 
   const navigationLinks = [];
@@ -54,11 +54,12 @@
   function updateAccount() {
     const auth = window.AppAuth;
     account.hidden = !auth?.signedIn;
-    email.textContent = "";
+    email.textContent = auth?.signedIn ? (auth.displayName || auth.email) : "";
     logout.disabled = !auth?.signedIn || auth.busy;
     logout.textContent = auth?.busy ? "処理中…" : "ログアウト";
   }
   window.addEventListener("auth-state-changed", updateAccount);
+  window.addEventListener("profile-updated", updateAccount);
   updateAccount();
 
   function updateCurrentPage() {

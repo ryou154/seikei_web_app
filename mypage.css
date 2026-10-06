@@ -1,0 +1,184 @@
+.mypage-page {
+  min-height: 100vh;
+}
+
+.mypage-header {
+  max-width: 1040px;
+  margin: 30px auto 16px;
+  padding: 0 24px;
+}
+
+.mypage-header h1 {
+  margin-bottom: 8px;
+}
+
+.mypage-status,
+.mypage-content {
+  width: min(100% - 32px, 1040px);
+  margin: 0 auto 48px;
+}
+
+.mypage-status {
+  min-height: 1.5em;
+}
+
+.mypage-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.mypage-content[hidden] {
+  display: none;
+}
+
+.mypage-section {
+  min-width: 0;
+  margin: 0;
+  padding: 24px;
+}
+
+.mypage-section h2 {
+  margin: 0 0 18px;
+  overflow-wrap: anywhere;
+}
+
+.mypage-form {
+  display: grid;
+  gap: 12px;
+}
+
+.mypage-form[hidden] {
+  display: none;
+}
+
+.mypage-form .field {
+  min-width: 0;
+  margin: 0;
+}
+
+.mypage-form input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mypage-form input[readonly] {
+  background: #f7f4f5;
+  color: #62555a;
+}
+
+.mypage-details {
+  display: grid;
+  gap: 0;
+  margin: 16px 0;
+}
+
+.mypage-details > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line, #eadde3);
+}
+
+.mypage-details dt {
+  color: var(--muted, #75676d);
+}
+
+.mypage-details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.mypage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.mypage-actions button {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.inline-status {
+  min-height: 1.5em;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.inline-status[data-error="true"] {
+  color: #a3243d;
+}
+
+.danger-zone {
+  grid-column: 1 / -1;
+  border: 2px solid #b8324d;
+  background: #fff8f9;
+}
+
+.danger-zone .section-kicker,
+.danger-zone h2 {
+  color: #9a1e37;
+}
+
+.danger-button {
+  border: 2px solid #9a1e37;
+  background: #9a1e37;
+  color: #fff;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #77152a;
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mypage-page button:focus-visible,
+.mypage-page input:focus-visible {
+  outline: 3px solid #2c6fb7;
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .mypage-header {
+    margin-top: 22px;
+    padding: 0 16px;
+  }
+
+  .mypage-status,
+  .mypage-content {
+    width: min(100% - 24px, 520px);
+  }
+
+  .mypage-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .mypage-section {
+    padding: 18px 16px;
+  }
+
+  .danger-zone {
+    grid-column: auto;
+  }
+
+  .mypage-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mypage-actions button,
+  .mypage-form > button {
+    width: 100%;
+  }
+}

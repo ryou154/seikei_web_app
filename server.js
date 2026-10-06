@@ -5,10 +5,12 @@ const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
 const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
+const { createAccountDeleteHandler } = require("./account-delete");
 const firebaseConfig = require("./firebase-config");
 const accountDatabase = createStore(new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" }));
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
+const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -27,6 +29,11 @@ const server = http.createServer(async (request, response) => {
   try {
     if (imageService.matches(request.url)) {
       sendResult(response, await imageService.handle(request));
+      return;
+    }
+    if (request.url === "/api/account" || request.url.startsWith("/api/account?")) {
+      const result = await handleAccountDelete(request);
+      sendJson(response, result.status, result.data);
       return;
     }
     if (request.url.startsWith("/api/account/")) {
@@ -335,7 +342,7 @@ function serveStatic(request, response) {
   // dependencies, Git metadata or server-side access policy.
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
   const publicFiles = new Set([
-    "/", "/index.html", "/login.html", "/app.html", "/style.css", "/script.js", "/auth-client.js",
+    "/", "/index.html", "/login.html", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
     "/navigation.js", "/navigation.css", logoFile
   ]);
