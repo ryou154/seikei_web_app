@@ -125,7 +125,7 @@ async function checkSession(user, forceRefresh = false) {
     completeReady(true);
     dispatch("auth-state-changed");
     dispatch("app-authorized");
-    if (isLoginPage) location.replace("/app.html");
+    if (isLoginPage) location.replace("/home.html");
     return true;
   } catch (error) {
     if (currentGeneration !== generation || auth.currentUser?.uid !== user.uid) return false;

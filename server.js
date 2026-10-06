@@ -342,7 +342,7 @@ function serveStatic(request, response) {
   // dependencies, Git metadata or server-side access policy.
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
   const publicFiles = new Set([
-    "/", "/index.html", "/login.html", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
+    "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
     "/navigation.js", "/navigation.css", logoFile
   ]);

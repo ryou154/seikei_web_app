@@ -94,7 +94,7 @@ test("protected page waits for auth then redirects signed-out visitors", async (
   assert.deepEqual(app.state.redirects, []);
   assert.equal(app.node("app-content").hidden, true);
   await app.signedOut();
-  assert.deepEqual(app.state.redirects, ["login.html"]);
+  assert.deepEqual(app.state.redirects, ["/login.html"]);
   assert.equal(app.node("app-content").hidden, true);
   assert.equal(app.api.uid, null);
 });
@@ -107,7 +107,7 @@ test("signed-out login page stays available without a redirect loop", async () =
   assert.equal(app.node("auth-controls").disabled, false);
 });
 
-test("successful login redirects to app only after verification and authorization", async () => {
+test("successful login redirects to home only after verification and authorization", async () => {
   const app = await setup("/login.html");
   await app.login("alice", false);
   assert.deepEqual(app.state.redirects, []);
@@ -116,7 +116,7 @@ test("successful login redirects to app only after verification and authorizatio
   assert.deepEqual(app.state.redirects, []);
   app.state.status = 200;
   await app.login("alice", true);
-  assert.deepEqual(app.state.redirects, ["app.html"]);
+  assert.deepEqual(app.state.redirects, ["/home.html"]);
 });
 
 test("a stale token is refreshed once and the Firebase app is initialized once", async () => {
@@ -141,7 +141,7 @@ test("restored session stays on protected page, session loss returns to login", 
   assert.deepEqual(app.state.redirects, []);
   assert.equal(app.node("app-content").hidden, false);
   await app.signedOut();
-  assert.deepEqual(app.state.redirects, ["login.html"]);
+  assert.deepEqual(app.state.redirects, ["/login.html"]);
   assert.equal(app.node("app-content").hidden, true);
   assert.equal(app.state.reloads, 0);
 });

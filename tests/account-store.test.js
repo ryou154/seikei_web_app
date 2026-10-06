@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { EventEmitter } = require("node:events");
-const { createAccountHandler, normalizeSettings, HISTORY_LIMIT } = require("../account-store");
+const { createAccountHandler, normalizeSettings, normalizeProfile, HISTORY_LIMIT } = require("../account-store");
 function profile() {
   return {
     gender: "female", style: "natural", eye: "double", nose: "high", face: "vline",
@@ -25,6 +25,9 @@ function fakeStore() {
   const state = new Map();
   const key = (uid, kind) => `${uid}:${kind}`;
   return {
+    async profile(uid) { return state.get(key(uid, "profile")) || null; },
+    async saveProfile(uid, value) { state.set(key(uid, "profile"), value); return value; },
+    async deleteProfile(uid) { state.delete(key(uid, "profile")); },
     async settings(uid) { return state.get(key(uid, "settings")) || null; },
     async saveSettings(uid, value) { state.set(key(uid, "settings"), value); return value; },
     async deleteSettings(uid) { state.delete(key(uid, "settings")); },
@@ -62,6 +65,20 @@ test("rejects malformed, oversized and invalid settings", () => {
   assert.throws(() => normalizeSettings({ requestText: "x".repeat(2001), profile: profile() }), /2000/);
   assert.throws(() => normalizeSettings({ requestText: "", profile: { ...profile(), strength: 101 } }), /0〜100/);
   assert.throws(() => normalizeSettings({ requestText: "", profile: { ...profile(), style: "<script>" } }), /選択項目/);
+});
+test("profile accepts only a Japanese prefecture", () => {
+  assert.deepEqual(normalizeProfile({ residencePrefecture: " 大阪府 " }), { residencePrefecture: "大阪府" });
+  assert.throws(() => normalizeProfile({ residencePrefecture: "大阪市" }), /都道府県/);
+  assert.throws(() => normalizeProfile({ residencePrefecture: 27 }), /都道府県/);
+});
+test("profile uses verified uid and remains isolated", async () => {
+  const store = fakeStore();
+  const handlerA = createAccountHandler({ authenticate: async () => ({ uid: "a" }), getStore: () => store });
+  const handlerB = createAccountHandler({ authenticate: async () => ({ uid: "b" }), getStore: () => store });
+  assert.equal((await handlerA(req("PUT", "/api/account/profile", { residencePrefecture: "東京都", uid: "b" }))).status, 200);
+  assert.equal((await handlerB(req("GET", "/api/account/profile"))).data.profile, null);
+  assert.equal((await handlerA(req("GET", "/api/account/profile"))).data.profile.residencePrefecture, "東京都");
+  assert.equal((await handlerA(req("DELETE", "/api/account/profile"))).data.profile, null);
 });
 test("settings use verified uid and remain isolated", async () => {
   const store = fakeStore();

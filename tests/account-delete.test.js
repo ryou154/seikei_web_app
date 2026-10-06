@@ -39,6 +39,7 @@ test("account deletion uses the token UID and removes Storage, Firestore, then A
     now: () => now,
     getStore: () => ({
       async history(uid) { calls.push(`history:${uid}`); return [{ id: "entry" }]; },
+      async deleteProfile(uid) { calls.push(`profile:${uid}`); },
       async deleteSettings(uid) { calls.push(`settings:${uid}`); },
       async deleteHistory(uid) { calls.push(`delete-history:${uid}`); }
     }),
@@ -54,7 +55,7 @@ test("account deletion uses the token UID and removes Storage, Firestore, then A
   assert.deepEqual(result, { status: 200, data: { deleted: true } });
   assert.deepEqual(calls, [
     "verify:valid-token", "history:verified-user", "storage-list:users/verified-user/simulations/",
-    "storage-delete", "settings:verified-user", "delete-history:verified-user", "auth:verified-user"
+    "storage-delete", "profile:verified-user", "settings:verified-user", "delete-history:verified-user", "auth:verified-user"
   ]);
 });
 
@@ -65,6 +66,7 @@ test("Storage failure keeps Firestore metadata and Authentication available for 
     now: () => now,
     getStore: () => ({
       async history() { calls.push("history"); return []; },
+      async deleteProfile() { calls.push("profile"); },
       async deleteSettings() { calls.push("settings"); },
       async deleteHistory() { calls.push("history-delete"); }
     }),

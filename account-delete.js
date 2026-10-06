@@ -90,6 +90,7 @@ function createAccountDeleteHandler({
 
       // Keep Authentication until all user data has been removed. Retrying is safe:
       // missing objects and already-removed Firestore documents are harmless.
+      await database.deleteProfile(uid);
       await database.deleteSettings(uid);
       await database.deleteHistory(uid);
       await deleteUser(uid);

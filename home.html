@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ホーム | AI骨格フィット・整形シミュレーター</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="home.css">
+  <script src="navigation.js" defer></script>
+</head>
+<body class="app-page home-page">
+  <div id="common-navigation"></div>
+  <div id="page-transition-content">
+    <main id="app-content" class="home-shell" hidden>
+      <header class="home-welcome">
+        <div>
+          <p class="section-kicker">Dashboard</p>
+          <h1 id="home-greeting">ホーム</h1>
+          <p id="home-email" class="home-muted"></p>
+        </div>
+        <a class="home-primary-action" href="app.html#input-title">新しいシミュレーション</a>
+      </header>
+
+      <section class="home-section home-region" aria-labelledby="region-title">
+        <div class="home-section-heading">
+          <div>
+            <p class="section-kicker">Area</p>
+            <h2 id="region-title">お住まいの地域</h2>
+          </div>
+          <p class="home-muted">住所全体は保存せず、都道府県だけを使用します。</p>
+        </div>
+        <form id="prefecture-form" class="prefecture-form">
+          <label for="prefecture-select">都道府県</label>
+          <select id="prefecture-select" required>
+            <option value="">選択してください</option>
+          </select>
+          <button type="submit">保存</button>
+        </form>
+        <p id="prefecture-status" class="home-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="home-section" aria-labelledby="recent-title">
+        <div class="home-section-heading">
+          <div>
+            <p class="section-kicker">Recent</p>
+            <h2 id="recent-title">最近の履歴</h2>
+          </div>
+          <a href="app.html#history-title">履歴をすべて見る</a>
+        </div>
+        <div id="recent-history" class="home-card-grid" aria-live="polite">
+          <p class="home-empty">履歴を読み込んでいます…</p>
+        </div>
+      </section>
+
+      <section class="home-section" aria-labelledby="local-clinics-title">
+        <div class="home-section-heading">
+          <div>
+            <p class="section-kicker">Clinics</p>
+            <h2 id="local-clinics-title">地域の掲載クリニック</h2>
+          </div>
+          <a id="clinic-list-link" href="app.html#clinic-title">クリニックを見る</a>
+        </div>
+        <p id="clinic-region-note" class="home-muted">都道府県を設定すると、その地域の掲載クリニックを表示します。</p>
+        <div id="local-clinics" class="home-card-grid"></div>
+        <p class="home-disclaimer">掲載順は人気順位ではありません。最新情報は各クリニックの公式サイトで確認してください。</p>
+      </section>
+
+      <section class="home-section home-summary" aria-labelledby="saved-title">
+        <div>
+          <p class="section-kicker">Saved Data</p>
+          <h2 id="saved-title">保存状況</h2>
+        </div>
+        <dl>
+          <div><dt>履歴</dt><dd id="history-count">- / 10件</dd></div>
+          <div><dt>保存画像</dt><dd id="image-count">-件</dd></div>
+        </dl>
+        <a href="app.html#history-title">保存データを確認する</a>
+      </section>
+    </main>
+  </div>
+  <script src="data/clinics.js"></script>
+  <script src="data/clinic-details.js"></script>
+  <script src="home.js"></script>
+  <script type="module" src="auth-core.js"></script>
+</body>
+</html>

@@ -53,6 +53,7 @@ test("history read, save and deletion reject missing or forged authentication ov
     for (const [method, route] of [
       ["GET", "/api/session"],
       ["GET", "/api/account/history"],
+      ["GET", "/api/account/profile"],
       ["PUT", "/api/account/history"],
       ["DELETE", "/api/account/history"],
       ["DELETE", "/api/account"],
@@ -77,20 +78,25 @@ test("server source, credentials, Git and dependencies are not public", async ()
 test("login page starts locked and public assets are available", async () => {
   const index = await (await fetch(base)).text();
   const login = await (await fetch(`${base}/login.html`)).text();
+  const home = await (await fetch(`${base}/home.html`)).text();
   const app = await (await fetch(`${base}/app.html`)).text();
   const mypage = await (await fetch(`${base}/mypage.html`)).text();
-  assert.match(index, /location\.replace\("login\.html"\)/);
+  assert.match(index, /location\.replace\("\/login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
   assert.match(app, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
+  assert.match(home, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
+  assert.match(home, /id="prefecture-select"/);
+  assert.match(home, /id="recent-history"/);
+  assert.match(home, /id="local-clinics"/);
   assert.match(mypage, /<h1>マイページ<\/h1>/);
   assert.match(mypage, /src="mypage\.js"/);
-  for (const html of [login, app, mypage]) {
+  for (const html of [login, home, app, mypage]) {
     assert.match(html, /id="common-navigation"/);
     assert.match(html, /src="navigation\.js"/);
     assert.match(html, /href="navigation\.css"/);
   }
-  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js"]) {
+  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
   assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);

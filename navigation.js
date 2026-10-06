@@ -8,8 +8,8 @@
 
   const logoLink = document.createElement("a");
   logoLink.className = "common-navigation__logo";
-  logoLink.href = "/app.html#input-title";
-  logoLink.setAttribute("aria-label", "シミュレーションのトップへ");
+  logoLink.href = "/home.html";
+  logoLink.setAttribute("aria-label", "ホームへ");
   const logo = document.createElement("img");
   logo.src = "ロゴ.png";
   logo.alt = "MEYLON ロゴ";
@@ -19,6 +19,7 @@
   const list = document.createElement("ul");
   list.className = "common-navigation__links";
   const links = [
+    { href: "/home.html", label: "ホーム" },
     { href: "/login.html", label: "ログイン" },
     { href: "/app.html#input-title", label: "シミュレーション" },
     { href: "/app.html#history-title", label: "履歴" },

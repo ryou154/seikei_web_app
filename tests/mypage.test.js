@@ -37,7 +37,7 @@ test("mypage is protected by the shared auth client and has no owner ID input", 
   const app = fs.readFileSync(path.join(__dirname, "../app.html"), "utf8");
   const auth = fs.readFileSync(path.join(__dirname, "../auth-core.js"), "utf8");
   assert.match(html, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
-  assert.match(auth, /if \(main\) location\.replace\("login\.html"\)/);
+  assert.match(auth, /location\.replace\("\/login\.html"\)/);
   assert.match(html, /src="auth-core\.js"/);
   assert.doesNotMatch(html, /google-login|email-login-form|password-reset/);
   assert.match(login, /src="login-page\.js"/);
