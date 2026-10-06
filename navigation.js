@@ -19,8 +19,8 @@
   const list = document.createElement("ul");
   list.className = "common-navigation__links";
   const links = [
-    { href: "/home.html", label: "ホーム" },
     { href: "/login.html", label: "ログイン" },
+    { href: "/home.html", label: "ホーム" },
     { href: "/app.html#input-title", label: "シミュレーション" },
     { href: "/app.html#history-title", label: "履歴" },
     { href: "/app.html#clinic-title", label: "クリニック" },

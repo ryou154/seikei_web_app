@@ -46,8 +46,10 @@ test("navigation keeps the menu still, slides page content and resets scroll for
   const current = () => menuAnchors().find(a => a.attributes["aria-current"] === "page").textContent;
   assert.equal(anchors[0].href, "/home.html");
   assert.equal(anchors[0].attributes["aria-label"], "ホームへ");
-  assert.equal(menuAnchors()[0].href, "/home.html");
-  assert.equal(menuAnchors()[0].textContent, "ホーム");
+  assert.equal(menuAnchors()[0].href, "/login.html");
+  assert.equal(menuAnchors()[0].textContent, "ログイン");
+  assert.equal(menuAnchors()[1].href, "/home.html");
+  assert.equal(menuAnchors()[1].textContent, "ホーム");
   assert.equal(history.scrollRestoration, "manual");
   assert.equal(slides.length, 0);
   for (const anchor of menuAnchors()) {
