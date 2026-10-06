@@ -250,7 +250,7 @@ async function initialize() {
     });
     const authorized = await appAuth.ready;
     if (authorized && window.AppAuth?.uid && auth.currentUser) void showUser(auth.currentUser);
-    else status.textContent = "ログイン状態を確認できません。上部の再試行ボタンを押してください。";
+    else status.textContent = "ログイン状態を確認できません。ログイン画面から再度ログインしてください。";
   } catch {
     status.textContent = "マイページを読み込めませんでした。通信状態を確認して再読み込みしてください。";
   }

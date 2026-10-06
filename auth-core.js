@@ -33,12 +33,10 @@ function updateLoginElements(user) {
   const signedOut = document.getElementById("auth-signed-out");
   const signedIn = document.getElementById("auth-signed-in");
   const verificationActions = document.getElementById("verification-actions");
-  const retry = document.getElementById("auth-retry");
   const account = document.getElementById("auth-account");
   if (signedOut) signedOut.hidden = Boolean(user);
   if (signedIn) signedIn.hidden = !user;
   if (verificationActions) verificationActions.hidden = !user || user.emailVerified;
-  if (retry) retry.hidden = !user || !user.emailVerified || Boolean(authorizedUid);
   if (account) account.textContent = user?.email || "";
 }
 
@@ -95,7 +93,7 @@ async function authorizeUser(user, forceRefresh = false) {
 async function checkSession(user, forceRefresh = false) {
   const previouslyAuthorizedUid = authorizedUid;
   const currentGeneration = ++generation;
-  lock(user ? "ログインを確認しています…" : "Googleまたはメールでログインしてください。");
+  lock(user ? (isLoginPage ? "ログイン状態を確認しています…" : "") : "ログインしてください。");
   updateLoginElements(user);
   dispatch("auth-state-changed");
 
@@ -123,7 +121,7 @@ async function checkSession(user, forceRefresh = false) {
     }
     authorizedUid = session.uid;
     if (main) main.hidden = false;
-    if (status) status.textContent = "ログインしました。";
+    if (status && isLoginPage) status.textContent = "ログインしました。";
     completeReady(true);
     dispatch("auth-state-changed");
     dispatch("app-authorized");
@@ -133,16 +131,12 @@ async function checkSession(user, forceRefresh = false) {
     if (currentGeneration !== generation || auth.currentUser?.uid !== user.uid) return false;
     lock(error.status ? (error.message || "ログインを確認できませんでした。") : safeFailureMessage(error));
     updateLoginElements(user);
-    if ((error.status === 401 || error.status === 403) && main) redirectToLogin();
+    if (main) redirectToLogin();
     completeReady(false);
     dispatch("auth-state-changed");
     return false;
   }
 }
-
-document.getElementById("auth-retry")?.addEventListener("click", () => {
-  if (!busy) void checkSession(auth?.currentUser || null, true);
-});
 
 function setBusy(value) {
   busy = value;
@@ -219,6 +213,7 @@ try {
     lock("ログイン状態を読み込めませんでした。ページを再読み込みしてください。");
     completeReady(false);
     dispatch("auth-state-changed");
+    if (main) redirectToLogin();
   });
 } catch {
   window.authCoreFailed = true;
