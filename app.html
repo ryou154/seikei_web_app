@@ -23,6 +23,8 @@
     </div>
   </header>
 
+  <p class="history-entry-link"><a href="history.html">保存した履歴を見る</a></p>
+
   <section id="auth-panel" class="panel auth-panel" aria-labelledby="auth-title">
     <h2 id="auth-title">ログイン</h2>
     <p>チームで登録したメールアドレスを使用してください。</p>
@@ -328,7 +330,10 @@
           <p class="eyebrow">History</p>
           <h2 id="history-title">保存履歴</h2>
         </div>
-        <button id="clear-history-button" type="button">履歴を削除</button>
+        <div class="history-actions-row">
+          <a class="history-page-link" href="history.html">別画面で履歴を見る</a>
+          <button id="clear-history-button" type="button">履歴を削除</button>
+        </div>
       </div>
       <p class="notice">本人専用のクラウド履歴（最新10件）。分析結果は保存され、写真・生成画像は保存時に同意した場合のみ含まれます。</p>
       <button id="history-reload" type="button">履歴を再読込</button>
@@ -378,5 +383,36 @@
   <script src="account-data.js"></script>
   <script type="module" src="auth-client.js"></script>
   <script src="script.js"></script>
+  <script>
+    (() => {
+      const key = "meylon-history-settings";
+      let saved;
+      try { saved = JSON.parse(sessionStorage.getItem(key) || "null"); } catch { saved = null; }
+      if (!saved?.profile) return;
+      sessionStorage.removeItem(key);
+      const profileFields = {
+        gender: "gender-select", style: "style-select", eye: "eye-select", nose: "nose-select",
+        face: "face-select", mouth: "mouth-select", forehead: "forehead-select", strength: "change-strength",
+        imageEngine: "image-engine", region: "region-input", budget: "budget-select", downtime: "downtime-select",
+        clinicPriority: "clinic-priority", priority: "priority"
+      };
+      const request = document.getElementById("request-text");
+      if (request) request.value = saved.requestText || "";
+      for (const [keyName, id] of Object.entries(profileFields)) {
+        const field = document.getElementById(id);
+        const value = saved.profile[keyName];
+        if (!field || value === undefined) continue;
+        if (field.tagName === "SELECT" && ![...field.options].some((option) => option.value === String(value))) continue;
+        field.value = String(value);
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      for (const keyName of ["style", "eye", "nose", "face", "mouth", "forehead"]) {
+        const field = document.getElementById(`${keyName}-custom`);
+        if (field) field.value = saved.profile.custom?.[keyName] || "";
+      }
+      document.getElementById("input-title")?.scrollIntoView();
+    })();
+  </script>
 </body>
 </html>

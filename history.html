@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fff7fa">
+  <title>履歴・結果 | MEYLON</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="history-page.css">
+  <script src="navigation.js" defer></script>
+  <script src="history-page.js" defer></script>
+</head>
+<body class="app-page history-page">
+  <div id="common-navigation"></div>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">History</p>
+      <h1>履歴・結果</h1>
+      <p class="lead">保存したシミュレーション条件と結果を確認できます。履歴は本人専用です。</p>
+    </div>
+  </header>
+  <div id="page-transition-content">
+    <section id="auth-panel" class="panel auth-panel" aria-labelledby="auth-title">
+      <h2 id="auth-title">ログイン</h2>
+      <p>履歴を見るにはログインしてください。</p>
+      <p id="auth-status" role="status" aria-live="polite">ログイン機能を読み込んでいます…</p>
+      <fieldset id="auth-controls" disabled>
+        <div id="auth-signed-out">
+          <button id="google-login" type="button">Googleでログイン</button>
+          <form id="email-login-form">
+            <label class="field"><span>メールアドレス</span><input id="auth-email" type="email" autocomplete="username" required></label>
+            <label class="field"><span>パスワード</span><input id="auth-password" type="password" autocomplete="current-password" required></label>
+            <div class="auth-buttons">
+              <button type="submit">メールでログイン</button>
+              <button id="email-register" type="button" class="sub-button">新規登録</button>
+              <button id="password-reset" type="button" class="sub-button">パスワードを忘れた方</button>
+            </div>
+            <p class="small">新規登録の後、届いたメールで本人確認してください。</p>
+          </form>
+        </div>
+        <div id="auth-signed-in" hidden>
+          <p id="auth-account"></p>
+          <div id="verification-actions" hidden class="auth-buttons">
+            <button id="verification-send" type="button">確認メールを送る</button>
+            <button id="verification-check" type="button" class="sub-button">メール確認後に続ける</button>
+          </div>
+          <button id="logout" type="button" class="sub-button">ログアウト・アカウントを切り替える</button>
+        </div>
+      </fieldset>
+    </section>
+
+    <main id="app-content" class="history-layout" hidden>
+      <section class="panel history-panel" aria-labelledby="history-heading">
+        <div class="history-heading-row">
+          <div>
+            <p class="eyebrow">Your simulations</p>
+            <h2 id="history-heading">保存履歴</h2>
+          </div>
+          <div class="history-toolbar">
+            <button id="history-reload" type="button" class="sub-button">再読込</button>
+            <button id="clear-history-button" type="button" class="sub-button">全件削除</button>
+          </div>
+        </div>
+        <p class="history-privacy-note">最新10件を表示します。写真は履歴保存時に同意した場合のみ保存されます。顔バランススコアは学習用の参考値で、容姿の優劣や医療効果を判定しません。</p>
+        <p id="history-status" class="history-status" role="status" aria-live="polite">履歴を読み込んでいます…</p>
+        <div id="history-list" class="history-list" aria-live="polite"></div>
+      </section>
+      <p class="history-back-link"><a href="app.html#input-title">シミュレーションへ戻る</a></p>
+    </main>
+  </div>
+  <script type="module" src="auth-client.js"></script>
+</body>
+</html>

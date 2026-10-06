@@ -11,7 +11,7 @@
   const links = [
     { href: "login.html", label: "ログイン" },
     { href: "app.html#input-title", label: "シミュレーション" },
-    { href: "app.html#history-title", label: "履歴" },
+    { href: "history.html", label: "履歴" },
     { href: "app.html#clinic-title", label: "クリニック" },
     { href: "app.html#auth-title", label: "アカウント" }
   ];

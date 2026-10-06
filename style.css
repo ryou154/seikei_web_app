@@ -288,6 +288,32 @@ button:disabled {
   background: #2c2e38;
 }
 
+.history-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.history-page-link:hover {
+  background: var(--primary-dark);
+}
+
+
+
 .empty-state {
   display: grid;
   min-height: 330px;
@@ -931,6 +957,15 @@ body.camera-open {
 
   .result-heading button {
     width: 100%;
+  }
+
+  .history-actions-row {
+    width: 100%;
+  }
+
+  .history-actions-row > * {
+    flex: 1 1 140px;
+    text-align: center;
   }
 }
 
