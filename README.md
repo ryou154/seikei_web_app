@@ -10,6 +10,8 @@ Google Cloud Runで公開しています。
 
 https://seikei-web-app-688786456161.asia-northeast1.run.app
 
+ログイン画面: https://seikei-web-app-688786456161.asia-northeast1.run.app/login.html
+
 ## 主な機能
 
 - 顔画像のファイルアップロード

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マイページ | MEYLON</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="mypage.css">
+  <script src="navigation.js" defer></script>
+</head>
+<body class="mypage-page">
+  <div id="common-navigation"></div>
+  <header class="app-header mypage-header">
+    <p class="eyebrow">ACCOUNT</p>
+    <h1>マイページ</h1>
+    <p class="lead">プロフィール、セキュリティ、保存データを管理できます。</p>
+  </header>
+  <div id="page-transition-content">
+    <p id="mypage-status" class="mypage-status" role="status" aria-live="polite">ログイン状態を確認しています…</p>
+    <button id="auth-retry" type="button" class="sub-button" hidden>ログイン状態を再確認</button>
+    <main id="app-content" class="mypage-content" hidden>
+      <section class="panel mypage-section" aria-labelledby="profile-title">
+        <p class="section-kicker">PROFILE</p>
+        <h2 id="profile-title">プロフィール</h2>
+        <form id="profile-form" class="mypage-form">
+          <label class="field" for="display-name"><span>表示名</span>
+            <input id="display-name" name="displayName" type="text" autocomplete="name" maxlength="50" required>
+          </label>
+          <p class="small">前後の空白を除いて1〜50文字で入力してください。</p>
+          <label class="field" for="account-email"><span>メールアドレス</span>
+            <input id="account-email" type="email" readonly aria-readonly="true">
+          </label>
+          <dl class="mypage-details">
+            <div><dt>ログイン方法</dt><dd id="login-method">確認中</dd></div>
+            <div><dt>メール確認</dt><dd id="email-verification">確認中</dd></div>
+          </dl>
+          <button type="submit">表示名を保存</button>
+          <p id="profile-status" class="inline-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel mypage-section" aria-labelledby="security-title">
+        <p class="section-kicker">SECURITY</p>
+        <h2 id="security-title">パスワードとセキュリティ</h2>
+        <form id="password-form" class="mypage-form" hidden>
+          <label class="field" for="current-password"><span>現在のパスワード</span>
+            <input id="current-password" type="password" autocomplete="current-password" required>
+          </label>
+          <label class="field" for="new-password"><span>新しいパスワード</span>
+            <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
+          </label>
+          <label class="field" for="confirm-password"><span>新しいパスワード（確認）</span>
+            <input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required>
+          </label>
+          <button type="submit">パスワードを変更</button>
+        </form>
+        <p id="password-managed" class="small" hidden>パスワードはGoogleアカウント側で管理されています。</p>
+        <p id="password-status" class="inline-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel mypage-section" aria-labelledby="saved-data-title">
+        <p class="section-kicker">SAVED DATA</p>
+        <h2 id="saved-data-title">保存データ</h2>
+        <dl class="mypage-details saved-data-details">
+          <div><dt>入力設定</dt><dd id="settings-count">読み込み中</dd></div>
+          <div><dt>履歴</dt><dd><span id="history-count">—</span> / 10件</dd></div>
+          <div><dt>保存画像</dt><dd id="image-count">—</dd></div>
+        </dl>
+        <div class="mypage-actions">
+          <button id="delete-settings" class="sub-button" type="button">保存設定を削除</button>
+          <button id="delete-history" class="sub-button" type="button">履歴と画像をすべて削除</button>
+          <button id="reload-data" class="sub-button" type="button">件数を再読み込み</button>
+        </div>
+        <p id="data-status" class="inline-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="mypage-section danger-zone" aria-labelledby="danger-title">
+        <p class="section-kicker">DANGER ZONE</p>
+        <h2 id="danger-title">アカウント削除</h2>
+        <p>ログイン情報、保存設定、履歴、Before／After画像をすべて削除します。この操作は元に戻せません。</p>
+        <form id="account-delete-form" class="mypage-form">
+          <label class="field" for="delete-confirmation"><span>続行するには「削除」と入力してください</span>
+            <input id="delete-confirmation" type="text" autocomplete="off" required aria-describedby="delete-help">
+          </label>
+          <p id="delete-help" class="small">実行時にGoogleまたはメール・パスワードで再認証します。</p>
+          <button id="delete-account" class="danger-button" type="submit" disabled>アカウントを完全に削除</button>
+        </form>
+        <p id="delete-status" class="inline-status" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="auth-core.js"></script>
+  <script src="mypage-model.js"></script>
+  <script type="module" src="mypage.js"></script>
+</body>
+</html>

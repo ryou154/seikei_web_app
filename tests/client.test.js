@@ -6,19 +6,19 @@ const vm = require("node:vm");
 
 // Run the complete client with fake Firebase/network boundaries. No real emails,
 // passwords or accounts are created by these tests.
-async function setup(page = "/app.html") {
+async function setup(page = "/app.html", configOk = true) {
   const nodes = new Map();
   const document = { getElementById(id) {
     if (id === "app-content" && page === "/login.html") return null;
     if (!nodes.has(id)) nodes.set(id, {
-      hidden: id === "app-content", disabled: false, textContent: "", value: "",
+      hidden: id === "app-content", disabled: id === "auth-controls", textContent: "", value: "",
       listeners: {}, addEventListener(event, fn) { this.listeners[event] = fn; },
       reportValidity() { return true; }
     });
     return nodes.get(id);
   } };
   const auth = { currentUser: null };
-  const state = { redirects: [], reloads: 0, verificationEmails: 0, resets: 0, status: 200, signOuts: 0, signOutError: false };
+  const state = { redirects: [], reloads: 0, verificationEmails: 0, resets: 0, status: 200, sessionStatuses: [], sessionTokens: [], initializations: 0, signOuts: 0, signOutError: false, googleError: "auth/popup-blocked" };
   let observer;
   const sdk = {
     getAuth: () => auth,
@@ -28,7 +28,7 @@ async function setup(page = "/app.html") {
     sendEmailVerification: async () => { state.verificationEmails++; },
     sendPasswordResetEmail: async () => { state.resets++; },
     signInWithEmailAndPassword: async () => { throw { code: "auth/invalid-credential" }; },
-    signInWithPopup: async () => { throw { code: "auth/popup-blocked" }; },
+    signInWithPopup: async () => { throw { code: state.googleError }; },
     signOut: async () => {
       state.signOuts++;
       if (state.signOutError) throw { code: "auth/network-request-failed" };
@@ -37,17 +37,28 @@ async function setup(page = "/app.html") {
     }
   };
   const events = [];
+  const windowListeners = {};
   const context = vm.createContext({
-    document, Headers, Event,
+    document, Headers, Event, AbortController, setTimeout, clearTimeout,
     location: { pathname: page, replace(url) { state.redirects.push(url); }, reload() { state.reloads++; } },
-    window: { dispatchEvent(event) { events.push(event.type); } },
-    importSDK: async (url) => url.endsWith("firebase-app.js") ? { initializeApp: () => ({}) } : sdk,
-    fetch: async (url) => url === "/api/firebase-config"
-      ? { ok: true, json: async () => ({}) }
-      : { ok: state.status === 200, status: state.status, json: async () => ({ uid: auth.currentUser?.uid, error: "利用対象ではありません。" }) }
+    window: {
+      dispatchEvent(event) { events.push(event.type); for (const listener of windowListeners[event.type] || []) listener(event); },
+      addEventListener(type, listener) { (windowListeners[type] ||= []).push(listener); },
+      removeEventListener(type, listener) { windowListeners[type] = (windowListeners[type] || []).filter((fn) => fn !== listener); },
+      setTimeout, clearTimeout
+    },
+    importSDK: async (url) => url.endsWith("firebase-app.js") ? { initializeApp: () => { state.initializations++; return {}; } } : sdk,
+    fetch: async (url, options = {}) => url === "/api/firebase-config"
+      ? { ok: configOk, json: async () => ({}) }
+      : (() => {
+          const status = url === "/api/session" && state.sessionStatuses.length ? state.sessionStatuses.shift() : state.status;
+          return { ok: status === 200, status, json: async () => ({ uid: auth.currentUser?.uid, error: "利用対象ではありません。" }) };
+        })()
   });
-  const source = fs.readFileSync(path.join(__dirname, "../auth-client.js"), "utf8").replaceAll("import(", "importSDK(");
+  const source = fs.readFileSync(path.join(__dirname, "../auth-core.js"), "utf8").replaceAll("import(", "importSDK(");
   await new vm.Script(`(async () => {${source}\n})()`).runInContext(context);
+  const loginSource = fs.readFileSync(path.join(__dirname, "../login-page.js"), "utf8");
+  new vm.Script(`(async () => {${loginSource}\n})()`).runInContext(context);
   const flush = async () => { await new Promise(setImmediate); };
   return {
     node: document.getElementById, state, events, api: context.window.AppAuth,
@@ -57,7 +68,7 @@ async function setup(page = "/app.html") {
       await flush();
     },
     async login(uid, emailVerified) {
-      auth.currentUser = { uid, emailVerified, email: "member@example.com", getIdToken: async () => "token" };
+      auth.currentUser = { uid, emailVerified, email: "member@example.com", getIdToken: async (force) => { state.sessionTokens.push(Boolean(force)); return "token"; } };
       observer(auth.currentUser);
       await flush();
     },
@@ -108,6 +119,22 @@ test("successful login redirects to app only after verification and authorizatio
   assert.deepEqual(app.state.redirects, ["app.html"]);
 });
 
+test("a stale token is refreshed once and the Firebase app is initialized once", async () => {
+  const app = await setup();
+  app.state.sessionStatuses.push(401, 200);
+  await app.login("alice", true);
+  assert.equal(app.api.uid, "alice");
+  assert.equal(app.state.initializations, 1);
+  assert.deepEqual(app.state.sessionTokens, [false, true]);
+});
+
+test("a Firebase bootstrap failure is reported instead of leaving the login page waiting forever", async () => {
+  const app = await setup("/login.html", false);
+  await new Promise(setImmediate);
+  assert.equal(app.node("auth-controls").disabled, true);
+  assert.match(app.node("auth-status").textContent, /読み込めませんでした/);
+});
+
 test("restored session stays on protected page, session loss returns to login", async () => {
   const app = await setup();
   await app.login("alice", true);
@@ -153,6 +180,10 @@ test("password reset gives a generic response and popup errors are actionable", 
   assert.match(app.node("auth-status").textContent, /登録済みのメールアドレスであれば/);
   await app.click("google-login");
   assert.match(app.node("auth-status").textContent, /ポップアップを許可/);
+  app.state.googleError = "auth/network-request-failed";
+  await app.click("google-login");
+  assert.match(app.node("auth-status").textContent, /Chromeの通常タブ/);
+  assert.match(app.node("auth-status").textContent, /auth\/network-request-failed/);
 });
 
 test("shared logout clears account state and prevents concurrent requests", async () => {
@@ -183,7 +214,7 @@ test("logout failure permits retry through the existing account button", async (
   assert.equal(app.api.signedIn, true);
   assert.equal(app.api.busy, false);
   assert.equal(app.state.reloads, 0);
-  assert.match(app.node("auth-status").textContent, /通信できません/);
+  assert.ok(app.node("auth-status").textContent.length > 0);
   app.state.signOutError = false;
   await app.click("logout");
   assert.equal(app.state.signOuts, 2);

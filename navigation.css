@@ -156,10 +156,15 @@
   display: none;
 }
 
-/* JSで生成されるメールアドレスは
-   ナビ上では表示しない */
 .common-navigation__email {
-  display: none;
+  display: block;
+  max-width: 170px;
+  margin-right: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink, #40343a);
+  font-size: 0.85rem;
 }
 
 /* ログアウトボタン */
@@ -193,4 +198,32 @@
 
 html {
   overflow-x: clip;
+}
+
+@media (max-width: 760px) {
+  .common-navigation {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .common-navigation__logo { grid-column: 1; }
+  .common-navigation__logo img { max-width: 128px; }
+  .common-navigation__account { grid-column: 2; }
+  .common-navigation__email { display: none; }
+  .common-navigation__links {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    flex-wrap: wrap;
+    gap: 2px;
+    width: 100%;
+  }
+  .common-navigation__links li { height: 40px; }
+  .common-navigation__links a {
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    padding: 0 8px;
+    font-size: 0.9rem;
+  }
 }

@@ -55,6 +55,7 @@ test("history read, save and deletion reject missing or forged authentication ov
       ["GET", "/api/account/history"],
       ["PUT", "/api/account/history"],
       ["DELETE", "/api/account/history"],
+      ["DELETE", "/api/account"],
       ["DELETE", "/api/account/history/history-0000000000000001"]
     ]) {
       const headers = authorization ? { Authorization: authorization } : {};
@@ -77,16 +78,20 @@ test("login page starts locked and public assets are available", async () => {
   const index = await (await fetch(base)).text();
   const login = await (await fetch(`${base}/login.html`)).text();
   const app = await (await fetch(`${base}/app.html`)).text();
+  const mypage = await (await fetch(`${base}/mypage.html`)).text();
   assert.match(index, /location\.replace\("login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
   assert.match(app, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
-  for (const html of [login, app]) {
+  assert.match(mypage, /<h1>マイページ<\/h1>/);
+  assert.match(mypage, /src="mypage\.js"/);
+  for (const html of [login, app, mypage]) {
     assert.match(html, /id="common-navigation"/);
     assert.match(html, /src="navigation\.js"/);
     assert.match(html, /href="navigation\.css"/);
   }
-  for (const file of ["/auth-client.js", "/account-data.js", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/data/clinics.js", "/face-analysis.js"]) {
+  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
+  assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);
 });
