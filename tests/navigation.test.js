@@ -63,6 +63,7 @@ test("navigation destinations exist and a protected fragment is focused only aft
     ["app.html", "シミュレーション"],
     ["app.html#unknown", "シミュレーション"],
     ["app.html#history-title", "履歴"],
+    ["history.html", "履歴"],
     ["login.html", "ログイン"]
   ]) {
     location.href = new URL(url, location.href).href;

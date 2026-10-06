@@ -336,7 +336,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/app.html", "/style.css", "/script.js", "/auth-client.js",
     "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css"
+    "/navigation.js", "/navigation.css", "/history.html", "/history-page.css", "/history-page.js"
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);

@@ -55,10 +55,13 @@
     const pageLinks = navigationLinks.filter((link) =>
       new URL(link.href, location.href).pathname === location.pathname
     );
-    // The app opens at simulation when no known section is specified.
-    const current = pageLinks.find((link) =>
-      new URL(link.href, location.href).hash === location.hash
-    ) || pageLinks[0];
+    // Keep the embedded history section discoverable alongside the dedicated history page.
+    const legacyHistorySection =
+      location.pathname === new URL("app.html", location.href).pathname &&
+      location.hash === "#history-title";
+    const current = legacyHistorySection
+      ? navigationLinks.find((link) => link.textContent === "履歴")
+      : pageLinks.find((link) => new URL(link.href, location.href).hash === location.hash) || pageLinks[0];
     for (const link of navigationLinks) {
       if (link === current) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
@@ -70,7 +73,9 @@
     const destination = links.find(({ href }) =>
       new URL(href, location.href).pathname === location.pathname &&
       new URL(href, location.href).hash === location.hash
-    );
+    ) || (location.pathname === new URL("app.html", location.href).pathname && location.hash === "#history-title"
+      ? links.find(({ label }) => label === "履歴")
+      : null);
     if (!destination || !location.hash) return;
     const target = document.getElementById(location.hash.slice(1));
     if (!target || target.closest("[hidden]")) return;
