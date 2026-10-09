@@ -287,7 +287,10 @@
           <p class="eyebrow">History</p>
           <h2 id="history-title">保存履歴</h2>
         </div>
-        <button id="clear-history-button" type="button">履歴を削除</button>
+        <div class="history-actions-row">
+          <a class="history-page-link" href="/history.html">別画面で履歴を見る</a>
+          <button id="clear-history-button" type="button">履歴を削除</button>
+        </div>
       </div>
       <p class="notice">本人専用のクラウド履歴（最新10件）。分析結果は保存され、写真・生成画像は保存時に同意した場合のみ含まれます。</p>
       <button id="history-reload" type="button">履歴を再読込</button>
@@ -337,11 +340,44 @@
   <script src="account-data.js"></script>
   <script type="module" src="auth-core.js"></script>
   <script type="module">
+    const historyHandoffKey = "meylon-history-settings";
     let appLoaded = false;
+
+    function restoreHistorySettings() {
+      let saved;
+      try { saved = JSON.parse(sessionStorage.getItem(historyHandoffKey) || "null"); }
+      catch { saved = null; }
+      if (!saved?.profile) return;
+      sessionStorage.removeItem(historyHandoffKey);
+      const profileFields = {
+        gender: "gender-select", style: "style-select", eye: "eye-select", nose: "nose-select",
+        face: "face-select", mouth: "mouth-select", forehead: "forehead-select", strength: "change-strength",
+        imageEngine: "image-engine", region: "region-input", budget: "budget-select", downtime: "downtime-select",
+        clinicPriority: "clinic-priority", priority: "priority"
+      };
+      const request = document.getElementById("request-text");
+      if (request) request.value = saved.requestText || "";
+      for (const [key, id] of Object.entries(profileFields)) {
+        const field = document.getElementById(id);
+        const value = saved.profile[key];
+        if (!field || value === undefined) continue;
+        if (field.tagName === "SELECT" && ![...field.options].some((option) => option.value === String(value))) continue;
+        field.value = String(value);
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      for (const key of ["style", "eye", "nose", "face", "mouth", "forehead"]) {
+        const field = document.getElementById(`${key}-custom`);
+        if (field) field.value = saved.profile.custom?.[key] || "";
+      }
+      document.getElementById("input-title")?.scrollIntoView();
+    }
+
     async function loadApp() {
       if (appLoaded) return;
       appLoaded = true;
       await import("./script.js");
+      restoreHistorySettings();
     }
     window.addEventListener("app-authorized", () => { void loadApp(); });
     const appAuth = window.AppAuth;

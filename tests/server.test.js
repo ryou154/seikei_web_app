@@ -80,6 +80,7 @@ test("login page starts locked and public assets are available", async () => {
   const login = await (await fetch(`${base}/login.html`)).text();
   const home = await (await fetch(`${base}/home.html`)).text();
   const app = await (await fetch(`${base}/app.html`)).text();
+  const history = await (await fetch(`${base}/history.html`)).text();
   const mypage = await (await fetch(`${base}/mypage.html`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
   assert.match(login, /id="google-login"/);
@@ -89,14 +90,17 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(home, /id="prefecture-select"/);
   assert.match(home, /id="recent-history"/);
   assert.match(home, /id="local-clinics"/);
+  assert.match(history, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
+  assert.match(history, /id="history-list"/);
+  assert.match(history, /src="auth-core\.js"/);
   assert.match(mypage, /<h1>マイページ<\/h1>/);
   assert.match(mypage, /src="mypage\.js"/);
-  for (const html of [login, home, app, mypage]) {
+  for (const html of [login, home, app, history, mypage]) {
     assert.match(html, /id="common-navigation"/);
     assert.match(html, /src="navigation\.js"/);
     assert.match(html, /href="navigation\.css"/);
   }
-  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js"]) {
+  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
   assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);

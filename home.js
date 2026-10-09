@@ -77,7 +77,11 @@
     const score = document.createElement("p");
     score.className = "history-score";
     score.textContent = `顔バランススコア: ${entry.result?.beforeScore ?? "-"} → ${entry.result?.afterScore ?? "-"}`;
-    content.append(heading, date, requestText, score);
+    const link = document.createElement("a");
+    link.className = "home-history-link";
+    link.href = "/history.html";
+    link.textContent = "履歴を開く";
+    content.append(heading, date, requestText, score, link);
     card.append(media, content);
     return card;
   }

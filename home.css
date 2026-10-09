@@ -33,6 +33,7 @@
 .history-preview-media img { width: 100%; height: 100%; object-fit: contain; }
 .history-preview-card > div:last-child, .clinic-preview-card { padding: 16px; }
 .history-score { margin: 12px 0 0; font-weight: 800; }
+.home-history-link { display: inline-block; margin-top: 12px; font-weight: 750; }
 .clinic-area { margin: 0 0 8px; font-weight: 750; }
 .clinic-preview-card a { display: inline-block; margin-top: 12px; }
 .home-empty { grid-column: 1 / -1; margin: 0; padding: 28px; border: 1px dashed #ddc5cf; border-radius: 8px; background: #fff; text-align: center; color: var(--home-muted); }
