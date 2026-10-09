@@ -32,6 +32,32 @@
         <span>画像を選択するとプレビューが表示されます</span>
       </div>
 
+      <dialog id="image-crop-dialog" class="image-crop-dialog" aria-labelledby="image-crop-title">
+        <div class="image-crop-content">
+          <div class="image-crop-heading">
+            <div>
+              <p class="section-kicker">IMAGE CROP</p>
+              <h2 id="image-crop-title">顔全体が入るように調整</h2>
+            </div>
+            <span class="crop-ratio-badge">4:3</span>
+          </div>
+          <p class="image-crop-help">画像をドラッグして位置を調整し、スライダーで拡大できます。</p>
+          <div id="crop-viewport" class="crop-viewport">
+            <img id="crop-image" class="crop-image" alt="切り抜き位置を調整する画像" draggable="false">
+          </div>
+          <label class="crop-zoom-control" for="crop-zoom">
+            <span>拡大・縮小</span>
+            <input id="crop-zoom" type="range" min="1" max="3" step="0.01" value="1">
+            <output id="crop-zoom-value" for="crop-zoom">100%</output>
+          </label>
+          <p id="crop-error" class="image-crop-error hidden" role="alert"></p>
+          <div class="image-crop-actions">
+            <button id="cancel-image-crop" type="button" class="sub-button">キャンセル</button>
+            <button id="apply-image-crop" type="button" class="main-action">この範囲で使う</button>
+          </div>
+        </div>
+      </dialog>
+
       <div class="camera-box">
         <button id="start-camera-button" type="button" class="sub-button">カメラで撮影する</button>
         <label class="camera-flip-option">

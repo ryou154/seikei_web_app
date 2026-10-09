@@ -1351,3 +1351,111 @@ button:hover:not(:disabled) {
   .app-page .scan-panel { grid-template-columns: minmax(0, 1fr); }
   .app-page .scan-visual { justify-self: start; }
 }
+
+.image-crop-dialog {
+  width: min(680px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--ink);
+  background: #fffefa;
+  box-shadow: 0 24px 80px rgba(26, 54, 68, 0.28);
+}
+
+.image-crop-dialog::backdrop {
+  background: rgba(20, 38, 49, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.image-crop-content {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.image-crop-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.image-crop-heading h2 { margin: 0; }
+.image-crop-heading .section-kicker { margin-bottom: 4px; }
+
+.crop-ratio-badge {
+  flex: none;
+  padding: 7px 12px;
+  border: 1px solid #d3e6ed;
+  border-radius: 999px;
+  color: var(--primary-dark);
+  background: #f0f8fa;
+  font-weight: 800;
+}
+
+.image-crop-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.crop-viewport {
+  position: relative;
+  width: min(100%, 560px, 66.6667vh);
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px #b9d8e4;
+  background: #eaf4f7;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.crop-viewport:active { cursor: grabbing; }
+
+.crop-image {
+  position: absolute;
+  display: block;
+  max-width: none;
+  max-height: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.crop-zoom-control {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.crop-zoom-control input { width: 100%; }
+.crop-zoom-control output { text-align: right; color: var(--primary-dark); }
+
+.image-crop-error {
+  margin: 0;
+  color: #a3324a;
+}
+
+.image-crop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.image-crop-actions button { width: auto; margin: 0; }
+
+@media (max-width: 520px) {
+  .image-crop-content { gap: 12px; padding: 16px; }
+  .crop-viewport { width: min(100%, 66.6667vh); }
+  .crop-zoom-control { grid-template-columns: 78px minmax(0, 1fr) 44px; gap: 8px; }
+  .image-crop-actions { display: grid; grid-template-columns: 1fr 1fr; }
+}
