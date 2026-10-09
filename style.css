@@ -1218,3 +1218,127 @@ button:hover:not(:disabled) {
   color: #244e62;
   background: linear-gradient(180deg, #ffffff 0%, #f3fafc 50%, #dceff4 100%);
 }
+
+/* Simulation workspace: capture and conditions above analysis, results below. */
+.app-page .layout {
+  width: min(1440px, calc(100% - 40px));
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.app-page .step-panel {
+  grid-column: 1;
+  grid-row: auto;
+  min-width: 0;
+  padding: 20px;
+}
+
+.app-page .step-panel-heading {
+  margin-bottom: 16px;
+}
+
+.app-page .step-panel-heading .section-kicker { margin-bottom: 4px; }
+.app-page .step-panel-heading h2 { margin-bottom: 0; }
+
+.app-page .step-workspace {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.36fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.app-page .capture-panel {
+  grid-column: 1;
+  grid-row: auto;
+  align-self: start;
+  position: sticky;
+  top: 16px;
+}
+
+.app-page .input-panel {
+  grid-column: 2;
+  grid-row: auto;
+  min-width: 0;
+}
+
+.app-page .scan-panel {
+  grid-column: 1 / -1;
+  grid-row: auto;
+  grid-template-columns: 136px minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 20px 24px;
+}
+
+.app-page .scan-visual {
+  width: 108px;
+  justify-self: center;
+}
+
+.app-page .result-panel {
+  grid-column: 1;
+  grid-row: auto;
+  min-width: 0;
+  scroll-margin-top: 18px;
+}
+
+.app-page .layout > section[aria-labelledby="clinic-title"] {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+@media (min-width: 1000px) {
+  .app-page .input-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+  }
+
+  .app-page .input-panel > .section-kicker,
+  .app-page .input-panel > h2,
+  .app-page .input-panel > .part-grid,
+  .app-page .input-panel > .clinic-filter-grid,
+  .app-page .input-panel > .clinic-filter-note,
+  .app-page .input-panel > #simulate-button,
+  .app-page .input-panel > .account-data-actions,
+  .app-page .input-panel > #settings-status,
+  .app-page .input-panel > .notice {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-page .layout {
+    width: min(100% - 24px, 720px);
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .app-page .step-workspace { grid-template-columns: minmax(0, 1fr); }
+
+  .app-page .capture-panel,
+  .app-page .input-panel,
+  .app-page .scan-panel,
+  .app-page .result-panel,
+  .app-page .step-panel,
+  .app-page .layout > section[aria-labelledby="clinic-title"] {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .app-page .capture-panel { position: static; }
+  .app-page .scan-panel { grid-template-columns: 82px minmax(0, 1fr); padding: 16px; }
+  .app-page .scan-visual { width: 76px; }
+}
+
+@media (max-width: 520px) {
+  .app-page .layout { width: min(100% - 16px, 520px); gap: 12px; padding: 8px; }
+  .app-page .scan-panel { grid-template-columns: minmax(0, 1fr); }
+  .app-page .scan-visual { justify-self: start; }
+}
