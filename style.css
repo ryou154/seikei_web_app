@@ -1219,7 +1219,7 @@ button:hover:not(:disabled) {
   background: linear-gradient(180deg, #ffffff 0%, #f3fafc 50%, #dceff4 100%);
 }
 
-/* Simulation workspace: capture and conditions above analysis, results below. */
+/* Keep capture pinned only while conditions scroll; analysis follows the workspace. */
 .app-page .layout {
   width: min(1440px, calc(100% - 40px));
   grid-template-columns: minmax(0, 1fr);
@@ -1272,7 +1272,7 @@ button:hover:not(:disabled) {
   gap: 20px;
   align-items: center;
   min-width: 0;
-  margin: 0;
+  margin: 18px 0 0;
   padding: 20px 24px;
 }
 
