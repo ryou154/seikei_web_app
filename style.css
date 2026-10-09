@@ -1420,6 +1420,41 @@ button:hover:not(:disabled) {
 
 .crop-viewport:active { cursor: grabbing; }
 
+.crop-size-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.crop-size-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.crop-size-control input {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.crop-size-control output {
+  color: var(--primary-dark);
+  text-align: right;
+}
+
+.crop-ratio-lock {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.crop-ratio-lock input { accent-color: var(--primary); }
+
 .crop-image {
   position: absolute;
   display: block;
@@ -1457,6 +1492,7 @@ button:hover:not(:disabled) {
 @media (max-width: 520px) {
   .image-crop-content { gap: 12px; padding: 16px; }
   .crop-viewport { width: min(100%, 66.6667vh); }
+  .crop-size-controls { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .crop-zoom-control { grid-template-columns: 78px minmax(0, 1fr) 44px; gap: 8px; }
   .image-crop-actions { display: grid; grid-template-columns: 1fr 1fr; }
 }

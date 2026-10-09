@@ -3,6 +3,12 @@ const imagePreview = document.getElementById("image-preview");
 const imageCropDialog = document.getElementById("image-crop-dialog");
 const cropViewport = document.getElementById("crop-viewport");
 const cropImage = document.getElementById("crop-image");
+const cropWidthInput = document.getElementById("crop-width");
+const cropWidthValue = document.getElementById("crop-width-value");
+const cropHeightInput = document.getElementById("crop-height");
+const cropHeightValue = document.getElementById("crop-height-value");
+const cropAspectLockInput = document.getElementById("crop-aspect-lock");
+const cropRatioStatus = document.getElementById("crop-ratio-status");
 const cropZoomInput = document.getElementById("crop-zoom");
 const cropZoomValue = document.getElementById("crop-zoom-value");
 const cropError = document.getElementById("crop-error");
@@ -73,6 +79,10 @@ let privacyGeneration = 0;
 let cropOffsetX = 0;
 let cropOffsetY = 0;
 let cropDrag = null;
+let cropMaxWidth = 0;
+let cropMaxHeight = 0;
+let cropFrameWidth = 0;
+let cropFrameHeight = 0;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -174,9 +184,11 @@ function openImageCrop(imageData, imageGeneration) {
   cropZoomValue.value = "100%";
   cropImage.onload = () => {
     if (imageGeneration !== privacyGeneration) return;
+    cropAspectLockInput.checked = false;
+    cropRatioStatus.textContent = "自由比率";
     imageCropDialog.showModal();
     requestAnimationFrame(() => {
-      fitCropViewportToImage();
+      fitCropViewportToImage(true);
       const bounds = getCropViewportSize();
       const coverScale = Math.max(
         bounds.width / cropImage.naturalWidth,
@@ -195,14 +207,64 @@ function openImageCrop(imageData, imageGeneration) {
   cropImage.src = imageData;
 }
 
-function fitCropViewportToImage() {
+function fitCropViewportToImage(reset = false) {
   if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const previousWidthRatio = cropMaxWidth ? cropFrameWidth / cropMaxWidth : 1;
+  const previousHeightRatio = cropMaxHeight ? cropFrameHeight / cropMaxHeight : 1;
   const aspectRatio = cropImage.naturalWidth / cropImage.naturalHeight;
   const maxWidth = Math.min(cropViewport.parentElement.clientWidth, 560);
   const maxHeight = Math.min(window.innerHeight * 0.55, 460);
-  const width = Math.max(1, Math.min(maxWidth, maxHeight * aspectRatio));
+  cropMaxWidth = maxWidth;
+  cropMaxHeight = maxHeight;
+
+  if (reset || !cropFrameWidth || !cropFrameHeight) {
+    cropFrameWidth = Math.min(maxWidth, maxHeight * aspectRatio);
+    cropFrameHeight = cropFrameWidth / aspectRatio;
+  } else {
+    cropFrameWidth = maxWidth * previousWidthRatio;
+    cropFrameHeight = maxHeight * previousHeightRatio;
+    if (cropAspectLockInput.checked) {
+      const lockedRatio = cropFrameWidth / cropFrameHeight;
+      const fitScale = Math.min(1, maxWidth / cropFrameWidth, maxHeight / cropFrameHeight);
+      cropFrameWidth *= fitScale;
+      cropFrameHeight = cropFrameWidth / lockedRatio;
+    }
+  }
+
+  cropViewport.style.width = `${cropFrameWidth}px`;
+  cropViewport.style.height = `${cropFrameHeight}px`;
+  syncCropFrameControls();
+}
+
+function syncCropFrameControls() {
+  cropWidthInput.value = String(Math.round((cropFrameWidth / cropMaxWidth) * 100));
+  cropHeightInput.value = String(Math.round((cropFrameHeight / cropMaxHeight) * 100));
+  cropWidthValue.value = `${cropWidthInput.value}%`;
+  cropHeightValue.value = `${cropHeightInput.value}%`;
+}
+
+function resizeCropFrame(changedDimension) {
+  let width = cropMaxWidth * Number(cropWidthInput.value) / 100;
+  let height = cropMaxHeight * Number(cropHeightInput.value) / 100;
+
+  if (cropAspectLockInput.checked) {
+    const lockedRatio = cropFrameWidth / cropFrameHeight;
+    if (changedDimension === "width") {
+      height = width / lockedRatio;
+    } else {
+      width = height * lockedRatio;
+    }
+    const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
+    width *= fitScale;
+    height *= fitScale;
+  }
+
+  cropFrameWidth = width;
+  cropFrameHeight = height;
   cropViewport.style.width = `${width}px`;
-  cropViewport.style.aspectRatio = `${cropImage.naturalWidth} / ${cropImage.naturalHeight}`;
+  cropViewport.style.height = `${height}px`;
+  syncCropFrameControls();
+  updateCropImagePosition();
 }
 
 function getCropViewportSize() {
@@ -280,6 +342,12 @@ cropZoomInput.addEventListener("input", () => {
   updateCropImagePosition();
 });
 
+cropWidthInput.addEventListener("input", () => resizeCropFrame("width"));
+cropHeightInput.addEventListener("input", () => resizeCropFrame("height"));
+cropAspectLockInput.addEventListener("change", () => {
+  cropRatioStatus.textContent = cropAspectLockInput.checked ? "比率固定" : "自由比率";
+});
+
 cropViewport.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "mouse" && event.button !== 0) return;
   event.preventDefault();
@@ -332,6 +400,12 @@ imageCropDialog.addEventListener("close", () => {
   cropImage.style.removeProperty("height");
   cropImage.style.removeProperty("left");
   cropImage.style.removeProperty("top");
+  cropViewport.style.removeProperty("width");
+  cropViewport.style.removeProperty("height");
+  cropFrameWidth = 0;
+  cropFrameHeight = 0;
+  cropMaxWidth = 0;
+  cropMaxHeight = 0;
   cropDrag = null;
 });
 
