@@ -1286,6 +1286,17 @@ button:hover:not(:disabled) {
   scroll-margin-top: 18px;
 }
 
+.app-page .comparison .image-placeholder,
+.app-page .comparison .after-preview {
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+}
+
+.app-page .comparison .image-placeholder img,
+.app-page .comparison .after-preview img {
+  max-height: none;
+}
+
 .app-page .layout > section[aria-labelledby="clinic-title"] {
   grid-column: 1;
   grid-row: auto;
