@@ -7,6 +7,7 @@ const cropWidthInput = document.getElementById("crop-width");
 const cropWidthValue = document.getElementById("crop-width-value");
 const cropHeightInput = document.getElementById("crop-height");
 const cropHeightValue = document.getElementById("crop-height-value");
+const cropResizeHandles = document.querySelectorAll("[data-crop-handle]");
 const cropAspectLockInput = document.getElementById("crop-aspect-lock");
 const cropRatioStatus = document.getElementById("crop-ratio-status");
 const cropZoomInput = document.getElementById("crop-zoom");
@@ -83,6 +84,7 @@ let cropMaxWidth = 0;
 let cropMaxHeight = 0;
 let cropFrameWidth = 0;
 let cropFrameHeight = 0;
+let cropResizeDrag = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -259,12 +261,36 @@ function resizeCropFrame(changedDimension) {
     height *= fitScale;
   }
 
-  cropFrameWidth = width;
-  cropFrameHeight = height;
-  cropViewport.style.width = `${width}px`;
-  cropViewport.style.height = `${height}px`;
+  setCropFrameSize(width, height);
+}
+
+function setCropFrameSize(width, height) {
+  cropFrameWidth = Math.max(1, Math.min(cropMaxWidth, width));
+  cropFrameHeight = Math.max(1, Math.min(cropMaxHeight, height));
+  cropViewport.style.width = `${cropFrameWidth}px`;
+  cropViewport.style.height = `${cropFrameHeight}px`;
   syncCropFrameControls();
   updateCropImagePosition();
+}
+
+function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startHeight) {
+  const horizontalDirection = direction.includes("e") ? 1 : direction.includes("w") ? -1 : 0;
+  const verticalDirection = direction.includes("s") ? 1 : direction.includes("n") ? -1 : 0;
+  let width = startWidth + deltaX * horizontalDirection;
+  let height = startHeight + deltaY * verticalDirection;
+
+  if (cropAspectLockInput.checked) {
+    const ratio = startWidth / startHeight;
+    if (horizontalDirection) height = width / ratio;
+    else if (verticalDirection) width = height * ratio;
+  }
+
+  width = Math.max(80, width);
+  height = Math.max(80, height);
+  const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
+  width *= fitScale;
+  height *= fitScale;
+  setCropFrameSize(width, height);
 }
 
 function getCropViewportSize() {
@@ -348,6 +374,39 @@ cropAspectLockInput.addEventListener("change", () => {
   cropRatioStatus.textContent = cropAspectLockInput.checked ? "比率固定" : "自由比率";
 });
 
+cropResizeHandles.forEach((handle) => {
+  handle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handle.setPointerCapture(event.pointerId);
+    cropResizeDrag = {
+      pointerId: event.pointerId,
+      direction: handle.dataset.cropHandle,
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: cropFrameWidth,
+      startHeight: cropFrameHeight
+    };
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!cropResizeDrag || event.pointerId !== cropResizeDrag.pointerId) return;
+    resizeCropFrameFromHandle(
+      cropResizeDrag.direction,
+      event.clientX - cropResizeDrag.startX,
+      event.clientY - cropResizeDrag.startY,
+      cropResizeDrag.startWidth,
+      cropResizeDrag.startHeight
+    );
+  });
+
+  const stopResize = (event) => {
+    if (cropResizeDrag?.pointerId === event.pointerId) cropResizeDrag = null;
+  };
+  handle.addEventListener("pointerup", stopResize);
+  handle.addEventListener("pointercancel", stopResize);
+});
+
 cropViewport.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "mouse" && event.button !== 0) return;
   event.preventDefault();
@@ -407,6 +466,7 @@ imageCropDialog.addEventListener("close", () => {
   cropMaxWidth = 0;
   cropMaxHeight = 0;
   cropDrag = null;
+  cropResizeDrag = null;
 });
 
 const guidedScanSteps = [

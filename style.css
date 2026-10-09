@@ -1409,16 +1409,52 @@ button:hover:not(:disabled) {
   width: min(100%, 560px, 66.6667vh);
   aspect-ratio: 4 / 3;
   margin: 0 auto;
-  overflow: hidden;
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 1px #b9d8e4;
-  background: #eaf4f7;
+  overflow: visible;
   cursor: grab;
   touch-action: none;
   user-select: none;
 }
 
 .crop-viewport:active { cursor: grabbing; }
+
+.crop-image-window {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px #b9d8e4;
+  background: #eaf4f7;
+  pointer-events: none;
+}
+
+.crop-resize-handle {
+  position: absolute;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 2px solid #666;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  transform: translate(-50%, -50%);
+  touch-action: none;
+  cursor: move;
+}
+
+.crop-resize-handle:hover,
+.crop-resize-handle:focus-visible { background: #eaf4f7; }
+.crop-resize-handle:hover:not(:disabled) { transform: translate(-50%, -50%); }
+.crop-handle-nw { top: 0; left: 0; cursor: nwse-resize; }
+.crop-handle-n { top: 0; left: 50%; cursor: ns-resize; }
+.crop-handle-ne { top: 0; left: 100%; cursor: nesw-resize; }
+.crop-handle-e { top: 50%; left: 100%; cursor: ew-resize; }
+.crop-handle-se { top: 100%; left: 100%; cursor: nwse-resize; }
+.crop-handle-s { top: 100%; left: 50%; cursor: ns-resize; }
+.crop-handle-sw { top: 100%; left: 0; cursor: nesw-resize; }
+.crop-handle-w { top: 50%; left: 0; cursor: ew-resize; }
 
 .crop-size-controls {
   display: grid;
