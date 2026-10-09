@@ -1288,13 +1288,14 @@ button:hover:not(:disabled) {
 
 .app-page .comparison .image-placeholder,
 .app-page .comparison .after-preview {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: var(--comparison-aspect-ratio, 4 / 3);
   min-height: 0;
 }
 
 .app-page .comparison .image-placeholder img,
 .app-page .comparison .after-preview img {
   max-height: none;
+  object-fit: contain;
 }
 
 .app-page .layout > section[aria-labelledby="clinic-title"] {
