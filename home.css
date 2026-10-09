@@ -6,12 +6,12 @@
   --home-primary: var(--primary);
 }
 
-.home-page { background: var(--bg); color: var(--home-ink); }
+.home-page { color: var(--home-ink); }
 .home-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 64px; }
 .home-welcome { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 32px; border-bottom: 1px solid var(--home-line); }
 .home-welcome h1 { margin: 4px 0 6px; font-size: 30px; letter-spacing: 0; }
-.home-primary-action { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 6px; background: var(--home-primary); color: #fff; font-weight: 800; text-decoration: none; }
-.home-primary-action:hover { background: var(--primary-dark); }
+.home-primary-action { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 6px; color: #244d61; background: linear-gradient(165deg, #fff 0%, #f7fdfe 34%, #d9f2f6 100%); box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(111, 178, 195, 0.16), 0 8px 22px rgba(74, 147, 168, 0.19); font-weight: 800; text-decoration: none; }
+.home-primary-action:hover { color: #1f465b; background: linear-gradient(165deg, #fff 0%, #f1fbfd 38%, #ccecf2 100%); box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(111, 178, 195, 0.2), 0 10px 26px rgba(74, 147, 168, 0.23); }
 .home-section { padding: 32px 0; border-bottom: 1px solid var(--home-line); }
 .home-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
 .home-section h2 { margin: 3px 0 0; font-size: 21px; }
