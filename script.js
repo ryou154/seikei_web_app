@@ -49,6 +49,7 @@ const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const resultComparison = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
@@ -175,6 +176,7 @@ function openImageCrop(imageData, imageGeneration) {
     if (imageGeneration !== privacyGeneration) return;
     imageCropDialog.showModal();
     requestAnimationFrame(() => {
+      fitCropViewportToImage();
       const bounds = getCropViewportSize();
       const coverScale = Math.max(
         bounds.width / cropImage.naturalWidth,
@@ -191,6 +193,16 @@ function openImageCrop(imageData, imageGeneration) {
     alert("この画像を開けませんでした。別の画像を選択してください。");
   };
   cropImage.src = imageData;
+}
+
+function fitCropViewportToImage() {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const aspectRatio = cropImage.naturalWidth / cropImage.naturalHeight;
+  const maxWidth = Math.min(cropViewport.parentElement.clientWidth, 560);
+  const maxHeight = Math.min(window.innerHeight * 0.55, 460);
+  const width = Math.max(1, Math.min(maxWidth, maxHeight * aspectRatio));
+  cropViewport.style.width = `${width}px`;
+  cropViewport.style.aspectRatio = `${cropImage.naturalWidth} / ${cropImage.naturalHeight}`;
 }
 
 function getCropViewportSize() {
@@ -235,8 +247,9 @@ function createCroppedImageData() {
   const sourceWidth = Math.min(bounds.width / scale, cropImage.naturalWidth - sourceX);
   const sourceHeight = Math.min(bounds.height / scale, cropImage.naturalHeight - sourceY);
   const output = document.createElement("canvas");
-  output.width = 1200;
-  output.height = 900;
+  const aspectRatio = bounds.width / bounds.height;
+  output.width = aspectRatio >= 1 ? 1200 : Math.max(1, Math.round(1200 * aspectRatio));
+  output.height = aspectRatio >= 1 ? Math.max(1, Math.round(1200 / aspectRatio)) : 1200;
   const context = output.getContext("2d");
   if (!context || sourceWidth <= 0 || sourceHeight <= 0) {
     throw new Error("切り抜き画像を作成できませんでした。");
@@ -292,7 +305,10 @@ cropViewport.addEventListener("pointerup", (event) => {
 });
 cropViewport.addEventListener("pointercancel", () => { cropDrag = null; });
 window.addEventListener("resize", () => {
-  if (imageCropDialog.open) updateCropImagePosition();
+  if (imageCropDialog.open) {
+    fitCropViewportToImage();
+    updateCropImagePosition();
+  }
 });
 
 applyImageCropButton.addEventListener("click", () => {
@@ -617,6 +633,16 @@ function setSelectedImage(imageData) {
   analyzedImageData = "";
   latestFaceAnalysis = null;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
+  const previewImage = imagePreview.querySelector("img");
+  const updateComparisonAspect = () => {
+    if (!previewImage.naturalWidth || !previewImage.naturalHeight) return;
+    resultComparison.style.setProperty(
+      "--comparison-aspect-ratio",
+      `${previewImage.naturalWidth} / ${previewImage.naturalHeight}`
+    );
+  };
+  if (previewImage.complete) updateComparisonAspect();
+  else previewImage.addEventListener("load", updateComparisonAspect, { once: true });
 }
 
 function stopCamera(message = "カメラを停止しました。") {
@@ -1184,8 +1210,9 @@ function clamp(value, min, max) {
 }
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");
-  const width = 720;
-  const height = 720;
+  const scale = Math.min(1, 720 / Math.max(sourceImage.naturalWidth, sourceImage.naturalHeight));
+  const width = Math.max(1, Math.round(sourceImage.naturalWidth * scale));
+  const height = Math.max(1, Math.round(sourceImage.naturalHeight * scale));
   const baseCanvas = createCroppedCanvas(sourceImage, width, height);
   const warpedCanvas = warpFaceImage(baseCanvas, profile);
   const finalCanvas = applyBeautyFinish(warpedCanvas, profile);
@@ -1522,6 +1549,7 @@ window.addEventListener("app-locked", () => {
   faceImageInput.value = "";
   requestTextInput.value = "";
   imagePreview.replaceChildren();
+  resultComparison.style.removeProperty("--comparison-aspect-ratio");
   beforeImage.replaceChildren();
   afterImage.replaceChildren();
   hospitalList.replaceChildren();
