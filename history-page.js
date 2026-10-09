@@ -52,6 +52,69 @@
     list.append(item);
   }
 
+  const optionLabels = {
+    style: {
+      none: "雰囲気は変更しない",
+      kawaii: "かわいい系",
+      cool: "クール系",
+      korean: "韓国アイドル風",
+      doll: "ドール系",
+      natural: "ナチュラル美人"
+    },
+    eye: {
+      none: "目元は変更しない",
+      wide: "ぱっちり二重",
+      cat: "切れ長・猫目",
+      soft: "やさしいたれ目",
+      natural: "自然な目元"
+    },
+    nose: {
+      none: "鼻は変更しない",
+      high: "鼻筋を高く",
+      small: "小鼻を小さく",
+      sharp: "鼻先をシャープに",
+      natural: "自然な鼻"
+    },
+    face: {
+      none: "輪郭は変更しない",
+      vline: "Vライン小顔",
+      oval: "卵型フェイス",
+      sharp: "シャープな輪郭",
+      natural: "自然な輪郭"
+    },
+    mouth: {
+      none: "口元は変更しない",
+      full: "ふっくらした唇",
+      small: "小さめの口元",
+      smile: "口角を上げる",
+      natural: "自然な口元"
+    },
+    forehead: {
+      none: "おでこは変更しない",
+      round: "丸みのあるおでこ",
+      smooth: "なめらかなおでこ",
+      balanced: "顔全体と自然に調整",
+      natural: "自然なおでこ"
+    },
+    budget: {
+      any: "指定しない",
+      under20: "20万円未満",
+      "20to40": "20〜40万円",
+      over40: "40万円以上"
+    },
+    downtime: {
+      any: "指定しない",
+      short: "短め（数日〜1週間）",
+      standard: "標準（1〜2週間）",
+      flexible: "期間は問わない"
+    }
+  };
+
+  function displayOption(field, customValue, storedValue) {
+    if (customValue) return customValue;
+    return optionLabels[field]?.[storedValue] || storedValue;
+  }
+
   function buildCard(entry) {
     const card = node("article", "history-card");
     const heading = node("div", "history-card-header");
@@ -65,20 +128,20 @@
     const profile = entry.profile || {};
     const custom = profile.custom || {};
     const fields = node("dl", "history-details");
-    appendDetail(fields, "希望スタイル", custom.style || profile.style);
-    appendDetail(fields, "目", custom.eye || profile.eye);
-    appendDetail(fields, "鼻", custom.nose || profile.nose);
-    appendDetail(fields, "輪郭", custom.face || profile.face);
-    appendDetail(fields, "口", custom.mouth || profile.mouth);
-    appendDetail(fields, "額", custom.forehead || profile.forehead);
+    appendDetail(fields, "希望スタイル", displayOption("style", custom.style, profile.style));
+    appendDetail(fields, "目", displayOption("eye", custom.eye, profile.eye));
+    appendDetail(fields, "鼻", displayOption("nose", custom.nose, profile.nose));
+    appendDetail(fields, "輪郭", displayOption("face", custom.face, profile.face));
+    appendDetail(fields, "口", displayOption("mouth", custom.mouth, profile.mouth));
+    appendDetail(fields, "額", displayOption("forehead", custom.forehead, profile.forehead));
     appendDetail(fields, "変化の強さ", profile.strength === undefined ? "未設定" : `${profile.strength}%`);
     appendDetail(fields, "地域", profile.region);
-    appendDetail(fields, "予算", profile.budget);
-    appendDetail(fields, "ダウンタイム", profile.downtime);
+    appendDetail(fields, "予算", displayOption("budget", "", profile.budget));
+    appendDetail(fields, "ダウンタイム", displayOption("downtime", "", profile.downtime));
 
     const result = entry.result || {};
     const scores = node("div", "history-scores");
-    for (const [label, value] of [["Before", result.beforeScore], ["After", result.afterScore]]) {
+    for (const [label, value] of [["変更前", result.beforeScore], ["変更後", result.afterScore]]) {
       const score = node("div", "history-score");
       score.append(node("span", "", `${label} スコア`), node("strong", "", Number.isFinite(value) ? `${value} / 100` : "保存なし"));
       scores.append(score);
@@ -91,7 +154,7 @@
     const available = ["before", "after"].filter((kind) => flags[kind]);
     if (!available.length) {
       imageMessage.textContent = result.generationStatus === "fallback"
-        ? "After画像の生成に失敗した履歴です。保存画像はありません。"
+        ? "変更後画像の生成に失敗した履歴です。保存画像はありません。"
         : "この履歴には保存画像がありません。画像保存に同意していない場合、画像は保存されません。";
     } else {
       imageMessage.textContent = "画像を読み込んでいます…";
@@ -103,15 +166,15 @@
           const url = URL.createObjectURL(blob);
           imageUrls.add(url);
           const figure = node("figure", "history-image-figure");
-          figure.append(node("figcaption", "", kind === "before" ? "Before" : "After"));
+          figure.append(node("figcaption", "", kind === "before" ? "変更前" : "変更後"));
           const image = document.createElement("img");
           image.src = url;
-          image.alt = `${kind === "before" ? "Before" : "After"}の保存画像`;
+          image.alt = `${kind === "before" ? "変更前" : "変更後"}の保存画像`;
           figure.append(image);
           imageArea.append(figure);
           return true;
         } catch {
-          const failed = node("p", "history-image-message", `${kind === "before" ? "Before" : "After"}画像を読み込めませんでした。再読込してください。`);
+          const failed = node("p", "history-image-message", `${kind === "before" ? "変更前" : "変更後"}画像を読み込めませんでした。再読込してください。`);
           imageArea.append(failed);
           return false;
         }
