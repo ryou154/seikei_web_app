@@ -39,12 +39,28 @@
               <p class="section-kicker">IMAGE CROP</p>
               <h2 id="image-crop-title">顔全体が入るように調整</h2>
             </div>
-            <span class="crop-ratio-badge">元画像と同じ比率</span>
+            <span id="crop-ratio-status" class="crop-ratio-badge">自由比率</span>
           </div>
           <p class="image-crop-help">画像をドラッグして位置を調整し、スライダーで拡大できます。</p>
           <div id="crop-viewport" class="crop-viewport">
             <img id="crop-image" class="crop-image" alt="切り抜き位置を調整する画像" draggable="false">
           </div>
+          <div class="crop-size-controls">
+            <label class="crop-size-control" for="crop-width">
+              <span>切り抜き幅</span>
+              <input id="crop-width" type="range" min="10" max="100" step="1" value="100">
+              <output id="crop-width-value" for="crop-width">100%</output>
+            </label>
+            <label class="crop-size-control" for="crop-height">
+              <span>切り抜き高さ</span>
+              <input id="crop-height" type="range" min="10" max="100" step="1" value="100">
+              <output id="crop-height-value" for="crop-height">100%</output>
+            </label>
+          </div>
+          <label class="crop-ratio-lock" for="crop-aspect-lock">
+            <input id="crop-aspect-lock" type="checkbox">
+            <span>縦横比を固定する</span>
+          </label>
           <label class="crop-zoom-control" for="crop-zoom">
             <span>拡大・縮小</span>
             <input id="crop-zoom" type="range" min="1" max="3" step="0.01" value="1">
