@@ -11,7 +11,7 @@
   logoLink.href = "/app.html#input-title";
   logoLink.setAttribute("aria-label", "シミュレーションのトップへ");
   const logo = document.createElement("img");
-  logo.src = "ロゴ.png";
+  logo.src = "ロゴ最新版.png";
   logo.alt = "MEYLON ロゴ";
   logoLink.append(logo);
   nav.append(logoLink);

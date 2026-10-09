@@ -341,10 +341,11 @@ function serveStatic(request, response) {
   // Only explicitly public assets may be served. Never expose .env, source,
   // dependencies, Git metadata or server-side access policy.
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
+  const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", logoFile
+    "/navigation.js", "/navigation.css", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
