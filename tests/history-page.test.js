@@ -37,3 +37,12 @@ test("simulation page saves results without duplicating the history browser", ()
   assert.match(accountData, /controls\.saveStatus = document\.getElementById\("save-status"\)/);
   assert.doesNotMatch(accountData, /document\.getElementById\("history-reload"\)/);
 });
+
+test("history page translates stored option values into Japanese labels", () => {
+  const source = read("history-page.js");
+  assert.match(source, /kawaii: "かわいい系"/);
+  assert.match(source, /under20: "20万円未満"/);
+  assert.match(source, /displayOption\("budget", "", profile\.budget\)/);
+  assert.match(source, /\["変更前", result\.beforeScore\]/);
+  assert.doesNotMatch(source, /\["Before", result\.beforeScore\]/);
+});
