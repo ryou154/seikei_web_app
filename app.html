@@ -41,9 +41,19 @@
             </div>
             <span id="crop-ratio-status" class="crop-ratio-badge">自由比率</span>
           </div>
-          <p class="image-crop-help">画像をドラッグして位置を調整し、スライダーで拡大できます。</p>
+          <p class="image-crop-help">画像をドラッグして位置を調整し、枠の丸いハンドルをドラッグして縦横の大きさを変えます。スライダーでも調整できます。</p>
           <div id="crop-viewport" class="crop-viewport">
-            <img id="crop-image" class="crop-image" alt="切り抜き位置を調整する画像" draggable="false">
+            <div class="crop-image-window">
+              <img id="crop-image" class="crop-image" alt="切り抜き位置を調整する画像" draggable="false">
+            </div>
+            <button class="crop-resize-handle crop-handle-nw" type="button" data-crop-handle="nw" aria-label="左上をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-n" type="button" data-crop-handle="n" aria-label="上辺をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-ne" type="button" data-crop-handle="ne" aria-label="右上をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-e" type="button" data-crop-handle="e" aria-label="右辺をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-se" type="button" data-crop-handle="se" aria-label="右下をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-s" type="button" data-crop-handle="s" aria-label="下辺をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-sw" type="button" data-crop-handle="sw" aria-label="左下をドラッグして切り抜き範囲を変更"></button>
+            <button class="crop-resize-handle crop-handle-w" type="button" data-crop-handle="w" aria-label="左辺をドラッグして切り抜き範囲を変更"></button>
           </div>
           <div class="crop-size-controls">
             <label class="crop-size-control" for="crop-width">
