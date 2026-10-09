@@ -13,9 +13,15 @@
   <div id="page-transition-content">
 
   <main id="app-content" class="layout" hidden>
-    <section class="panel input-panel" aria-labelledby="input-title">
+    <section class="panel step-panel" aria-labelledby="step-title">
+      <div class="step-panel-heading">
+        <p class="section-kicker">STEP 01</p>
+        <h2 id="step-title">シミュレーション入力</h2>
+      </div>
+      <div class="step-workspace">
+    <section class="panel capture-panel" aria-labelledby="capture-title">
       <p class="section-kicker">Step 01</p>
-      <h2 id="input-title">シミュレーション入力</h2>
+      <h2 id="capture-title">撮影・画像入力</h2>
 
       <label class="field">
         <span>顔画像</span>
@@ -35,6 +41,11 @@
         <canvas id="capture-canvas" class="hidden"></canvas>
         <p id="camera-message" class="notice">カメラ撮影でも顔画像を登録できます。</p>
       </div>
+    </section>
+
+    <section class="panel input-panel conditions-panel" aria-labelledby="input-title">
+      <p class="section-kicker">Step 02</p>
+      <h2 id="input-title">条件入力</h2>
 
       <label class="field">
         <span>性別</span>
@@ -197,7 +208,25 @@
       <p class="notice">この画面は学習用の参考シミュレーションです。医療診断ではありません。</p>
     </section>
 
-    <section class="panel result-panel" aria-labelledby="result-title">
+    <div id="scan-panel" class="scan-panel" aria-live="polite">
+      <div class="scan-visual">
+        <span></span>
+      </div>
+      <div class="scan-copy">
+        <p class="section-kicker">AI Scan</p>
+        <h3>顔バランス解析</h3>
+        <div id="scan-steps" class="scan-steps">
+          <span>顔位置を確認</span>
+          <span>目元・鼻筋を解析</span>
+          <span>輪郭・口元を反映</span>
+          <span>おでこを確認</span>
+        </div>
+      </div>
+    </div>
+      </div>
+    </section>
+
+    <section id="result-panel" class="panel result-panel" aria-labelledby="result-title">
       <div class="result-heading">
         <div>
           <p class="eyebrow">Result</p>
@@ -216,22 +245,6 @@
       </div>
 
       <div id="result-content" class="hidden">
-        <div id="scan-panel" class="scan-panel" aria-live="polite">
-          <div class="scan-visual">
-            <span></span>
-          </div>
-          <div class="scan-copy">
-            <p class="section-kicker">AI Scan</p>
-            <h3>顔バランス解析</h3>
-            <div id="scan-steps" class="scan-steps">
-              <span>顔位置を確認</span>
-              <span>目元・鼻筋を解析</span>
-              <span>輪郭・口元を反映</span>
-              <span>おでこを確認</span>
-            </div>
-          </div>
-        </div>
-
         <section id="face-score-panel" class="face-score-panel hidden" aria-live="polite">
           <div class="face-score-heading">
             <div>
