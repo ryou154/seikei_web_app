@@ -182,3 +182,21 @@
     width: 100%;
   }
 }
+
+/* Carry the same warm white and pale aqua colors into account controls. */
+.mypage-page .mypage-form input[readonly] { background: #eef6fa; color: #617b89; }
+.mypage-page .danger-zone { border-color: #c78a80; background: #fff8f5; }
+.mypage-page .danger-zone .section-kicker,
+.mypage-page .danger-zone h2 { color: #96584f; }
+.mypage-page .danger-button { border-color: #ad655c; background: #ad655c; color: #fff; }
+.mypage-page .danger-button:hover:not(:disabled) { background: #925047; }
+.mypage-page button:not(.danger-button) {
+  color: #285266;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfd 46%, #e4f4f8 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98), inset 0 -1px 0 rgba(126, 184, 199, 0.12), 0 4px 12px rgba(69, 133, 154, 0.13);
+}
+.mypage-page button:not(.danger-button):hover:not(:disabled) {
+  color: #214b61;
+  background: linear-gradient(180deg, #ffffff 0%, #f2fbfd 42%, #d9f0f5 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(126, 184, 199, 0.16), 0 5px 14px rgba(69, 133, 154, 0.17);
+}
