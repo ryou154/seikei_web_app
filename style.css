@@ -1255,8 +1255,6 @@ button:hover:not(:disabled) {
   grid-column: 1;
   grid-row: auto;
   align-self: start;
-  position: sticky;
-  top: 16px;
 }
 
 .app-page .input-panel {
