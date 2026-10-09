@@ -1,5 +1,13 @@
 const faceImageInput = document.getElementById("face-image");
 const imagePreview = document.getElementById("image-preview");
+const imageCropDialog = document.getElementById("image-crop-dialog");
+const cropViewport = document.getElementById("crop-viewport");
+const cropImage = document.getElementById("crop-image");
+const cropZoomInput = document.getElementById("crop-zoom");
+const cropZoomValue = document.getElementById("crop-zoom-value");
+const cropError = document.getElementById("crop-error");
+const applyImageCropButton = document.getElementById("apply-image-crop");
+const cancelImageCropButton = document.getElementById("cancel-image-crop");
 const startCameraButton = document.getElementById("start-camera-button");
 const captureButton = document.getElementById("capture-button");
 const manualCaptureButton = document.getElementById("manual-capture-button");
@@ -61,6 +69,9 @@ let guidedScan = null;
 let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
+let cropOffsetX = 0;
+let cropOffsetY = 0;
+let cropDrag = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -136,9 +147,10 @@ const genderLabels = {
 faceImageInput.addEventListener("change", () => {
   const file = faceImageInput.files[0];
 
-  if (!file) {
-    selectedImageData = "";
-    imagePreview.innerHTML = "<span>画像を選択するとプレビューが表示されます</span>";
+  if (!file) return;
+  if (file.type && !file.type.startsWith("image/")) {
+    faceImageInput.value = "";
+    alert("画像ファイルを選択してください。");
     return;
   }
 
@@ -146,9 +158,165 @@ faceImageInput.addEventListener("change", () => {
   const imageGeneration = privacyGeneration;
   reader.addEventListener("load", () => {
     if (imageGeneration !== privacyGeneration) return;
-    setSelectedImage(reader.result);
+    openImageCrop(reader.result, imageGeneration);
+  });
+  reader.addEventListener("error", () => {
+    faceImageInput.value = "";
+    alert("画像を読み込めませんでした。別の画像を選択してください。");
   });
   reader.readAsDataURL(file);
+});
+
+function openImageCrop(imageData, imageGeneration) {
+  cropError.classList.add("hidden");
+  cropZoomInput.value = "1";
+  cropZoomValue.value = "100%";
+  cropImage.onload = () => {
+    if (imageGeneration !== privacyGeneration) return;
+    imageCropDialog.showModal();
+    requestAnimationFrame(() => {
+      const bounds = getCropViewportSize();
+      const coverScale = Math.max(
+        bounds.width / cropImage.naturalWidth,
+        bounds.height / cropImage.naturalHeight
+      );
+      cropOffsetX = 0;
+      cropOffsetY = Math.max(0, cropImage.naturalHeight * coverScale - bounds.height) * 0.14;
+      updateCropImagePosition();
+    });
+  };
+  cropImage.onerror = () => {
+    if (imageGeneration !== privacyGeneration) return;
+    faceImageInput.value = "";
+    alert("この画像を開けませんでした。別の画像を選択してください。");
+  };
+  cropImage.src = imageData;
+}
+
+function getCropViewportSize() {
+  return { width: cropViewport.clientWidth, height: cropViewport.clientHeight };
+}
+
+function updateCropImagePosition() {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const bounds = getCropViewportSize();
+  if (!bounds.width || !bounds.height) return;
+
+  const baseScale = Math.max(
+    bounds.width / cropImage.naturalWidth,
+    bounds.height / cropImage.naturalHeight
+  );
+  const scale = baseScale * Number(cropZoomInput.value);
+  const imageWidth = cropImage.naturalWidth * scale;
+  const imageHeight = cropImage.naturalHeight * scale;
+  const centeredLeft = (bounds.width - imageWidth) / 2;
+  const centeredTop = (bounds.height - imageHeight) / 2;
+  const left = Math.min(0, Math.max(bounds.width - imageWidth, centeredLeft + cropOffsetX));
+  const top = Math.min(0, Math.max(bounds.height - imageHeight, centeredTop + cropOffsetY));
+
+  cropOffsetX = left - centeredLeft;
+  cropOffsetY = top - centeredTop;
+  cropImage.style.width = `${imageWidth}px`;
+  cropImage.style.height = `${imageHeight}px`;
+  cropImage.style.left = `${left}px`;
+  cropImage.style.top = `${top}px`;
+}
+
+function createCroppedImageData() {
+  const bounds = getCropViewportSize();
+  const scale = Number.parseFloat(cropImage.style.width) / cropImage.naturalWidth;
+  const left = Number.parseFloat(cropImage.style.left);
+  const top = Number.parseFloat(cropImage.style.top);
+  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(left) || !Number.isFinite(top)) {
+    throw new Error("切り抜き範囲を準備できませんでした。もう一度お試しください。");
+  }
+  const sourceX = Math.max(0, -left / scale);
+  const sourceY = Math.max(0, -top / scale);
+  const sourceWidth = Math.min(bounds.width / scale, cropImage.naturalWidth - sourceX);
+  const sourceHeight = Math.min(bounds.height / scale, cropImage.naturalHeight - sourceY);
+  const output = document.createElement("canvas");
+  output.width = 1200;
+  output.height = 900;
+  const context = output.getContext("2d");
+  if (!context || sourceWidth <= 0 || sourceHeight <= 0) {
+    throw new Error("切り抜き画像を作成できませんでした。");
+  }
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, output.width, output.height);
+  context.drawImage(
+    cropImage,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    output.width,
+    output.height
+  );
+  return output.toDataURL("image/jpeg", 0.9);
+}
+
+function cancelImageCrop() {
+  faceImageInput.value = "";
+  if (imageCropDialog.open) imageCropDialog.close();
+}
+
+cropZoomInput.addEventListener("input", () => {
+  cropZoomValue.value = `${Math.round(Number(cropZoomInput.value) * 100)}%`;
+  updateCropImagePosition();
+});
+
+cropViewport.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+  event.preventDefault();
+  cropViewport.setPointerCapture(event.pointerId);
+  cropDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    offsetX: cropOffsetX,
+    offsetY: cropOffsetY
+  };
+});
+
+cropViewport.addEventListener("pointermove", (event) => {
+  if (!cropDrag || event.pointerId !== cropDrag.pointerId) return;
+  cropOffsetX = cropDrag.offsetX + event.clientX - cropDrag.startX;
+  cropOffsetY = cropDrag.offsetY + event.clientY - cropDrag.startY;
+  updateCropImagePosition();
+});
+
+cropViewport.addEventListener("pointerup", (event) => {
+  if (cropDrag?.pointerId === event.pointerId) cropDrag = null;
+});
+cropViewport.addEventListener("pointercancel", () => { cropDrag = null; });
+window.addEventListener("resize", () => {
+  if (imageCropDialog.open) updateCropImagePosition();
+});
+
+applyImageCropButton.addEventListener("click", () => {
+  try {
+    setSelectedImage(createCroppedImageData());
+    imageCropDialog.close();
+  } catch (error) {
+    cropError.textContent = error.message;
+    cropError.classList.remove("hidden");
+  }
+});
+
+cancelImageCropButton.addEventListener("click", cancelImageCrop);
+imageCropDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  cancelImageCrop();
+});
+imageCropDialog.addEventListener("close", () => {
+  cropImage.removeAttribute("src");
+  cropImage.style.removeProperty("width");
+  cropImage.style.removeProperty("height");
+  cropImage.style.removeProperty("left");
+  cropImage.style.removeProperty("top");
+  cropDrag = null;
 });
 
 const guidedScanSteps = [
@@ -1341,6 +1509,8 @@ window.AccountData.init({
 
 window.addEventListener("app-locked", () => {
   privacyGeneration++;
+  if (imageCropDialog.open) imageCropDialog.close();
+  cropImage.removeAttribute("src");
   stopCamera();
   resetGuidedScan();
   cameraPreview.srcObject = null;
