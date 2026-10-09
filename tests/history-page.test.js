@@ -28,3 +28,12 @@ test("history settings handoff is restored only after the protected app loads", 
   assert.match(app, /sessionStorage\.removeItem\(historyHandoffKey\)/);
   assert.match(home, /link\.href = "\/history\.html"/);
 });
+
+test("simulation page saves results without duplicating the history browser", () => {
+  const app = read("app.html");
+  const accountData = read("account-data.js");
+  assert.match(app, /id="save-status"/);
+  assert.doesNotMatch(app, /id="history-list"|id="history-reload"|id="clear-history-button"/);
+  assert.match(accountData, /controls\.saveStatus = document\.getElementById\("save-status"\)/);
+  assert.doesNotMatch(accountData, /document\.getElementById\("history-reload"\)/);
+});

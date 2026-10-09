@@ -37,7 +37,7 @@ function setup() {
 
 test("locking removes images, results and cached data; late file reads cannot restore them", () => {
   const app = setup();
-  const ids = ["image-preview", "before-image", "after-image", "history-list", "hospital-list",
+  const ids = ["image-preview", "before-image", "after-image", "hospital-list",
     "analysis-text", "clinic-summary", "scan-steps", "before-score", "after-score", "score-delta"];
   for (const id of ids) {
     app.node(id).innerHTML = "private image or result";

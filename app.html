@@ -209,6 +209,7 @@
         </div>
       </div>
       <p class="image-save-note">画像保存は任意です。チェックした場合のみ、本人専用のクラウド領域に保存します。</p>
+      <p id="save-status" class="notice" role="status" aria-live="polite"></p>
 
       <div id="empty-result" class="empty-state">
         入力後にシミュレーションを実行すると、ここに結果が表示されます。
@@ -281,22 +282,6 @@
           <p class="clinic-disclaimer">掲載情報は各クリニックの公式サイトを確認した内容です。最新の費用・施術内容・ダウンタイムは公式サイトまたはカウンセリングで確認してください。</p>
     </section>
 
-    <section class="panel history-panel" aria-labelledby="history-title">
-      <div class="result-heading">
-        <div>
-          <p class="eyebrow">History</p>
-          <h2 id="history-title">保存履歴</h2>
-        </div>
-        <div class="history-actions-row">
-          <a class="history-page-link" href="/history.html">別画面で履歴を見る</a>
-          <button id="clear-history-button" type="button">履歴を削除</button>
-        </div>
-      </div>
-      <p class="notice">本人専用のクラウド履歴（最新10件）。分析結果は保存され、写真・生成画像は保存時に同意した場合のみ含まれます。</p>
-      <button id="history-reload" type="button">履歴を再読込</button>
-      <p id="history-status" class="notice" role="status" aria-live="polite"></p>
-      <div id="history-list" class="history-list"></div>
-    </section>
   </main></div>
 
 

@@ -37,7 +37,6 @@ const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
 const saveButton = document.getElementById("save-button");
-const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
@@ -46,7 +45,6 @@ const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
 const hospitalList = document.getElementById("hospital-list");
-const historyList = document.getElementById("history-list");
 const faceScorePanel = document.getElementById("face-score-panel");
 const beforeScoreValue = document.getElementById("before-score");
 const beforeScoreLabel = document.getElementById("before-score-label");
@@ -442,10 +440,6 @@ simulateButton.addEventListener("click", async () => {
 
 saveButton.addEventListener("click", async () => {
   if (latestResult) await window.AccountData.saveHistory(latestResult);
-});
-
-clearHistoryButton.addEventListener("click", () => {
-  window.AccountData.clearHistory();
 });
 
 window.addEventListener("beforeunload", () => stopCamera());
@@ -1354,7 +1348,6 @@ window.addEventListener("app-locked", () => {
   imagePreview.replaceChildren();
   beforeImage.replaceChildren();
   afterImage.replaceChildren();
-  historyList.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
   document.getElementById("clinic-summary").textContent = "";
