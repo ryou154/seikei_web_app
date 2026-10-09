@@ -46,3 +46,10 @@ test("history page translates stored option values into Japanese labels", () => 
   assert.match(source, /\["変更前", result\.beforeScore\]/);
   assert.doesNotMatch(source, /\["Before", result\.beforeScore\]/);
 });
+
+test("history images keep the before then after order regardless of fetch timing", () => {
+  const source = read("history-page.js");
+  assert.match(source, /const available = \["before", "after"\]\.filter/);
+  assert.match(source, /imageArea\.append\(\.\.\.items\.map\(\(\{ element \}\) => element\)\)/);
+  assert.doesNotMatch(source, /imageArea\.append\(figure\)/);
+});

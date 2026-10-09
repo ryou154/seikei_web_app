@@ -169,15 +169,14 @@
           image.src = url;
           image.alt = `${kind === "before" ? "変更前" : "変更後"}の保存画像`;
           figure.append(image);
-          imageArea.append(figure);
-          return true;
+          return { element: figure, loaded: true };
         } catch {
           const failed = node("p", "history-image-message", `${kind === "before" ? "変更前" : "変更後"}画像を読み込めませんでした。再読込してください。`);
-          imageArea.append(failed);
-          return false;
+          return { element: failed, loaded: false };
         }
-      })).then((loaded) => {
-        imageMessage.textContent = loaded.some(Boolean) ? "" : "保存画像を読み込めませんでした。";
+      })).then((items) => {
+        imageArea.append(...items.map(({ element }) => element));
+        imageMessage.textContent = items.some(({ loaded }) => loaded) ? "" : "保存画像を読み込めませんでした。";
       });
     }
 
