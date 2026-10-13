@@ -31,6 +31,9 @@
 .history-detail { min-width: 0; padding: 10px 12px; border-radius: 10px; background: var(--soft); }
 .history-detail dt { color: var(--muted); font-size: 12px; font-weight: 700; }
 .history-detail dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.history-analysis { margin: 16px 0; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.history-analysis summary { color: var(--primary-dark); cursor: pointer; font-weight: 800; }
+.history-analysis p { margin: 10px 0 0; overflow-wrap: anywhere; line-height: 1.8; }
 .history-scores { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
 .history-score { flex: 1 1 130px; padding: 12px; border-radius: 10px; background: var(--blue-soft); }
 .history-score strong { display: block; margin-top: 3px; font-size: 20px; }

@@ -2,6 +2,12 @@ const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
 const PARTS = ["style", "eye", "nose", "face", "mouth", "forehead"];
 const FIELDS = ["gender", ...PARTS, "imageEngine", "budget", "downtime", "clinicPriority", "priority"];
+const DETAIL_OPTIONS = new Set([
+  "shorten-face", "slim-cheeks", "soften-jaw", "shorten-chin", "sharpen-jawline",
+  "open-eyes", "raise-eye-corners", "soften-eye-corners", "balance-eyes", "emphasize-under-eye",
+  "straighten-nose", "slim-nose-wings", "refine-nose-tip", "lift-mouth-corners", "fuller-lips",
+  "soften-mouth", "round-forehead", "smooth-forehead"
+]);
 const HISTORY_LIMIT = 10;
 class InputError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 function object(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
@@ -22,6 +28,10 @@ function normalizeSettings(input) {
     throw new InputError("変化の強さは0〜100で指定してください。");
   }
   profile.strength = source.strength;
+  const details = source.details === undefined ? [] : source.details;
+  if (!Array.isArray(details) || details.length > DETAIL_OPTIONS.size) throw new InputError("細かい希望の選択が不正です。");
+  profile.details = [...new Set(details.map((value) => text(value, 40)))];
+  if (profile.details.some((value) => !DETAIL_OPTIONS.has(value))) throw new InputError("細かい希望の選択が不正です。");
   profile.region = text(source.region, 200);
   if (!object(source.custom)) throw new InputError("自由入力が不正です。");
   profile.custom = Object.fromEntries(PARTS.map((key) => [key, text(source.custom[key], 500)]));

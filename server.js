@@ -260,6 +260,35 @@ function buildGeminiPrompt(body, options = {}) {
   const strength = body.profile?.strength ?? 50;
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const detailInstructions = {
+    "shorten-face": "make the face look slightly shorter vertically while keeping natural facial proportions",
+    "slim-cheeks": "make the cheeks look subtly slimmer",
+    "soften-jaw": "make a prominent jaw angle look softer",
+    "shorten-chin": "make the chin look slightly shorter",
+    "sharpen-jawline": "make the jawline look more defined",
+    "open-eyes": "make the eyes look more open and bright without changing identity",
+    "raise-eye-corners": "give the outer eye corners a subtly lifted appearance",
+    "soften-eye-corners": "give the outer eye corners a softer appearance",
+    "balance-eyes": "make the eyes appear more balanced while preserving natural asymmetry",
+    "emphasize-under-eye": "add subtle, natural-looking under-eye fullness",
+    "straighten-nose": "make the nose bridge appear straighter",
+    "slim-nose-wings": "make the nostril wings appear subtly narrower",
+    "refine-nose-tip": "make the nose tip appear slightly more refined",
+    "lift-mouth-corners": "give the mouth corners a subtly lifted appearance",
+    "fuller-lips": "add natural-looking lip fullness and dimension",
+    "soften-mouth": "make the mouth appear more understated",
+    "round-forehead": "give the forehead a subtly rounder appearance",
+    "smooth-forehead": "make forehead contours appear smoother"
+  };
+  const selectedDetailInstructions = Array.isArray(body.profile?.details)
+    ? [...new Set(body.profile.details)]
+      .filter((key) => Object.hasOwn(detailInstructions, key))
+      .slice(0, 18)
+      .map((key) => detailInstructions[key])
+    : [];
+  const detailGuide = selectedDetailInstructions.length
+    ? `Additional specific visual requests: ${selectedDetailInstructions.join("; ")}. Apply each as a modest appearance-only image change; do not imply a medical result.`
+    : "No additional fine-detail requests were selected.";
   const compact = Boolean(options.compact);
   const genderGuide = buildGenderGuide(body.profile?.gender);
   const faceGeometryGuide = buildFaceGeometryGuide(body.faceAnalysis);
@@ -284,6 +313,7 @@ function buildGeminiPrompt(body, options = {}) {
     "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
+    detailGuide,
     `User request: ${requestText}. Strength: ${strength}%.`,
     faceGeometryGuide,
     priorityGuide[generationPriority] || priorityGuide.natural,

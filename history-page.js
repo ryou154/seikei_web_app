@@ -54,12 +54,12 @@
 
   const optionLabels = {
     style: {
-      none: "雰囲気は変更しない",
-      kawaii: "かわいい系",
-      cool: "クール系",
-      korean: "韓国アイドル風",
-      doll: "ドール系",
-      natural: "ナチュラル美人"
+      none: "追加指定なし",
+      kawaii: "頬や輪郭に丸みを残す",
+      cool: "輪郭と目元をすっきり見せる",
+      korean: "目元を明るく華やかに見せる",
+      doll: "目をぱっちり大きく見せる",
+      natural: "元の顔立ちを活かす"
     },
     eye: {
       none: "目元は変更しない",
@@ -76,11 +76,11 @@
       natural: "自然な鼻"
     },
     face: {
-      none: "輪郭は変更しない",
-      vline: "Vライン小顔",
-      oval: "卵型フェイス",
-      sharp: "シャープな輪郭",
-      natural: "自然な輪郭"
+      none: "追加指定なし",
+      vline: "あご先を細く見せる",
+      oval: "頬の丸みを残し、あご先を細くする",
+      sharp: "頬からあごをシャープに見せる",
+      natural: "元の輪郭を活かす"
     },
     mouth: {
       none: "口元は変更しない",
@@ -109,6 +109,26 @@
       flexible: "期間は問わない"
     }
   };
+  const detailOptionLabels = {
+    "shorten-face": "面長を短く見せる",
+    "slim-cheeks": "頬をすっきり見せる",
+    "soften-jaw": "エラの張りを目立ちにくくする",
+    "shorten-chin": "顎先を短く見せる",
+    "sharpen-jawline": "フェイスラインをシャープにする",
+    "open-eyes": "目をぱっちり大きく見せる",
+    "raise-eye-corners": "目尻を少し上げて見せる",
+    "soften-eye-corners": "目尻をやわらかく見せる",
+    "balance-eyes": "目の左右差を目立ちにくくする",
+    "emphasize-under-eye": "涙袋を自然に強調する",
+    "straighten-nose": "鼻筋をまっすぐ見せる",
+    "slim-nose-wings": "小鼻をすっきり見せる",
+    "refine-nose-tip": "鼻先を小さくすっきり見せる",
+    "lift-mouth-corners": "口角が上がった印象にする",
+    "fuller-lips": "唇に自然な立体感を出す",
+    "soften-mouth": "口元を控えめに見せる",
+    "round-forehead": "おでこに丸みを出す",
+    "smooth-forehead": "おでこの凹凸を目立ちにくくする"
+  };
 
   function displayOption(field, customValue, storedValue) {
     if (customValue) return customValue;
@@ -116,19 +136,21 @@
   }
 
   function buildCard(entry) {
+    const profile = entry.profile || {};
+    const custom = profile.custom || {};
     const card = node("article", "history-card");
     const heading = node("div", "history-card-header");
     const headingText = node("div");
-    const title = node("h3", "", `${entry.category || "設定"}のシミュレーション`);
+    const category = displayOption("style", custom.style, profile.style) || entry.category || "設定";
+    const title = node("h3", "", `${category}のシミュレーション`);
     const date = node("p", "history-date", `作成日時：${dateText(entry.savedAt)}`);
     headingText.append(title, date);
     heading.append(headingText);
 
     const request = node("p", "history-request", entry.requestText || "選択した項目に基づくシミュレーションです。");
-    const profile = entry.profile || {};
-    const custom = profile.custom || {};
+    const result = entry.result || {};
     const fields = node("dl", "history-details");
-    appendDetail(fields, "希望スタイル", displayOption("style", custom.style, profile.style));
+    appendDetail(fields, "全体の見た目", displayOption("style", custom.style, profile.style));
     appendDetail(fields, "目", displayOption("eye", custom.eye, profile.eye));
     appendDetail(fields, "鼻", displayOption("nose", custom.nose, profile.nose));
     appendDetail(fields, "輪郭", displayOption("face", custom.face, profile.face));
@@ -138,8 +160,29 @@
     appendDetail(fields, "地域", profile.region);
     appendDetail(fields, "予算", displayOption("budget", "", profile.budget));
     appendDetail(fields, "ダウンタイム", displayOption("downtime", "", profile.downtime));
+    appendDetail(fields, "細かい希望", (profile.details || []).map((key) => detailOptionLabels[key]).filter(Boolean).join("、"));
 
-    const result = entry.result || {};
+    let analysisDetails = null;
+    if (result.analysis) {
+      analysisDetails = node("details", "history-analysis");
+      analysisDetails.append(node("summary", "", "シミュレーション内容・施術候補"));
+      const legacyLabels = {
+        "かわいい系": "頬や輪郭に丸みを残す",
+        "クール系": "輪郭と目元をすっきり見せる",
+        "韓国アイドル風": "目元を明るく華やかに見せる",
+        "ドール系": "目をぱっちり大きく見せる",
+        "ナチュラル美人": "元の顔立ちを活かす",
+        "Vライン小顔": "あご先を細く見せる",
+        "卵型フェイス": "頬の丸みを残し、あご先を細くする",
+        "自然な輪郭": "元の輪郭を活かす",
+        "シャープな輪郭": "頬からあごをシャープに見せる"
+      };
+      const analysisText = Object.entries(legacyLabels).reduce(
+        (text, [oldLabel, newLabel]) => text.replaceAll(oldLabel, newLabel),
+        result.analysis
+      );
+      analysisDetails.append(node("p", "", analysisText));
+    }
     const scores = node("div", "history-scores");
     for (const [label, value] of [["変更前", result.beforeScore], ["変更後", result.afterScore]]) {
       const score = node("div", "history-score");
@@ -197,7 +240,9 @@
     remove.addEventListener("click", () => deleteEntry(entry, remove));
     actions.append(load, repeat, remove);
 
-    card.append(heading, request, fields, scores, disclaimer, imageMessage, imageArea, actions);
+    card.append(heading, request, fields);
+    if (analysisDetails) card.append(analysisDetails);
+    card.append(scores, disclaimer, imageMessage, imageArea, actions);
     return card;
   }
 

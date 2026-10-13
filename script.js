@@ -79,12 +79,12 @@ function updateStrengthValue() {
 const hospitals = window.CLINIC_DATA || [];
 const optionLabels = {
   style: {
-    none: "雰囲気は変更しない",
-    kawaii: "かわいい系",
-    cool: "クール系",
-    korean: "韓国アイドル風",
-    doll: "ドール系",
-    natural: "ナチュラル美人"
+    none: "追加指定なし",
+    kawaii: "頬や輪郭に丸みを残す",
+    cool: "輪郭と目元をすっきり見せる",
+    korean: "目元を明るく華やかに見せる",
+    doll: "目をぱっちり大きく見せる",
+    natural: "元の顔立ちを活かす"
   },
   eye: {
     none: "目元は変更しない",
@@ -101,11 +101,11 @@ const optionLabels = {
     natural: "自然な鼻"
   },
   face: {
-    none: "輪郭は変更しない",
-    vline: "Vライン小顔",
-    oval: "卵型フェイス",
-    sharp: "シャープな輪郭",
-    natural: "自然な輪郭"
+    none: "追加指定なし",
+    vline: "あご先を細く見せる",
+    oval: "頬の丸みを残し、あご先を細くする",
+    sharp: "頬からあごをシャープに見せる",
+    natural: "元の輪郭を活かす"
   },
   mouth: {
     none: "口元は変更しない",
@@ -133,6 +133,27 @@ const priorityLabels = {
 const genderLabels = {
   male: "男性",
   female: "女性"
+};
+
+const fineDetailLabels = {
+  "shorten-face": "面長を短く見せる",
+  "slim-cheeks": "頬をすっきり見せる",
+  "soften-jaw": "エラの張りを目立ちにくくする",
+  "shorten-chin": "顎先を短く見せる",
+  "sharpen-jawline": "フェイスラインをシャープにする",
+  "open-eyes": "目をぱっちり大きく見せる",
+  "raise-eye-corners": "目尻を少し上げて見せる",
+  "soften-eye-corners": "目尻をやわらかく見せる",
+  "balance-eyes": "目の左右差を目立ちにくくする",
+  "emphasize-under-eye": "涙袋を自然に強調する",
+  "straighten-nose": "鼻筋をまっすぐ見せる",
+  "slim-nose-wings": "小鼻をすっきり見せる",
+  "refine-nose-tip": "鼻先を小さくすっきり見せる",
+  "lift-mouth-corners": "口角が上がった印象にする",
+  "fuller-lips": "唇に自然な立体感を出す",
+  "soften-mouth": "口元を控えめに見せる",
+  "round-forehead": "おでこに丸みを出す",
+  "smooth-forehead": "おでこの凹凸を目立ちにくくする"
 };
 
 faceImageInput.addEventListener("change", () => {
@@ -488,6 +509,9 @@ function readProfile() {
     face: faceSelect.value,
     mouth: mouthSelect.value,
     forehead: foreheadSelect.value,
+    details: [...document.querySelectorAll('input[name="detail-option"]:checked')]
+      .map((input) => input.value)
+      .filter((value) => Object.hasOwn(fineDetailLabels, value)),
     custom: {
       style: styleCustomInput.value.trim(),
       eye: eyeCustomInput.value.trim(),
@@ -626,7 +650,8 @@ function buildKeywords(requestText, profile, designLabels = createDesignLabels(p
     designLabels.nose,
     designLabels.face,
     designLabels.mouth,
-    designLabels.forehead
+    designLabels.forehead,
+    ...(profile.details || []).map((key) => fineDetailLabels[key]).filter(Boolean)
   ].join(" ");
 }
 
@@ -647,15 +672,117 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
   const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺と「${clinicFocus}」を優先して選んでいます。` : `おすすめクリニックは「${clinicFocus}」を優先して選んでいます。`;
   const parts = [
     `性別：${genderLabels[profile.gender] || "未指定"}`,
-    `雰囲気：${designLabels.style}`,
+    `全体の見た目：${designLabels.style}`,
     `目元：${designLabels.eye}`,
     `鼻：${designLabels.nose}`,
     `輪郭：${designLabels.face}`,
     `口：${designLabels.mouth}`,
     `おでこ：${designLabels.forehead}`
   ].join("、");
+  const designDetails = createDesignDetails(profile);
+  const designDetailText = designDetails.length
+    ? `選択内容に合わせたデザイン目安：${designDetails.join("。 ")}。`
+    : "パーツの変更は指定せず、元の印象を保つデザインです。";
+  const procedureSuggestionText = createProcedureSuggestionText(profile);
 
-  return `${requestPart} ${parts}をもとにしたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
+  return `${requestPart} ${parts}をもとにしたAfter予測です。${designDetailText}${procedureSuggestionText}${regionPart}${priorityText[profile.priority]}画像生成によるシミュレーションで、実際の施術は行っていません。施術の適応や方法は医師にご相談ください。`;
+}
+
+function createDesignDetails(profile) {
+  const detailOptions = {
+    style: {
+      kawaii: "頬や輪郭に丸みを残します",
+      cool: "輪郭と目元をすっきり見せます",
+      korean: "目元を明るく華やかに見せます",
+      doll: "目をぱっちり大きく見せます",
+      natural: "元の顔立ちを活かし、各パーツのまとまりを整えます"
+    },
+    eye: {
+      wide: "二重ラインと目の縦幅を強調し、目元をはっきり見せます",
+      cat: "目尻側の横方向の印象を強め、切れ長に見せます",
+      soft: "目尻を下げたような、柔らかく優しい印象に寄せます",
+      natural: "元の目元を活かし、左右のバランスを整えます"
+    },
+    nose: {
+      high: "鼻筋の通った印象を強め、鼻先と顔全体のバランスを保ちます",
+      small: "小鼻の横幅を控えめに見せ、鼻先とのつながりを整えます",
+      sharp: "鼻先の輪郭をすっきり見せ、鼻筋との一体感を意識します",
+      natural: "元の鼻の形を活かし、顔全体との調和を優先します"
+    },
+    face: {
+      vline: "あご先を細く見せます",
+      oval: "頬の丸みを残し、あご先を細くします",
+      sharp: "頬からあごをシャープに見せます",
+      natural: "元の輪郭を活かし、顔全体の左右バランスを整えます"
+    },
+    mouth: {
+      full: "唇の厚みと立体感を強調します",
+      small: "口元の幅やボリュームを控えめに見せます",
+      smile: "口角が上がった明るい印象を意識します",
+      natural: "元の口元を活かし、顔全体との調和を優先します"
+    },
+    forehead: {
+      round: "おでこの中央に丸みがあるような柔らかい印象を意識します",
+      smooth: "凹凸を目立ちにくく見せ、滑らかな印象に整えます",
+      balanced: "眉・目元・輪郭との比率を見て、額の印象を整えます",
+      natural: "元のおでこの形を活かし、自然な印象を保ちます"
+    }
+  };
+  const fields = ["style", "eye", "nose", "face", "mouth", "forehead"];
+  return fields.flatMap((key) => {
+    const custom = profile.custom?.[key];
+    if (custom) return [`${key === "style" ? "全体の見た目" : key === "eye" ? "目元" : key === "nose" ? "鼻" : key === "face" ? "輪郭" : key === "mouth" ? "口元" : "おでこ"}は「${custom}」を優先します`];
+    if (profile[key] === "none") return [];
+    const detail = detailOptions[key]?.[profile[key]];
+    return detail ? [detail] : [];
+  }).concat((profile.details || [])
+    .map((key) => fineDetailLabels[key])
+    .filter(Boolean)
+    .map((detail) => `追加希望として「${detail}」を反映します`));
+}
+
+function createProcedureSuggestionText(profile) {
+  const procedureOptions = {
+    eye: {
+      wide: "二重の手術（埋没法・切開法など）",
+      cat: "目尻切開など",
+      soft: "下眼瞼下制術（たれ目形成）など"
+    },
+    nose: {
+      high: "隆鼻術など",
+      small: "鼻翼縮小術",
+      sharp: "鼻尖形成術"
+    },
+    face: {
+      vline: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）",
+      oval: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）",
+      sharp: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）"
+    },
+    mouth: {
+      full: "口唇へのヒアルロン酸注入など",
+      small: "口唇縮小術など",
+      smile: "口角挙上術など"
+    },
+    forehead: {
+      round: "額の形を整える治療（方法は医師に相談）",
+      smooth: "額の形を整える治療（方法は医師に相談）",
+      balanced: "額の形を整える治療（方法は医師に相談）"
+    }
+  };
+  const partNames = { eye: "目元", nose: "鼻", face: "輪郭", mouth: "口元", forehead: "おでこ" };
+  const suggestions = [];
+
+  for (const key of Object.keys(partNames)) {
+    if (profile.custom?.[key]) {
+      suggestions.push(`${partNames[key]}：自由入力の希望からは施術名を自動判定できません`);
+      continue;
+    }
+    const procedure = procedureOptions[key]?.[profile[key]];
+    if (procedure) suggestions.push(`${partNames[key]}：${procedure}`);
+  }
+
+  const content = suggestions.length ? suggestions.join("、") : "選択内容から特定できる候補はありません";
+  return `関連する施術候補の例（選択内容からの参考表示）：${content}。`;
 }
 
 async function renderResult(result) {
@@ -897,6 +1024,9 @@ function runScanAnimation(profile, faceAnalysis) {
     : [faceAnalysis?.message || "顔位置を確認できませんでした"];
   if (faceAnalysis?.scan?.completed) {
     labels.unshift(`${faceAnalysis.scan.viewCount}方向スキャンで正面位置を確認`);
+  }
+  if (profile.details?.length) {
+    labels.push(`細かい希望を${profile.details.length}項目反映`);
   }
   labels.push(`性別：${genderLabels[profile.gender] || "未指定"}として生成`);
 

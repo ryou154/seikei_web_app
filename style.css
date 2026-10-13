@@ -176,6 +176,67 @@ h3 {
   color: #8a8f9d;
 }
 
+.detail-options {
+  min-width: 0;
+  margin: 8px 0 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.detail-options legend {
+  padding: 0 8px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.detail-options-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.detail-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detail-options-group {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--soft);
+}
+
+.detail-options-group h3 {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+
+.detail-options-group label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.detail-options-group input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--primary);
+}
+
 input,
 textarea,
 select,
@@ -892,6 +953,10 @@ body.camera-open {
 
   .comparison,
   .choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-options-grid {
     grid-template-columns: 1fr;
   }
 

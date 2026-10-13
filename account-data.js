@@ -14,6 +14,34 @@
     style: "style-custom", eye: "eye-custom", nose: "nose-custom",
     face: "face-custom", mouth: "mouth-custom", forehead: "forehead-custom"
   };
+  const detailOptionLabels = {
+    "shorten-face": "面長を短く見せる",
+    "slim-cheeks": "頬をすっきり見せる",
+    "soften-jaw": "エラの張りを目立ちにくくする",
+    "shorten-chin": "顎先を短く見せる",
+    "sharpen-jawline": "フェイスラインをシャープにする",
+    "open-eyes": "目をぱっちり大きく見せる",
+    "raise-eye-corners": "目尻を少し上げて見せる",
+    "soften-eye-corners": "目尻をやわらかく見せる",
+    "balance-eyes": "目の左右差を目立ちにくくする",
+    "emphasize-under-eye": "涙袋を自然に強調する",
+    "straighten-nose": "鼻筋をまっすぐ見せる",
+    "slim-nose-wings": "小鼻をすっきり見せる",
+    "refine-nose-tip": "鼻先を小さくすっきり見せる",
+    "lift-mouth-corners": "口角が上がった印象にする",
+    "fuller-lips": "唇に自然な立体感を出す",
+    "soften-mouth": "口元を控えめに見せる",
+    "round-forehead": "おでこに丸みを出す",
+    "smooth-forehead": "おでこの凹凸を目立ちにくくする"
+  };
+  const styleHistoryLabels = {
+    none: "設定",
+    kawaii: "頬や輪郭に丸みを残す",
+    cool: "輪郭と目元をすっきり見せる",
+    korean: "目元を明るく華やかに見せる",
+    doll: "目をぱっちり大きく見せる",
+    natural: "元の顔立ちを活かす"
+  };
 
   function setStatus(target, value, error = false) {
     target.textContent = value;
@@ -73,6 +101,10 @@
     for (const [key, id] of Object.entries(customFields)) {
       document.getElementById(id).value = settings.profile.custom?.[key] || "";
     }
+    const selectedDetails = new Set(settings.profile.details || []);
+    document.querySelectorAll('input[name="detail-option"]').forEach((element) => {
+      element.checked = selectedDetails.has(element.value);
+    });
     const strength = document.getElementById("change-strength");
     strength.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
@@ -99,12 +131,19 @@
       const card = document.createElement("article");
       card.className = "history-card";
       const title = document.createElement("h4");
-      title.textContent = `${entry.category || "設定"}のシミュレーション`;
+      const category = entry.profile?.custom?.style || styleHistoryLabels[entry.profile?.style] || "設定";
+      title.textContent = `${category}のシミュレーション`;
       const date = document.createElement("p");
       date.className = "small";
       date.textContent = displayDate(entry.savedAt);
       const description = document.createElement("p");
       description.textContent = entry.requestText || "選択式の理想イメージで作成";
+      const detailSummary = document.createElement("p");
+      detailSummary.className = "small";
+      const detailLabels = (entry.profile?.details || []).map((key) => detailOptionLabels[key]).filter(Boolean);
+      detailSummary.textContent = detailLabels.length
+        ? `細かい希望：${detailLabels.join("、")}`
+        : "細かい希望：指定なし";
       const actions = document.createElement("div");
       actions.className = "account-data-actions";
       const load = document.createElement("button");
@@ -154,7 +193,7 @@
       score.textContent = Number.isInteger(beforeScore) || Number.isInteger(afterScore)
         ? `顔バランススコア: Before ${beforeScore ?? "-"} / After ${afterScore ?? "-"}`
         : "顔バランススコア: 保存なし";
-      card.append(title, date, description, score, actions, imageArea);
+      card.append(title, date, description, detailSummary, score, actions, imageArea);
       return card;
     }));
   }
