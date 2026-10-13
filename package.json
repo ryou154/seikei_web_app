@@ -9,7 +9,10 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test tests/*.test.js",
     "clinics:check": "node --env-file-if-exists=.env scripts/import-clinics.js",
-    "clinics:import": "node --env-file-if-exists=.env scripts/import-clinics.js --write"
+    "clinics:import": "node --env-file-if-exists=.env scripts/import-clinics.js --write",
+    "clinics:places:plan": "node --env-file-if-exists=.env scripts/sync-google-places.js",
+    "clinics:places:check": "node --env-file-if-exists=.env scripts/sync-google-places.js --execute",
+    "clinics:places:sync": "node --env-file-if-exists=.env scripts/sync-google-places.js --write"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.2.0",

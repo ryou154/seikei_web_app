@@ -108,6 +108,40 @@ npm run clinics:import
 
 移行処理は同じIDへ再実行でき、既存ドキュメントの `createdAt` は保持します。従来データでは営業状態、料金詳細、リスク、保証などを確認できないため推測せず、確認状態を `needs_review` として登録します。
 
+### Google Placesから候補を収集する
+
+Places API（New）のText Searchを使い、都道府県ごとに「美容外科」「美容クリニック」を検索します。取得するのは候補発見に必要なPlace IDと名称だけです。名称は実行結果の確認用に一時表示し、Firestoreへは保存しません。写真・口コミ・住所・座標・電話番号・営業時間も候補収集では要求しません。
+
+まずAPIを呼ばず、最大リクエスト数だけを確認します。
+
+```powershell
+npm run clinics:places:plan -- --prefecture 大阪府 --max-pages 1
+npm run clinics:places:plan -- --all --max-pages 1
+```
+
+大阪府・2キーワード・1ページは最大2リクエスト、全国・2キーワード・1ページは最大94リクエストです。1ページは最大20件で、`--max-pages`は1〜3に制限しています。
+
+APIを呼び出して結果を確認するだけの場合:
+
+```powershell
+$env:GOOGLE_PLACES_API_KEY="Places API（New）専用キー"
+$env:CONFIRM_PLACES_REQUEST="yes"
+npm run clinics:places:check -- --prefecture 大阪府 --max-pages 1
+```
+
+Firestoreへ保存する場合:
+
+```powershell
+$env:GOOGLE_PLACES_API_KEY="Places API（New）専用キー"
+$env:CONFIRM_PLACES_REQUEST="yes"
+$env:CONFIRM_CLINIC_IMPORT="yes"
+npm run clinics:places:sync -- --prefecture 大阪府 --max-pages 1
+```
+
+新規候補はPlace ID、検索した都道府県・キーワード、確認日時だけを `draft / unverified` で保存し、利用者画面へ自動公開しません。Google Places由来の名称などは長期保存せず、公式サイトを確認した担当者がクリニック情報を登録します。既存Place IDを再取得した場合も、公式サイト、施術、料金、医師、確認状態などの人が確認した項目は上書きしません。全国実行の前に大阪府など1地域で結果と請求状況を確認してください。
+
+APIキーはFirebase Web APIキーやGemini APIキーと共用せず、Places API（New）だけに制限したサーバー用キーを使用します。Text SearchではField Maskが必須で、不要な項目を要求しないことが処理量と課金の抑制につながります。
+
 ## Gemini APIについて
 
 現在、画像生成には次のモデルを使用しています。
@@ -242,6 +276,7 @@ seikei_web_app/
 ├─ account-data.js   設定・履歴の画面操作
 ├─ account-store.js  Firestore保存API
 ├─ clinic-store.js   クリニック検索・詳細API
+├─ places-clinic-sync.js  Google Places候補収集・Firestore同期
 ├─ image-store.js    Cloud Storage画像保存API
 ├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
 ├─ server.js         Cloud Run用サーバー、認証・Firestore・Storage・Gemini API中継
