@@ -17,6 +17,7 @@
   const cursorHistory = [];
   let busy = false;
   let initialized = false;
+  let filterTimer = null;
 
   function lines(value) {
     return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
@@ -82,34 +83,78 @@
   }
 
   function populatePrefectures() {
-    const select = byId("discovery-prefecture");
-    select.replaceChildren();
+    const container = byId("discovery-prefectures");
+    container.replaceChildren();
     for (const prefecture of PREFECTURES) {
-      const option = document.createElement("option");
-      option.value = prefecture;
-      option.textContent = prefecture;
-      select.append(option);
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.name = "discovery-prefecture";
+      checkbox.value = prefecture;
+      checkbox.checked = prefecture === "大阪府";
+      label.append(checkbox, document.createTextNode(prefecture));
+      container.append(label);
     }
-    select.value = "大阪府";
+    updatePrefectureSummary();
+  }
+
+  function selectedPrefectures() {
+    return [...document.querySelectorAll('input[name="discovery-prefecture"]:checked')]
+      .map((input) => input.value);
+  }
+
+  function updatePrefectureSummary() {
+    const selected = selectedPrefectures();
+    byId("prefecture-summary").textContent = selected.length
+      ? `${selected.join("、")}（${selected.length}件選択）`
+      : "都道府県を選択してください";
+  }
+
+  function scheduleFilteredReload() {
+    updatePrefectureSummary();
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => void loadCandidates({ reset: true }), 250);
+  }
+
+  function handlePrefectureChange(event) {
+    if (selectedPrefectures().length > 10) {
+      event.target.checked = false;
+      setStatus(byId("discovery-status"), "都道府県は10件以内で選択してください。", true);
+    } else {
+      setStatus(byId("discovery-status"), "");
+    }
+    scheduleFilteredReload();
   }
 
   async function discoverClinics() {
     if (busy) return;
-    const prefecture = byId("discovery-prefecture").value;
+    const prefectures = selectedPrefectures();
+    if (!prefectures.length) {
+      setStatus(byId("discovery-status"), "都道府県を1件以上選択してください。", true);
+      return;
+    }
+    if (prefectures.length > 10) {
+      setStatus(byId("discovery-status"), "都道府県は10件以内で選択してください。", true);
+      return;
+    }
     const maxPages = Number(byId("discovery-pages").value);
-    const maximumRequests = maxPages * 2;
-    if (!confirm(`${prefecture}の候補収集を実行します。Google Places APIを最大${maximumRequests}回呼び出します。よろしいですか？`)) return;
+    const maximumRequests = maxPages * 2 * prefectures.length;
+    if (!confirm(`${prefectures.join("、")}の候補収集を実行します。Google Places APIを最大${maximumRequests}回呼び出します。よろしいですか？`)) return;
     busy = true;
     renderCandidates();
-    setStatus(byId("discovery-status"), `${prefecture}の候補を収集中です…`);
+    const totals = { requests: 0, uniqueCandidates: 0, inserted: 0, updated: 0 };
     try {
-      const data = await api("/api/admin/clinics/discover", {
-        method: "POST",
-        body: JSON.stringify({ prefecture, maxPages, confirmed: true })
-      });
+      for (const [index, prefecture] of prefectures.entries()) {
+        setStatus(byId("discovery-status"), `${prefecture}の候補を収集中です…（${index + 1}/${prefectures.length}）`);
+        const data = await api("/api/admin/clinics/discover", {
+          method: "POST",
+          body: JSON.stringify({ prefecture, maxPages, confirmed: true })
+        });
+        for (const key of Object.keys(totals)) totals[key] += Number(data[key] || 0);
+      }
       setStatus(
         byId("discovery-status"),
-        `${data.requests}回のAPI呼び出しで${data.uniqueCandidates}件を確認し、新規${data.inserted}件・既存更新${data.updated}件を下書きへ反映しました。`
+        `${prefectures.length}都道府県・${totals.requests}回のAPI呼び出しで${totals.uniqueCandidates}件を確認し、新規${totals.inserted}件・既存更新${totals.updated}件を下書きへ反映しました。`
       );
       byId("admin-status-filter").value = "draft";
       busy = false;
@@ -131,10 +176,19 @@
       cursorHistory.length = 0;
       currentClinicId = "";
     }
+    const prefectures = selectedPrefectures();
+    if (!prefectures.length) {
+      currentCandidates = [];
+      busy = false;
+      setStatus(byId("candidate-status"), "表示する都道府県を1件以上選択してください。");
+      renderCandidates();
+      return;
+    }
     renderCandidates();
     setStatus(byId("candidate-status"), "候補を読み込んでいます…");
     try {
       const params = new URLSearchParams({ status: byId("admin-status-filter").value, limit: String(PAGE_SIZE) });
+      for (const prefecture of prefectures) params.append("prefecture", prefecture);
       if (cursor) params.set("cursor", cursor);
       const data = await api(`/api/admin/clinics?${params}`);
       currentCandidates = data.clinics || [];
@@ -334,6 +388,11 @@
     initialized = true;
     content.hidden = false;
     populatePrefectures();
+    byId("discovery-prefectures").addEventListener("change", handlePrefectureChange);
+    byId("clear-prefectures").addEventListener("click", () => {
+      for (const input of document.querySelectorAll('input[name="discovery-prefecture"]')) input.checked = false;
+      scheduleFilteredReload();
+    });
     byId("admin-reload").addEventListener("click", () => void loadCandidates({ reset: true }));
     byId("discover-clinics").addEventListener("click", () => void discoverClinics());
     byId("admin-status-filter").addEventListener("change", () => void loadCandidates({ reset: true }));

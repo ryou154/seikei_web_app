@@ -32,8 +32,12 @@
         </div>
         <section class="discovery-controls" aria-labelledby="discovery-heading">
           <h3 id="discovery-heading">Googleから候補を収集</h3>
-          <label for="discovery-prefecture">対象都道府県</label>
-          <select id="discovery-prefecture"></select>
+          <span class="picker-label">対象都道府県（複数選択可・最大10件）</span>
+          <details class="prefecture-picker" open>
+            <summary id="prefecture-summary">大阪府（1件選択）</summary>
+            <div id="discovery-prefectures" class="prefecture-options" role="group" aria-label="対象都道府県"></div>
+          </details>
+          <button id="clear-prefectures" type="button" class="sub-button compact-button">選択を解除</button>
           <label for="discovery-pages">取得ページ数</label>
           <select id="discovery-pages">
             <option value="1">1ページ（最大2リクエスト）</option>
@@ -41,7 +45,7 @@
             <option value="3">3ページ（最大6リクエスト）</option>
           </select>
           <button id="discover-clinics" type="button" class="main-button">候補を収集</button>
-          <p class="format-note">「美容外科」「美容クリニック」の2検索を実行します。新規候補は下書きになり、自動公開されません。</p>
+          <p class="format-note">選択地域ごとに「美容外科」「美容クリニック」の2検索を実行します。候補一覧も選択地域だけに絞られ、新規候補は自動公開されません。</p>
           <p id="discovery-status" class="admin-status" role="status" aria-live="polite"></p>
         </section>
         <label for="admin-status-filter">表示する状態</label>

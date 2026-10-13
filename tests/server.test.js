@@ -102,7 +102,8 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(mypage, /<h1>マイページ<\/h1>/);
   assert.match(mypage, /src="mypage\.js"/);
   assert.match(adminClinics, /id="discover-clinics"/);
-  assert.match(adminClinics, /id="discovery-prefecture"/);
+  assert.match(adminClinics, /id="discovery-prefectures"/);
+  assert.match(adminClinics, /複数選択可・最大10件/);
   assert.match(adminClinicsScript, /if \(initialized \|\| !window\.AppAuth\?\.uid\) return;/);
   assert.doesNotMatch(adminClinicsScript, /!content\.hidden/);
   for (const html of [login, home, app, history, mypage]) {

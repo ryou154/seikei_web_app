@@ -136,6 +136,22 @@ test("admin routes list, read, preview and update candidates", async () => {
   assert.equal(updated.data.clinic.reviewedBy, "admin@example.com");
 });
 
+test("admin list accepts up to ten prefectures as an explicit filter", async () => {
+  let received;
+  const handler = setup({
+    store: {
+      async list(options) {
+        received = options;
+        return { clinics: [], nextCursor: "" };
+      }
+    }
+  });
+  const result = await handler(request("GET", "/api/admin/clinics?status=draft&limit=30&prefecture=大阪府&prefecture=京都府"));
+  assert.equal(result.status, 200);
+  assert.deepEqual(received.prefectures, ["大阪府", "京都府"]);
+  assert.equal((await handler(request("GET", "/api/admin/clinics?prefecture=海外"))).status, 400);
+});
+
 test("admin can collect one prefecture into private draft candidates", async () => {
   let options;
   const handler = setup({
@@ -226,4 +242,27 @@ test("Firestore admin store paginates drafts and merges reviewed fields", async 
   assert.equal(calls.some((call) => call[0] === "where" && call[3] === "draft"), true);
   await store.update("a", { name: "確認済み" });
   assert.deepEqual(calls.at(-1), ["set", { name: "確認済み" }, { merge: true }]);
+});
+
+test("Firestore admin store merges selected prefectures without duplicates", async () => {
+  const document = (id, prefecture, publicationStatus = "draft") => ({
+    id,
+    data: () => ({ placeId: id, prefecture, discoveryPrefectures: [prefecture], publicationStatus })
+  });
+  const osaka = document("osaka", "大阪府");
+  const shared = document("shared", "大阪府");
+  const kyoto = document("kyoto", "京都府");
+  const published = document("published", "京都府", "published");
+  const collection = {
+    where(field, operator, value) {
+      assert.ok(["discoveryPrefectures", "prefecture"].includes(field));
+      assert.ok(["array-contains", "=="].includes(operator));
+      const docs = value === "大阪府" ? [osaka, shared] : [shared, kyoto, published];
+      return { async get() { return { docs }; } };
+    }
+  };
+  const store = createClinicAdminStore({ collection: () => collection });
+  const result = await store.list({ status: "draft", limit: 30, cursor: "", prefectures: ["大阪府", "京都府"] });
+  assert.deepEqual(result.clinics.map((clinic) => clinic.id), ["kyoto", "osaka", "shared"]);
+  assert.equal(result.nextCursor, "");
 });

@@ -1,5 +1,6 @@
 const { FieldPath } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
+const { PREFECTURES } = require("./account-store");
 const {
   DEFAULT_KEYWORDS,
   discoverClinicCandidates,
@@ -8,6 +9,7 @@ const {
 
 const ADMIN_LIMIT = 30;
 const ADMIN_MAX_LIMIT = 50;
+const ADMIN_MAX_PREFECTURES = 10;
 const STATUSES = new Set(["draft", "published"]);
 const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified"]);
 const PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places";
@@ -194,7 +196,28 @@ function adminClinic(id, value) {
 function createClinicAdminStore(db) {
   const collection = db.collection("clinics");
   return {
-    async list({ status, limit, cursor }) {
+    async list({ status, limit, cursor, prefectures = [] }) {
+      if (prefectures.length) {
+        const snapshots = await Promise.all(prefectures.flatMap((prefecture) => [
+          collection.where("discoveryPrefectures", "array-contains", prefecture).get(),
+          collection.where("prefecture", "==", prefecture).get()
+        ]));
+        const clinicsById = new Map();
+        for (const snapshot of snapshots) {
+          for (const document of snapshot.docs) {
+            const clinic = adminClinic(document.id, document.data());
+            if (status === "all" || clinic.publicationStatus === status) clinicsById.set(document.id, clinic);
+          }
+        }
+        const clinics = [...clinicsById.values()]
+          .filter((clinic) => !cursor || clinic.id > cursor)
+          .sort((left, right) => left.id.localeCompare(right.id));
+        const page = clinics.slice(0, limit);
+        return {
+          clinics: page,
+          nextCursor: clinics.length > limit ? page.at(-1)?.id || "" : ""
+        };
+      }
       let query = status === "all" ? collection : collection.where("publicationStatus", "==", status);
       query = query.orderBy(FieldPath.documentId());
       if (cursor) query = query.startAfter(cursor);
@@ -377,7 +400,11 @@ function createClinicAdminHandler({
       const limit = Number(rawLimit);
       if (limit < 1 || limit > ADMIN_MAX_LIMIT) throw new ClinicAdminError("表示件数を確認してください。");
       const cursor = requestUrl.searchParams.get("cursor") ? validAdminClinicId(requestUrl.searchParams.get("cursor")) : "";
-      return { status: 200, data: await store.list({ status, limit, cursor }) };
+      const prefectures = [...new Set(requestUrl.searchParams.getAll("prefecture").map((value) => text(value, 10, "都道府県")))];
+      if (prefectures.length > ADMIN_MAX_PREFECTURES || prefectures.some((value) => !PREFECTURES.includes(value))) {
+        throw new ClinicAdminError(`都道府県は${ADMIN_MAX_PREFECTURES}件以内で選択してください。`);
+      }
+      return { status: 200, data: await store.list({ status, limit, cursor, prefectures }) };
     } catch (error) {
       if (error instanceof ClinicAdminError || error?.status) return { status: error.status || 400, data: { error: error.message } };
       return { status: 503, data: { error: "クリニック管理情報を処理できませんでした。" } };
@@ -388,6 +415,7 @@ function createClinicAdminHandler({
 module.exports = {
   ADMIN_LIMIT,
   ADMIN_MAX_LIMIT,
+  ADMIN_MAX_PREFECTURES,
   ClinicAdminError,
   createClinicAdminStore,
   createClinicAdminHandler,
