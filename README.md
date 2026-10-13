@@ -142,6 +142,17 @@ npm run clinics:places:sync -- --prefecture 大阪府 --max-pages 1
 
 APIキーはFirebase Web APIキーやGemini APIキーと共用せず、Places API（New）だけに制限したサーバー用キーを使用します。Text SearchではField Maskが必須で、不要な項目を要求しないことが処理量と課金の抑制につながります。
 
+### クリニック候補を確認・公開する
+
+管理担当者は `/admin-clinics.html` で候補一覧を開き、Google Placesの候補名をその場で確認してから、公式サイトを情報源として施術、料金、医師、症例、リスク、保証などを登録します。候補名は確認用にPlaces APIから都度取得し、Firestoreへ保存しません。
+
+管理画面を利用できるメールアドレスは `CLINIC_ADMIN_EMAILS` にカンマ区切りで設定します。未設定時は `AUTH_ALLOWED_EMAILS` を使用します。公開には、確認済み状態、名称、都道府県、公式サイトURL、1件以上の情報源が必要です。下書きは利用者向けAPIに表示されません。
+
+```text
+CLINIC_ADMIN_EMAILS=admin1@example.com,admin2@example.com
+GOOGLE_PLACES_API_KEY=Places API（New）専用キー
+```
+
 ## Gemini APIについて
 
 現在、画像生成には次のモデルを使用しています。

@@ -7,14 +7,17 @@ const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
 const { createAccountDeleteHandler } = require("./account-delete");
 const { createClinicStore, createClinicHandler } = require("./clinic-store");
+const { createClinicAdminStore, createClinicAdminHandler } = require("./clinic-admin");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
+const clinicAdminDatabase = createClinicAdminStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
 const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
+const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdminDatabase });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -42,6 +45,16 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.url.startsWith("/api/account/")) {
       const result = await handleAccount(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url === "/api/admin/clinics" || request.url.startsWith("/api/admin/clinics?")) {
+      const result = await handleClinicAdmin(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url.startsWith("/api/admin/clinics/")) {
+      const result = await handleClinicAdmin(request);
       sendJson(response, result.status, result.data);
       return;
     }
@@ -353,7 +366,7 @@ function serveStatic(request, response) {
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
-    "/account-data.js", "/face-analysis.js", "/history.html", "/history-page.js", "/history-page.css", "/data/clinics.js", "/data/clinic-details.js",
+    "/account-data.js", "/face-analysis.js", "/history.html", "/history-page.js", "/history-page.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
     "/navigation.js", "/navigation.css", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {

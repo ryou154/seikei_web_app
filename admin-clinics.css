@@ -1,0 +1,48 @@
+.admin-layout {
+  width: min(1440px, calc(100% - 32px));
+  margin: 22px auto 48px;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.candidate-panel { position: sticky; top: 88px; max-height: calc(100vh - 110px); overflow: auto; }
+.candidate-heading-row, .editor-heading-row, .candidate-pagination, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.candidate-heading-row h2, .editor-heading-row h2 { margin-bottom: 0; }
+.candidate-panel > label, .field-label { display: block; margin: 18px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
+.candidate-panel select { width: 100%; min-height: 44px; }
+.candidate-list { display: grid; gap: 8px; margin: 14px 0; }
+.candidate-item { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); text-align: left; cursor: pointer; }
+.candidate-item:hover, .candidate-item[aria-current="true"] { border-color: var(--primary); background: var(--blue-soft); }
+.candidate-item strong, .candidate-item span { display: block; overflow-wrap: anywhere; }
+.candidate-item span { margin-top: 5px; color: var(--muted); font-size: 12px; }
+.candidate-pagination button { flex: 1; }
+.admin-status { min-height: 1.5em; color: var(--muted); font-size: 13px; }
+.admin-status[data-error="true"] { color: #b42318; }
+.status-badge { padding: 7px 10px; border-radius: 999px; background: var(--blue-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.editor-empty { padding: 56px 20px; color: var(--muted); text-align: center; }
+.place-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+.place-preview code { overflow-wrap: anywhere; }
+.place-preview a { display: inline-block; margin: 6px 0 0 10px; color: var(--primary-dark); font-weight: 800; }
+.place-attribution { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
+.place-attribution img { width: auto; height: 18px; margin-right: 6px; vertical-align: middle; }
+.editor-panel fieldset { margin: 18px 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
+.editor-panel legend { padding: 0 8px; font-weight: 900; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.form-grid label, .editor-panel fieldset > label { display: grid; gap: 6px; font-size: 13px; font-weight: 800; }
+.form-grid .wide { grid-column: 1 / -1; }
+.editor-panel input, .editor-panel select, .editor-panel textarea { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text); font: inherit; }
+.editor-panel textarea { resize: vertical; line-height: 1.6; }
+.format-note { margin: 0 0 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.editor-actions { justify-content: flex-end; margin-top: 16px; }
+.editor-actions button { min-width: 150px; min-height: 46px; }
+@media (max-width: 900px) {
+  .admin-layout { grid-template-columns: minmax(0, 1fr); width: min(100% - 20px, 760px); }
+  .candidate-panel { position: static; max-height: none; }
+}
+@media (max-width: 600px) {
+  .form-grid, .place-preview { grid-template-columns: minmax(0, 1fr); }
+  .form-grid .wide, .place-attribution { grid-column: auto; }
+  .editor-actions { align-items: stretch; flex-direction: column; }
+  .editor-actions button { width: 100%; }
+}
