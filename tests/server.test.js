@@ -87,6 +87,7 @@ test("login page starts locked and public assets are available", async () => {
   const history = await (await fetch(`${base}/history.html`)).text();
   const mypage = await (await fetch(`${base}/mypage.html`)).text();
   const adminClinics = await (await fetch(`${base}/admin-clinics.html`)).text();
+  const adminClinicsScript = await (await fetch(`${base}/admin-clinics.js`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
@@ -102,6 +103,8 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(mypage, /src="mypage\.js"/);
   assert.match(adminClinics, /id="discover-clinics"/);
   assert.match(adminClinics, /id="discovery-prefecture"/);
+  assert.match(adminClinicsScript, /if \(initialized \|\| !window\.AppAuth\?\.uid\) return;/);
+  assert.doesNotMatch(adminClinicsScript, /!content\.hidden/);
   for (const html of [login, home, app, history, mypage]) {
     assert.match(html, /id="common-navigation"/);
     assert.match(html, /src="navigation\.js"/);

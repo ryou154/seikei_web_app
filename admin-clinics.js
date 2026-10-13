@@ -16,6 +16,7 @@
   let cursor = "";
   const cursorHistory = [];
   let busy = false;
+  let initialized = false;
 
   function lines(value) {
     return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
@@ -82,13 +83,14 @@
 
   function populatePrefectures() {
     const select = byId("discovery-prefecture");
+    select.replaceChildren();
     for (const prefecture of PREFECTURES) {
       const option = document.createElement("option");
       option.value = prefecture;
       option.textContent = prefecture;
-      option.selected = prefecture === "大阪府";
       select.append(option);
     }
+    select.value = "大阪府";
   }
 
   async function discoverClinics() {
@@ -328,7 +330,8 @@
 
   function initialize() {
     const content = byId("app-content");
-    if (!window.AppAuth?.uid || !content.hidden) return;
+    if (initialized || !window.AppAuth?.uid) return;
+    initialized = true;
     content.hidden = false;
     populatePrefectures();
     byId("admin-reload").addEventListener("click", () => void loadCandidates({ reset: true }));
