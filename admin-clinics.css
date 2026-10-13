@@ -9,6 +9,12 @@
 .candidate-panel { position: sticky; top: 88px; max-height: calc(100vh - 110px); overflow: auto; }
 .candidate-heading-row, .editor-heading-row, .candidate-pagination, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .candidate-heading-row h2, .editor-heading-row h2 { margin-bottom: 0; }
+.discovery-controls { margin: 18px 0 22px; padding: 16px 0 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.discovery-controls h3 { margin: 0 0 12px; font-size: 16px; }
+.discovery-controls label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
+.discovery-controls select, .discovery-controls button { width: 100%; min-height: 44px; }
+.discovery-controls button { margin-top: 12px; }
+.discovery-controls .format-note { margin-top: 10px; }
 .candidate-panel > label, .field-label { display: block; margin: 18px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
 .candidate-panel select { width: 100%; min-height: 44px; }
 .candidate-list { display: grid; gap: 8px; margin: 14px 0; }

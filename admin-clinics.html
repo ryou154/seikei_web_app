@@ -30,6 +30,20 @@
           </div>
           <button id="admin-reload" type="button" class="sub-button">再読込</button>
         </div>
+        <section class="discovery-controls" aria-labelledby="discovery-heading">
+          <h3 id="discovery-heading">Googleから候補を収集</h3>
+          <label for="discovery-prefecture">対象都道府県</label>
+          <select id="discovery-prefecture"></select>
+          <label for="discovery-pages">取得ページ数</label>
+          <select id="discovery-pages">
+            <option value="1">1ページ（最大2リクエスト）</option>
+            <option value="2">2ページ（最大4リクエスト）</option>
+            <option value="3">3ページ（最大6リクエスト）</option>
+          </select>
+          <button id="discover-clinics" type="button" class="main-button">候補を収集</button>
+          <p class="format-note">「美容外科」「美容クリニック」の2検索を実行します。新規候補は下書きになり、自動公開されません。</p>
+          <p id="discovery-status" class="admin-status" role="status" aria-live="polite"></p>
+        </section>
         <label for="admin-status-filter">表示する状態</label>
         <select id="admin-status-filter">
           <option value="draft">下書き</option>
@@ -63,6 +77,7 @@
               <span class="field-label">Google候補名（一時表示）</span>
               <strong id="place-preview-name">未取得</strong>
               <a id="place-preview-map" href="#" target="_blank" rel="noopener" hidden>Google Mapsで確認</a>
+              <a id="place-preview-official" href="#" target="_blank" rel="noopener" hidden>公式サイト候補を確認</a>
             </div>
             <p id="place-attribution" class="place-attribution" hidden>
               <img src="https://developers.google.com/static/maps/documentation/images/google_on_white.png" alt="Google">

@@ -1,12 +1,27 @@
 const { FieldPath } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
+const {
+  DEFAULT_KEYWORDS,
+  discoverClinicCandidates,
+  writeClinicCandidates
+} = require("./places-clinic-sync");
 
 const ADMIN_LIMIT = 30;
 const ADMIN_MAX_LIMIT = 50;
 const STATUSES = new Set(["draft", "published"]);
 const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified"]);
 const PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places";
-const PLACE_DETAILS_FIELD_MASK = "id,displayName,googleMapsUri";
+const PLACE_DETAILS_FIELD_MASK = [
+  "id",
+  "displayName",
+  "formattedAddress",
+  "addressComponents",
+  "nationalPhoneNumber",
+  "regularOpeningHours",
+  "businessStatus",
+  "websiteUri",
+  "googleMapsUri"
+].join(",");
 
 function validAdminClinicId(value) {
   if (typeof value !== "string" || !/^[a-zA-Z0-9_-]{1,200}$/.test(value)) {
@@ -200,6 +215,9 @@ function createClinicAdminStore(db) {
       if (!snapshot.exists) return null;
       await reference.set(data, { merge: true });
       return adminClinic(id, { ...snapshot.data(), ...data });
+    },
+    async importCandidates(candidates) {
+      return writeClinicCandidates(db, candidates);
     }
   };
 }
@@ -244,9 +262,24 @@ async function requestPlacePreview(placeId, apiKey, fetchImpl = fetch) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new ClinicAdminError("Google Placesの候補情報を取得できませんでした。", 502);
+    const components = Array.isArray(data.addressComponents) ? data.addressComponents : [];
+    const component = (type) => {
+      const match = components.find((item) => Array.isArray(item.types) && item.types.includes(type));
+      return typeof match?.longText === "string" ? match.longText : "";
+    };
     return {
       placeId: typeof data.id === "string" ? data.id : placeId,
       name: typeof data.displayName?.text === "string" ? data.displayName.text : "",
+      address: typeof data.formattedAddress === "string" ? data.formattedAddress : "",
+      prefecture: component("administrative_area_level_1"),
+      city: component("locality") || component("administrative_area_level_2"),
+      area: component("sublocality_level_1") || component("sublocality_level_2"),
+      phone: typeof data.nationalPhoneNumber === "string" ? data.nationalPhoneNumber : "",
+      businessStatus: typeof data.businessStatus === "string" ? data.businessStatus : "",
+      officialUrl: typeof data.websiteUri === "string" ? data.websiteUri : "",
+      openingHours: Array.isArray(data.regularOpeningHours?.weekdayDescriptions)
+        ? data.regularOpeningHours.weekdayDescriptions.join("\n")
+        : "",
       googleMapsUrl: typeof data.googleMapsUri === "string" ? data.googleMapsUri : "",
       attribution: "Google"
     };
@@ -263,9 +296,11 @@ function createClinicAdminHandler({
   getStore,
   parseBody = readJsonBody,
   getPlacePreview = requestPlacePreview,
+  discoverCandidates = discoverClinicCandidates,
   placesApiKey = process.env.GOOGLE_PLACES_API_KEY
 } = {}) {
   if (typeof getStore !== "function") throw new TypeError("getStore is required");
+  let discoveryRunning = false;
   return async (request) => {
     try {
       const identity = await requireAdmin(request, authenticate);
@@ -273,6 +308,45 @@ function createClinicAdminHandler({
       const previewMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/place-preview$/.exec(requestUrl.pathname);
       const detailMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})$/.exec(requestUrl.pathname);
       const store = getStore();
+      if (requestUrl.pathname === "/api/admin/clinics/discover") {
+        if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
+        if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
+          throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
+        }
+        if (!placesApiKey) throw new ClinicAdminError("GOOGLE_PLACES_API_KEYが設定されていません。", 503);
+        if (discoveryRunning) throw new ClinicAdminError("候補収集はすでに実行中です。", 409);
+        const body = await parseBody(request);
+        if (body?.confirmed !== true) throw new ClinicAdminError("API利用の確認が必要です。", 400);
+        const prefecture = text(body.prefecture, 10, "都道府県", { required: true });
+        const maxPages = Number(body.maxPages ?? 1);
+        if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 3) {
+          throw new ClinicAdminError("ページ数は1〜3で指定してください。", 400);
+        }
+        if (typeof store.importCandidates !== "function") throw new ClinicAdminError("候補を保存できません。", 503);
+        discoveryRunning = true;
+        try {
+          const result = await discoverCandidates({
+            apiKey: placesApiKey,
+            prefectures: [prefecture],
+            keywords: DEFAULT_KEYWORDS,
+            maxPages
+          });
+          const firestore = await store.importCandidates(result.candidates);
+          return {
+            status: 200,
+            data: {
+              prefecture,
+              requests: result.stats.requests,
+              rawResults: result.stats.rawResults,
+              uniqueCandidates: result.stats.uniqueCandidates,
+              inserted: firestore.inserted,
+              updated: firestore.updated
+            }
+          };
+        } finally {
+          discoveryRunning = false;
+        }
+      }
       if (previewMatch) {
         if (request.method !== "GET" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
         return { status: 200, data: { place: await getPlacePreview(previewMatch[1], placesApiKey) } };

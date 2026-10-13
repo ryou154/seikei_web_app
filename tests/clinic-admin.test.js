@@ -104,17 +104,22 @@ test("publishing requires verified status and essential official sources", () =>
   assert.equal(published.verifiedAt, "now");
 });
 
-function setup({ email = "admin@example.com", store } = {}) {
+function setup({ email = "admin@example.com", store, discoverCandidates } = {}) {
   const database = store || {
     async list() { return { clinics: [{ id: "candidate-1", publicationStatus: "draft" }], nextCursor: "next" }; },
     async get(id) { return id === "candidate-1" ? { id, publicationStatus: "draft" } : null; },
-    async update(id, data) { return id === "candidate-1" ? { id, ...data } : null; }
+    async update(id, data) { return id === "candidate-1" ? { id, ...data } : null; },
+    async importCandidates(candidates) { return { inserted: candidates.length, updated: 0 }; }
   };
   return createClinicAdminHandler({
     authenticate: async () => ({ uid: "user", email }),
     getStore: () => database,
     parseBody: async (input) => input.body,
     getPlacePreview: async (id) => ({ placeId: id, name: "候補名", attribution: "Google" }),
+    discoverCandidates: discoverCandidates || (async () => ({
+      candidates: [{ placeId: "candidate-2" }],
+      stats: { requests: 2, rawResults: 3, uniqueCandidates: 1 }
+    })),
     placesApiKey: "test-key"
   });
 }
@@ -131,23 +136,68 @@ test("admin routes list, read, preview and update candidates", async () => {
   assert.equal(updated.data.clinic.reviewedBy, "admin@example.com");
 });
 
+test("admin can collect one prefecture into private draft candidates", async () => {
+  let options;
+  const handler = setup({
+    discoverCandidates: async (input) => {
+      options = input;
+      return {
+        candidates: [{ placeId: "candidate-2" }, { placeId: "candidate-3" }],
+        stats: { requests: 2, rawResults: 4, uniqueCandidates: 2 }
+      };
+    }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/discover", {
+    prefecture: "大阪府",
+    maxPages: 1,
+    confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.inserted, 2);
+  assert.equal(result.data.requests, 2);
+  assert.deepEqual(options.prefectures, ["大阪府"]);
+  assert.equal(options.apiKey, "test-key");
+});
+
 test("non-admins, bad media types and unsupported routes fail closed", async () => {
   assert.equal((await setup({ email: "outsider@example.com" })(request("GET", "/api/admin/clinics"))).status, 403);
   assert.equal((await setup()(request("PUT", "/api/admin/clinics/candidate-1", validBody(), "text/plain"))).status, 415);
   assert.equal((await setup()(request("DELETE", "/api/admin/clinics/candidate-1"))).status, 405);
   assert.equal((await setup()(request("GET", "/api/admin/unknown"))).status, 404);
+  assert.equal((await setup()(request("POST", "/api/admin/clinics/discover", {
+    prefecture: "大阪府", maxPages: 1, confirmed: false
+  }))).status, 400);
 });
 
-test("Places preview requests only transient identification fields", async () => {
+test("Places preview returns temporary basic information for review", async () => {
   let captured;
   const preview = await requestPlacePreview("ChIJabcdefghijklm", "key", async (url, options) => {
     captured = { url, options };
     return { ok: true, async json() {
-      return { id: "ChIJabcdefghijklm", displayName: { text: "候補名" }, googleMapsUri: "https://maps.google.com/example" };
+      return {
+        id: "ChIJabcdefghijklm",
+        displayName: { text: "候補名" },
+        formattedAddress: "大阪府大阪市北区梅田1-1-1",
+        addressComponents: [
+          { longText: "大阪府", types: ["administrative_area_level_1"] },
+          { longText: "大阪市", types: ["locality"] },
+          { longText: "北区", types: ["sublocality_level_1"] }
+        ],
+        nationalPhoneNumber: "06-0000-0000",
+        regularOpeningHours: { weekdayDescriptions: ["月曜日: 10:00～19:00"] },
+        businessStatus: "OPERATIONAL",
+        websiteUri: "https://example.com/clinic",
+        googleMapsUri: "https://maps.google.com/example"
+      };
     } };
   });
   assert.equal(preview.name, "候補名");
-  assert.equal(captured.options.headers["X-Goog-FieldMask"], "id,displayName,googleMapsUri");
+  assert.equal(preview.prefecture, "大阪府");
+  assert.equal(preview.city, "大阪市");
+  assert.equal(preview.area, "北区");
+  assert.equal(preview.officialUrl, "https://example.com/clinic");
+  assert.match(captured.options.headers["X-Goog-FieldMask"], /websiteUri/);
+  assert.doesNotMatch(captured.options.headers["X-Goog-FieldMask"], /reviews|photos|rating/);
 });
 
 test("Firestore admin store paginates drafts and merges reviewed fields", async () => {
