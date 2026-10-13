@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="navigation.css">
   <link rel="stylesheet" href="history-page.css">
   <script src="navigation.js" defer></script>
+  <script src="simulation-adjustments.js" defer></script>
   <script src="history-page.js" defer></script>
 </head>
 <body class="app-page history-page">
@@ -21,35 +22,6 @@
     </div>
   </header>
   <div id="page-transition-content">
-    <section id="auth-panel" class="panel auth-panel" aria-labelledby="auth-title">
-      <h2 id="auth-title">ログイン</h2>
-      <p>履歴を見るにはログインしてください。</p>
-      <p id="auth-status" role="status" aria-live="polite">ログイン機能を読み込んでいます…</p>
-      <fieldset id="auth-controls" disabled>
-        <div id="auth-signed-out">
-          <button id="google-login" type="button">Googleでログイン</button>
-          <form id="email-login-form">
-            <label class="field"><span>メールアドレス</span><input id="auth-email" type="email" autocomplete="username" required></label>
-            <label class="field"><span>パスワード</span><input id="auth-password" type="password" autocomplete="current-password" required></label>
-            <div class="auth-buttons">
-              <button type="submit">メールでログイン</button>
-              <button id="email-register" type="button" class="sub-button">新規登録</button>
-              <button id="password-reset" type="button" class="sub-button">パスワードを忘れた方</button>
-            </div>
-            <p class="small">新規登録の後、届いたメールで本人確認してください。</p>
-          </form>
-        </div>
-        <div id="auth-signed-in" hidden>
-          <p id="auth-account"></p>
-          <div id="verification-actions" hidden class="auth-buttons">
-            <button id="verification-send" type="button">確認メールを送る</button>
-            <button id="verification-check" type="button" class="sub-button">メール確認後に続ける</button>
-          </div>
-          <button id="logout" type="button" class="sub-button">ログアウト・アカウントを切り替える</button>
-        </div>
-      </fieldset>
-    </section>
-
     <main id="app-content" class="history-layout" hidden>
       <section class="panel history-panel" aria-labelledby="history-heading">
         <div class="history-heading-row">
@@ -66,9 +38,9 @@
         <p id="history-status" class="history-status" role="status" aria-live="polite">履歴を読み込んでいます…</p>
         <div id="history-list" class="history-list" aria-live="polite"></div>
       </section>
-      <p class="history-back-link"><a href="app.html#input-title">シミュレーションへ戻る</a></p>
-    </main>
-  </div>
-  <script type="module" src="auth-client.js"></script>
+       <p class="history-back-link"><a href="/app.html#input-title">シミュレーションへ戻る</a></p>
+     </main>
+   </div>
+   <script type="module" src="auth-core.js"></script>
 </body>
 </html>

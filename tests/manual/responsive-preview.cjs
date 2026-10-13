@@ -26,7 +26,7 @@ http.createServer((req, res) => {
       .replace('id="auth-account"></p>', 'id="auth-account">layout-check@example.test</p>');
     return res.end(html.replace('</body>', `<script>
       window.AppAuth={signedIn:${name === 'app.html'}, email:'long-layout-check-account@example.test',busy:false,logout(){}};
-      document.getElementById('auth-status').textContent='表示確認用ダミーデータ（認証・生成処理なし）';
+      const authStatus=document.getElementById('auth-status');if(authStatus)authStatus.textContent='表示確認用ダミーデータ（認証・生成処理なし）';
       for(const id of ['before-image','after-image']) {const el=document.getElementById(id);if(el)el.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" style="max-width:100%;height:auto"><rect width="240" height="240" fill="#fff0f4"/><text x="30" y="120" font-size="20">画像表示テスト</text></svg>';}
       </script><script src="navigation.js"></script></body>`));
   }

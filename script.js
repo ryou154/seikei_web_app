@@ -1,5 +1,20 @@
 const faceImageInput = document.getElementById("face-image");
 const imagePreview = document.getElementById("image-preview");
+const imageCropDialog = document.getElementById("image-crop-dialog");
+const cropViewport = document.getElementById("crop-viewport");
+const cropImage = document.getElementById("crop-image");
+const cropWidthInput = document.getElementById("crop-width");
+const cropWidthValue = document.getElementById("crop-width-value");
+const cropHeightInput = document.getElementById("crop-height");
+const cropHeightValue = document.getElementById("crop-height-value");
+const cropResizeHandles = document.querySelectorAll("[data-crop-handle]");
+const cropAspectLockInput = document.getElementById("crop-aspect-lock");
+const cropRatioStatus = document.getElementById("crop-ratio-status");
+const cropZoomInput = document.getElementById("crop-zoom");
+const cropZoomValue = document.getElementById("crop-zoom-value");
+const cropError = document.getElementById("crop-error");
+const applyImageCropButton = document.getElementById("apply-image-crop");
+const cancelImageCropButton = document.getElementById("cancel-image-crop");
 const startCameraButton = document.getElementById("start-camera-button");
 const captureButton = document.getElementById("capture-button");
 const manualCaptureButton = document.getElementById("manual-capture-button");
@@ -37,16 +52,20 @@ const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
 const saveButton = document.getElementById("save-button");
-const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const resultComparison = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
+const adjustmentSummaryPanel = document.getElementById("adjustment-summary");
+const adjustmentStrength = document.getElementById("adjustment-strength");
+const adjustmentList = document.getElementById("adjustment-list");
+const procedureExamples = document.getElementById("procedure-examples");
+const procedureList = document.getElementById("procedure-list");
 const hospitalList = document.getElementById("hospital-list");
-const historyList = document.getElementById("history-list");
 const faceScorePanel = document.getElementById("face-score-panel");
 const beforeScoreValue = document.getElementById("before-score");
 const beforeScoreLabel = document.getElementById("before-score-label");
@@ -63,6 +82,14 @@ let guidedScan = null;
 let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
+let cropOffsetX = 0;
+let cropOffsetY = 0;
+let cropDrag = null;
+let cropMaxWidth = 0;
+let cropMaxHeight = 0;
+let cropFrameWidth = 0;
+let cropFrameHeight = 0;
+let cropResizeDrag = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -159,9 +186,10 @@ const fineDetailLabels = {
 faceImageInput.addEventListener("change", () => {
   const file = faceImageInput.files[0];
 
-  if (!file) {
-    selectedImageData = "";
-    imagePreview.innerHTML = "<span>画像を選択するとプレビューが表示されます</span>";
+  if (!file) return;
+  if (file.type && !file.type.startsWith("image/")) {
+    faceImageInput.value = "";
+    alert("画像ファイルを選択してください。");
     return;
   }
 
@@ -169,9 +197,302 @@ faceImageInput.addEventListener("change", () => {
   const imageGeneration = privacyGeneration;
   reader.addEventListener("load", () => {
     if (imageGeneration !== privacyGeneration) return;
-    setSelectedImage(reader.result);
+    openImageCrop(reader.result, imageGeneration);
+  });
+  reader.addEventListener("error", () => {
+    faceImageInput.value = "";
+    alert("画像を読み込めませんでした。別の画像を選択してください。");
   });
   reader.readAsDataURL(file);
+});
+
+function openImageCrop(imageData, imageGeneration) {
+  cropError.classList.add("hidden");
+  cropZoomInput.value = "1";
+  cropZoomValue.value = "100%";
+  cropImage.onload = () => {
+    if (imageGeneration !== privacyGeneration) return;
+    cropAspectLockInput.checked = false;
+    cropRatioStatus.textContent = "自由比率";
+    imageCropDialog.showModal();
+    requestAnimationFrame(() => {
+      fitCropViewportToImage(true);
+      const bounds = getCropViewportSize();
+      const coverScale = Math.max(
+        bounds.width / cropImage.naturalWidth,
+        bounds.height / cropImage.naturalHeight
+      );
+      cropOffsetX = 0;
+      cropOffsetY = Math.max(0, cropImage.naturalHeight * coverScale - bounds.height) * 0.14;
+      updateCropImagePosition();
+    });
+  };
+  cropImage.onerror = () => {
+    if (imageGeneration !== privacyGeneration) return;
+    faceImageInput.value = "";
+    alert("この画像を開けませんでした。別の画像を選択してください。");
+  };
+  cropImage.src = imageData;
+}
+
+function fitCropViewportToImage(reset = false) {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const previousWidthRatio = cropMaxWidth ? cropFrameWidth / cropMaxWidth : 1;
+  const previousHeightRatio = cropMaxHeight ? cropFrameHeight / cropMaxHeight : 1;
+  const aspectRatio = cropImage.naturalWidth / cropImage.naturalHeight;
+  const maxWidth = Math.min(cropViewport.parentElement.clientWidth, 560);
+  const maxHeight = Math.min(window.innerHeight * 0.55, 460);
+  cropMaxWidth = maxWidth;
+  cropMaxHeight = maxHeight;
+
+  if (reset || !cropFrameWidth || !cropFrameHeight) {
+    cropFrameWidth = Math.min(maxWidth, maxHeight * aspectRatio);
+    cropFrameHeight = cropFrameWidth / aspectRatio;
+  } else {
+    cropFrameWidth = maxWidth * previousWidthRatio;
+    cropFrameHeight = maxHeight * previousHeightRatio;
+    if (cropAspectLockInput.checked) {
+      const lockedRatio = cropFrameWidth / cropFrameHeight;
+      const fitScale = Math.min(1, maxWidth / cropFrameWidth, maxHeight / cropFrameHeight);
+      cropFrameWidth *= fitScale;
+      cropFrameHeight = cropFrameWidth / lockedRatio;
+    }
+  }
+
+  cropViewport.style.width = `${cropFrameWidth}px`;
+  cropViewport.style.height = `${cropFrameHeight}px`;
+  syncCropFrameControls();
+}
+
+function syncCropFrameControls() {
+  cropWidthInput.value = String(Math.round((cropFrameWidth / cropMaxWidth) * 100));
+  cropHeightInput.value = String(Math.round((cropFrameHeight / cropMaxHeight) * 100));
+  cropWidthValue.value = `${cropWidthInput.value}%`;
+  cropHeightValue.value = `${cropHeightInput.value}%`;
+}
+
+function resizeCropFrame(changedDimension) {
+  let width = cropMaxWidth * Number(cropWidthInput.value) / 100;
+  let height = cropMaxHeight * Number(cropHeightInput.value) / 100;
+
+  if (cropAspectLockInput.checked) {
+    const lockedRatio = cropFrameWidth / cropFrameHeight;
+    if (changedDimension === "width") {
+      height = width / lockedRatio;
+    } else {
+      width = height * lockedRatio;
+    }
+    const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
+    width *= fitScale;
+    height *= fitScale;
+  }
+
+  setCropFrameSize(width, height);
+}
+
+function setCropFrameSize(width, height) {
+  cropFrameWidth = Math.max(1, Math.min(cropMaxWidth, width));
+  cropFrameHeight = Math.max(1, Math.min(cropMaxHeight, height));
+  cropViewport.style.width = `${cropFrameWidth}px`;
+  cropViewport.style.height = `${cropFrameHeight}px`;
+  syncCropFrameControls();
+  updateCropImagePosition();
+}
+
+function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startHeight) {
+  const horizontalDirection = direction.includes("e") ? 1 : direction.includes("w") ? -1 : 0;
+  const verticalDirection = direction.includes("s") ? 1 : direction.includes("n") ? -1 : 0;
+  let width = startWidth + deltaX * horizontalDirection;
+  let height = startHeight + deltaY * verticalDirection;
+
+  if (cropAspectLockInput.checked) {
+    const ratio = startWidth / startHeight;
+    if (horizontalDirection) height = width / ratio;
+    else if (verticalDirection) width = height * ratio;
+  }
+
+  width = Math.max(80, width);
+  height = Math.max(80, height);
+  const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
+  width *= fitScale;
+  height *= fitScale;
+  setCropFrameSize(width, height);
+}
+
+function getCropViewportSize() {
+  return { width: cropViewport.clientWidth, height: cropViewport.clientHeight };
+}
+
+function updateCropImagePosition() {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const bounds = getCropViewportSize();
+  if (!bounds.width || !bounds.height) return;
+
+  const baseScale = Math.max(
+    bounds.width / cropImage.naturalWidth,
+    bounds.height / cropImage.naturalHeight
+  );
+  const scale = baseScale * Number(cropZoomInput.value);
+  const imageWidth = cropImage.naturalWidth * scale;
+  const imageHeight = cropImage.naturalHeight * scale;
+  const centeredLeft = (bounds.width - imageWidth) / 2;
+  const centeredTop = (bounds.height - imageHeight) / 2;
+  const left = Math.min(0, Math.max(bounds.width - imageWidth, centeredLeft + cropOffsetX));
+  const top = Math.min(0, Math.max(bounds.height - imageHeight, centeredTop + cropOffsetY));
+
+  cropOffsetX = left - centeredLeft;
+  cropOffsetY = top - centeredTop;
+  cropImage.style.width = `${imageWidth}px`;
+  cropImage.style.height = `${imageHeight}px`;
+  cropImage.style.left = `${left}px`;
+  cropImage.style.top = `${top}px`;
+}
+
+function createCroppedImageData() {
+  const bounds = getCropViewportSize();
+  const scale = Number.parseFloat(cropImage.style.width) / cropImage.naturalWidth;
+  const left = Number.parseFloat(cropImage.style.left);
+  const top = Number.parseFloat(cropImage.style.top);
+  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(left) || !Number.isFinite(top)) {
+    throw new Error("切り抜き範囲を準備できませんでした。もう一度お試しください。");
+  }
+  const sourceX = Math.max(0, -left / scale);
+  const sourceY = Math.max(0, -top / scale);
+  const sourceWidth = Math.min(bounds.width / scale, cropImage.naturalWidth - sourceX);
+  const sourceHeight = Math.min(bounds.height / scale, cropImage.naturalHeight - sourceY);
+  const output = document.createElement("canvas");
+  const aspectRatio = bounds.width / bounds.height;
+  output.width = aspectRatio >= 1 ? 1200 : Math.max(1, Math.round(1200 * aspectRatio));
+  output.height = aspectRatio >= 1 ? Math.max(1, Math.round(1200 / aspectRatio)) : 1200;
+  const context = output.getContext("2d");
+  if (!context || sourceWidth <= 0 || sourceHeight <= 0) {
+    throw new Error("切り抜き画像を作成できませんでした。");
+  }
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, output.width, output.height);
+  context.drawImage(
+    cropImage,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    output.width,
+    output.height
+  );
+  return output.toDataURL("image/jpeg", 0.9);
+}
+
+function cancelImageCrop() {
+  faceImageInput.value = "";
+  if (imageCropDialog.open) imageCropDialog.close();
+}
+
+cropZoomInput.addEventListener("input", () => {
+  cropZoomValue.value = `${Math.round(Number(cropZoomInput.value) * 100)}%`;
+  updateCropImagePosition();
+});
+
+cropWidthInput.addEventListener("input", () => resizeCropFrame("width"));
+cropHeightInput.addEventListener("input", () => resizeCropFrame("height"));
+cropAspectLockInput.addEventListener("change", () => {
+  cropRatioStatus.textContent = cropAspectLockInput.checked ? "比率固定" : "自由比率";
+});
+
+cropResizeHandles.forEach((handle) => {
+  handle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handle.setPointerCapture(event.pointerId);
+    cropResizeDrag = {
+      pointerId: event.pointerId,
+      direction: handle.dataset.cropHandle,
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: cropFrameWidth,
+      startHeight: cropFrameHeight
+    };
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!cropResizeDrag || event.pointerId !== cropResizeDrag.pointerId) return;
+    resizeCropFrameFromHandle(
+      cropResizeDrag.direction,
+      event.clientX - cropResizeDrag.startX,
+      event.clientY - cropResizeDrag.startY,
+      cropResizeDrag.startWidth,
+      cropResizeDrag.startHeight
+    );
+  });
+
+  const stopResize = (event) => {
+    if (cropResizeDrag?.pointerId === event.pointerId) cropResizeDrag = null;
+  };
+  handle.addEventListener("pointerup", stopResize);
+  handle.addEventListener("pointercancel", stopResize);
+});
+
+cropViewport.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+  event.preventDefault();
+  cropViewport.setPointerCapture(event.pointerId);
+  cropDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    offsetX: cropOffsetX,
+    offsetY: cropOffsetY
+  };
+});
+
+cropViewport.addEventListener("pointermove", (event) => {
+  if (!cropDrag || event.pointerId !== cropDrag.pointerId) return;
+  cropOffsetX = cropDrag.offsetX + event.clientX - cropDrag.startX;
+  cropOffsetY = cropDrag.offsetY + event.clientY - cropDrag.startY;
+  updateCropImagePosition();
+});
+
+cropViewport.addEventListener("pointerup", (event) => {
+  if (cropDrag?.pointerId === event.pointerId) cropDrag = null;
+});
+cropViewport.addEventListener("pointercancel", () => { cropDrag = null; });
+window.addEventListener("resize", () => {
+  if (imageCropDialog.open) {
+    fitCropViewportToImage();
+    updateCropImagePosition();
+  }
+});
+
+applyImageCropButton.addEventListener("click", () => {
+  try {
+    setSelectedImage(createCroppedImageData());
+    imageCropDialog.close();
+  } catch (error) {
+    cropError.textContent = error.message;
+    cropError.classList.remove("hidden");
+  }
+});
+
+cancelImageCropButton.addEventListener("click", cancelImageCrop);
+imageCropDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  cancelImageCrop();
+});
+imageCropDialog.addEventListener("close", () => {
+  cropImage.removeAttribute("src");
+  cropImage.style.removeProperty("width");
+  cropImage.style.removeProperty("height");
+  cropImage.style.removeProperty("left");
+  cropImage.style.removeProperty("top");
+  cropViewport.style.removeProperty("width");
+  cropViewport.style.removeProperty("height");
+  cropFrameWidth = 0;
+  cropFrameHeight = 0;
+  cropMaxWidth = 0;
+  cropMaxHeight = 0;
+  cropDrag = null;
+  cropResizeDrag = null;
 });
 
 const guidedScanSteps = [
@@ -465,10 +786,6 @@ saveButton.addEventListener("click", async () => {
   if (latestResult) await window.AccountData.saveHistory(latestResult);
 });
 
-clearHistoryButton.addEventListener("click", () => {
-  window.AccountData.clearHistory();
-});
-
 window.addEventListener("beforeunload", () => stopCamera());
 
 function setSelectedImage(imageData) {
@@ -476,6 +793,16 @@ function setSelectedImage(imageData) {
   analyzedImageData = "";
   latestFaceAnalysis = null;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
+  const previewImage = imagePreview.querySelector("img");
+  const updateComparisonAspect = () => {
+    if (!previewImage.naturalWidth || !previewImage.naturalHeight) return;
+    resultComparison.style.setProperty(
+      "--comparison-aspect-ratio",
+      `${previewImage.naturalWidth} / ${previewImage.naturalHeight}`
+    );
+  };
+  if (previewImage.complete) updateComparisonAspect();
+  else previewImage.addEventListener("load", updateComparisonAspect, { once: true });
 }
 
 function stopCamera(message = "カメラを停止しました。") {
@@ -550,6 +877,7 @@ function createSimulationResult(requestText) {
     requestText,
     profile,
     designLabels,
+    adjustmentSummary: window.SimulationAdjustments.create(profile),
     category: designLabels.style,
     analysis,
     hospitals: matchedHospitals
@@ -785,12 +1113,48 @@ function createProcedureSuggestionText(profile) {
   return `関連する施術候補の例（選択内容からの参考表示）：${content}。`;
 }
 
+function renderAdjustmentSummary(summary, generationStatus) {
+  adjustmentList.replaceChildren();
+  procedureList.replaceChildren();
+  const adjustments = Array.isArray(summary?.adjustments) ? summary.adjustments : [];
+  const procedures = Array.isArray(summary?.relatedProcedures) ? summary.relatedProcedures : [];
+  adjustmentStrength.textContent = `変化の強さ ${summary?.strength?.value ?? 50}%（${summary?.strength?.label || "標準"}）`;
+
+  for (const adjustment of adjustments) {
+    const item = document.createElement("article");
+    item.className = "adjustment-item";
+    const part = document.createElement("strong");
+    part.textContent = adjustment.part;
+    const change = document.createElement("p");
+    change.textContent = adjustment.change;
+    item.append(part, change);
+    adjustmentList.append(item);
+  }
+
+  if (!adjustments.length) {
+    const empty = document.createElement("p");
+    empty.className = "adjustment-empty";
+    empty.textContent = "パーツごとの変更は指定せず、元の印象を保つ条件で生成しました。";
+    adjustmentList.append(empty);
+  }
+
+  for (const procedure of procedures) {
+    const item = document.createElement("li");
+    item.textContent = `${procedure.part}：${procedure.examples.join("、")}`;
+    procedureList.append(item);
+  }
+  procedureExamples.hidden = !procedures.length;
+  adjustmentSummaryPanel.dataset.generationStatus = generationStatus || "unknown";
+  adjustmentSummaryPanel.classList.remove("hidden");
+}
+
 async function renderResult(result) {
   const ownerUid = window.AppAuth?.uid;
   if (!ownerUid) return;
   const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
+  adjustmentSummaryPanel.classList.add("hidden");
   saveButton.disabled = true;
 
   result.beforeImage = selectedImageData;
@@ -845,6 +1209,8 @@ async function renderResult(result) {
     `;
   }
 
+  renderAdjustmentSummary(result.adjustmentSummary, result.generationStatus);
+
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
   result.afterScore = result.afterFaceAnalysis?.ok ? result.afterFaceAnalysis.metrics.balanceScore : null;
   result.analysisText = analysisText.textContent;
@@ -886,6 +1252,12 @@ async function renderResult(result) {
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
   saveButton.disabled = false;
+
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  resultContent.querySelector(".comparison")?.scrollIntoView?.({
+    behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "center"
+  });
 }
 
 async function analyzeSelectedFace() {
@@ -1146,8 +1518,9 @@ function clamp(value, min, max) {
 }
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");
-  const width = 720;
-  const height = 720;
+  const scale = Math.min(1, 720 / Math.max(sourceImage.naturalWidth, sourceImage.naturalHeight));
+  const width = Math.max(1, Math.round(sourceImage.naturalWidth * scale));
+  const height = Math.max(1, Math.round(sourceImage.naturalHeight * scale));
   const baseCanvas = createCroppedCanvas(sourceImage, width, height);
   const warpedCanvas = warpFaceImage(baseCanvas, profile);
   const finalCanvas = applyBeautyFinish(warpedCanvas, profile);
@@ -1471,6 +1844,8 @@ window.AccountData.init({
 
 window.addEventListener("app-locked", () => {
   privacyGeneration++;
+  if (imageCropDialog.open) imageCropDialog.close();
+  cropImage.removeAttribute("src");
   stopCamera();
   resetGuidedScan();
   cameraPreview.srcObject = null;
@@ -1482,11 +1857,14 @@ window.addEventListener("app-locked", () => {
   faceImageInput.value = "";
   requestTextInput.value = "";
   imagePreview.replaceChildren();
+  resultComparison.style.removeProperty("--comparison-aspect-ratio");
   beforeImage.replaceChildren();
   afterImage.replaceChildren();
-  historyList.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
+  adjustmentList.replaceChildren();
+  procedureList.replaceChildren();
+  adjustmentSummaryPanel.classList.add("hidden");
   document.getElementById("clinic-summary").textContent = "";
   scanSteps.replaceChildren();
   scanPanel.classList.remove("is-scanning");

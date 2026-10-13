@@ -6,14 +6,26 @@
   nav.className = "common-navigation";
   nav.setAttribute("aria-label", "メインナビゲーション");
 
+  const logoLink = document.createElement("a");
+  logoLink.className = "common-navigation__logo";
+  logoLink.href = "/home.html";
+  logoLink.setAttribute("aria-label", "ホームへ");
+  const logo = document.createElement("img");
+  logo.src = "ロゴ最新版.png";
+  logo.alt = "MEYLON ロゴ";
+  logoLink.append(logo);
+  nav.append(logoLink);
+
   const list = document.createElement("ul");
   list.className = "common-navigation__links";
   const links = [
-    { href: "login.html", label: "ログイン" },
-    { href: "app.html#input-title", label: "シミュレーション" },
-    { href: "history.html", label: "履歴" },
-    { href: "app.html#clinic-title", label: "クリニック" },
-    { href: "app.html#auth-title", label: "アカウント" }
+    { href: "/login.html", label: "ログイン" },
+    { href: "/home.html", label: "ホーム" },
+    { href: "/app.html#input-title", label: "シミュレーション" },
+    { href: "/history.html", label: "履歴" },
+    { href: "/app.html#clinic-title", label: "クリニック" },
+    { href: "/mypage.html", label: "マイページ" },
+    { href: "/admin-clinics.html", label: "管理" }
   ];
 
   const navigationLinks = [];
@@ -44,54 +56,78 @@
   function updateAccount() {
     const auth = window.AppAuth;
     account.hidden = !auth?.signedIn;
-    email.textContent = auth?.signedIn ? `ログイン中：${auth.email}` : "";
+    email.textContent = auth?.signedIn ? (auth.displayName || auth.email) : "";
     logout.disabled = !auth?.signedIn || auth.busy;
     logout.textContent = auth?.busy ? "処理中…" : "ログアウト";
   }
   window.addEventListener("auth-state-changed", updateAccount);
+  window.addEventListener("profile-updated", updateAccount);
   updateAccount();
 
   function updateCurrentPage() {
     const pageLinks = navigationLinks.filter((link) =>
       new URL(link.href, location.href).pathname === location.pathname
     );
-    // Keep the embedded history section discoverable alongside the dedicated history page.
-    const legacyHistorySection =
-      location.pathname === new URL("app.html", location.href).pathname &&
-      location.hash === "#history-title";
-    const current = legacyHistorySection
-      ? navigationLinks.find((link) => link.textContent === "履歴")
-      : pageLinks.find((link) => new URL(link.href, location.href).hash === location.hash) || pageLinks[0];
+    // The app opens at simulation when no known section is specified.
+    const current = pageLinks.find((link) =>
+      new URL(link.href, location.href).hash === location.hash
+    ) || pageLinks[0];
     for (const link of navigationLinks) {
       if (link === current) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     }
   }
 
-  // Authentication reveals the app asynchronously, after native fragment scrolling.
-  function focusDestination() {
-    const destination = links.find(({ href }) =>
-      new URL(href, location.href).pathname === location.pathname &&
-      new URL(href, location.href).hash === location.hash
-    ) || (location.pathname === new URL("app.html", location.href).pathname && location.hash === "#history-title"
-      ? links.find(({ label }) => label === "履歴")
-      : null);
-    if (!destination || !location.hash) return;
-    const target = document.getElementById(location.hash.slice(1));
-    if (!target || target.closest("[hidden]")) return;
-    target.setAttribute("tabindex", "-1");
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "start" });
+  // The shared menu stays outside the animated content container.
+  const pageContent = document.getElementById("page-transition-content");
+  let activeSlide;
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  // Hashes identify menu destinations; every navigation opens at the top.
+  window.history.scrollRestoration = "manual";
+
+  function stopSlide() {
+    activeSlide?.cancel();
+    activeSlide = undefined;
   }
 
-  window.addEventListener("hashchange", focusDestination);
-  window.addEventListener("hashchange", updateCurrentPage);
-  window.addEventListener("app-authorized", focusDestination);
-  // Clicking the current fragment again should also return to its heading.
+  function showPage(animate = true) {
+    stopSlide();
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    const heading = document.querySelector(".app-header h1") || pageContent;
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+    updateCurrentPage();
+    if (animate && !reducedMotion?.matches && pageContent?.animate) {
+      activeSlide = pageContent.animate([
+        { transform: "translateX(100vw)" },
+        { transform: "translateX(0)" }
+      ], { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+    }
+  }
+
+  // Prevent native anchor scrolling before it jumps to a lower section.
   nav.addEventListener("click", (event) => {
     const link = event.target.closest("a");
-    if (link && link.href === location.href) focusDestination();
+    if (!link || event.defaultPrevented || event.button !== 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const destination = new URL(link.href, location.href);
+    if (destination.origin !== location.origin || destination.pathname !== location.pathname) return;
+    event.preventDefault();
+    if (destination.href !== location.href) window.history.pushState(null, "", destination.href);
+    showPage();
   });
-  updateCurrentPage();
-  focusDestination();
+  window.addEventListener("hashchange", () => showPage());
+  window.addEventListener("popstate", () => showPage());
+  window.addEventListener("pageshow", () => {
+    showPage();
+    // Follow the browser's initial fragment/restored-position handling.
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }));
+  });
+  window.addEventListener("app-authorized", () => showPage());
+  window.addEventListener("auth-state-changed", stopSlide);
+  reducedMotion?.addEventListener("change", stopSlide);
+  showPage(false);
 })();
+

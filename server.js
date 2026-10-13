@@ -5,10 +5,19 @@ const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
 const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
+const { createAccountDeleteHandler } = require("./account-delete");
+const { createClinicStore, createClinicHandler } = require("./clinic-store");
+const { createClinicAdminStore, createClinicAdminHandler } = require("./clinic-admin");
 const firebaseConfig = require("./firebase-config");
-const accountDatabase = createStore(new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" }));
+const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
+const accountDatabase = createStore(firestore);
+const clinicDatabase = createClinicStore(firestore);
+const clinicAdminDatabase = createClinicAdminStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
+const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
+const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
+const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdminDatabase });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -29,8 +38,28 @@ const server = http.createServer(async (request, response) => {
       sendResult(response, await imageService.handle(request));
       return;
     }
+    if (request.url === "/api/account" || request.url.startsWith("/api/account?")) {
+      const result = await handleAccountDelete(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
     if (request.url.startsWith("/api/account/")) {
       const result = await handleAccount(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url === "/api/admin/clinics" || request.url.startsWith("/api/admin/clinics?")) {
+      const result = await handleClinicAdmin(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url.startsWith("/api/admin/clinics/")) {
+      const result = await handleClinicAdmin(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url === "/api/clinics" || request.url.startsWith("/api/clinics?") || request.url.startsWith("/api/clinics/")) {
+      const result = await handleClinics(request);
       sendJson(response, result.status, result.data);
       return;
     }
@@ -299,12 +328,12 @@ function buildGeminiPrompt(body, options = {}) {
     parts: "Generation priority: strongly reflect the specified parts and custom requests. Requested eyes, nose, mouth, forehead, and contour changes should be visibly represented."
   };
   const strengthGuide = strength >= 75
-    ? "Apply a strong visual beauty design transformation. Make the Before and After clearly different by enhancing eyelid appearance, brighter eye impression, clearer nose bridge appearance, sharper face outline appearance, smaller-face impression, V-line style contour appearance, and balanced polished portrait aesthetics. Keep the same identity and a realistic human face."
+    ? "Apply the requested visual design changes strongly and clearly while keeping the same identity and a realistic human face. Do not alter any facial part marked as no change."
     : strength >= 60
-      ? "Apply a medium-strong visual beauty design transformation. The eyes, nose bridge appearance, face outline appearance, smaller-face impression, and portrait balance should be clearly improved while keeping the same identity and realism."
+      ? "Apply the requested visual design changes at a medium-strong intensity while keeping the same identity and realism. Do not alter any facial part marked as no change."
       : strength >= 35
-        ? "Apply a moderate beauty design retouch. Improve eye impression, nose bridge appearance, face outline appearance, and overall balance in a natural but noticeable way."
-        : "Apply a light natural beauty retouch. Keep changes gentle, but still make the requested style visible.";
+        ? "Apply the requested visual design changes at a moderate intensity so they are natural but noticeable. Do not alter any facial part marked as no change."
+        : "Apply the requested visual design changes lightly and naturally. Keep them gentle but visible, and do not alter any facial part marked as no change.";
 
   return [
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
@@ -363,10 +392,12 @@ function serveStatic(request, response) {
   const urlPath = decodeURIComponent(requestUrl.pathname);
   // Only explicitly public assets may be served. Never expose .env, source,
   // dependencies, Git metadata or server-side access policy.
+  const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
+  const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
-    "/", "/index.html", "/login.html", "/app.html", "/style.css", "/script.js", "/auth-client.js",
-    "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/history.html", "/history-page.css", "/history-page.js"
+    "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
+    "/account-data.js", "/face-analysis.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
+    "/navigation.js", "/navigation.css", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);

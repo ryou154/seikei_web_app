@@ -5,8 +5,6 @@
     status: document.getElementById("history-status"),
     reload: document.getElementById("history-reload"),
     clear: document.getElementById("clear-history-button"),
-    authPanel: document.getElementById("auth-panel"),
-    appContent: document.getElementById("app-content"),
   };
   const imageUrls = new Set();
   let entries = [];
@@ -135,12 +133,41 @@
     return optionLabels[field]?.[storedValue] || storedValue;
   }
 
+  function buildAdjustmentSummary(result) {
+    const adjustments = Array.isArray(result.adjustments) ? result.adjustments : [];
+    const procedures = Array.isArray(result.relatedProcedures) ? result.relatedProcedures : [];
+    if (!adjustments.length && !procedures.length) return null;
+    const section = node("section", "history-adjustments");
+    const heading = node("div", "history-adjustments-heading");
+    heading.append(node("h4", "", "After画像に反映した調整内容"));
+    if (result.adjustmentStrength) {
+      heading.append(node("span", "history-adjustment-strength", `${result.adjustmentStrength.value}%（${result.adjustmentStrength.label}）`));
+    }
+    section.append(heading, node("p", "history-adjustment-note", "画像生成時に指定した内容です。医療行為や効果を判定したものではありません。"));
+    const list = node("div", "history-adjustment-list");
+    for (const adjustment of adjustments) {
+      const item = node("div", "history-adjustment-item");
+      item.append(node("strong", "", adjustment.part), node("p", "", adjustment.change));
+      list.append(item);
+    }
+    section.append(list);
+    if (procedures.length) {
+      section.append(node("h5", "", "関連する施術例"));
+      const procedureList = node("ul", "history-procedure-list");
+      for (const procedure of procedures) {
+        procedureList.append(node("li", "", `${procedure.part}：${procedure.examples.join("、")}`));
+      }
+      section.append(procedureList, node("p", "history-adjustment-note", "一般的な参考例です。適応や方法は医師の診察で異なります。"));
+    }
+    return section;
+  }
+
   function buildCard(entry) {
-    const profile = entry.profile || {};
-    const custom = profile.custom || {};
     const card = node("article", "history-card");
     const heading = node("div", "history-card-header");
     const headingText = node("div");
+    const profile = entry.profile || {};
+    const custom = profile.custom || {};
     const category = displayOption("style", custom.style, profile.style) || entry.category || "設定";
     const title = node("h3", "", `${category}のシミュレーション`);
     const date = node("p", "history-date", `作成日時：${dateText(entry.savedAt)}`);
@@ -183,6 +210,8 @@
       );
       analysisDetails.append(node("p", "", analysisText));
     }
+
+    const adjustmentSummary = buildAdjustmentSummary(result);
     const scores = node("div", "history-scores");
     for (const [label, value] of [["変更前", result.beforeScore], ["変更後", result.afterScore]]) {
       const score = node("div", "history-score");
@@ -214,15 +243,14 @@
           image.src = url;
           image.alt = `${kind === "before" ? "変更前" : "変更後"}の保存画像`;
           figure.append(image);
-          imageArea.append(figure);
-          return true;
+          return { element: figure, loaded: true };
         } catch {
           const failed = node("p", "history-image-message", `${kind === "before" ? "変更前" : "変更後"}画像を読み込めませんでした。再読込してください。`);
-          imageArea.append(failed);
-          return false;
+          return { element: failed, loaded: false };
         }
-      })).then((loaded) => {
-        imageMessage.textContent = loaded.some(Boolean) ? "" : "保存画像を読み込めませんでした。";
+      })).then((items) => {
+        imageArea.append(...items.map(({ element }) => element));
+        imageMessage.textContent = items.some(({ loaded }) => loaded) ? "" : "保存画像を読み込めませんでした。";
       });
     }
 
@@ -242,6 +270,7 @@
 
     card.append(heading, request, fields);
     if (analysisDetails) card.append(analysisDetails);
+    if (adjustmentSummary) card.append(adjustmentSummary);
     card.append(scores, disclaimer, imageMessage, imageArea, actions);
     return card;
   }
@@ -291,7 +320,7 @@
   function handoffSettings(entry) {
     try {
       sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ requestText: entry.requestText || "", profile: entry.profile || {} }));
-      location.href = "app.html#input-title";
+      location.href = "/app.html#input-title";
     } catch {
       setStatus("設定を一時保存できませんでした。ブラウザーのストレージ設定を確認してください。", true);
     }
