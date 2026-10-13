@@ -10,6 +10,8 @@ Google Cloud Runで公開しています。
 
 https://seikei-web-app-688786456161.asia-northeast1.run.app
 
+ログイン画面: https://seikei-web-app-688786456161.asia-northeast1.run.app/login.html
+
 ## 主な機能
 
 - 顔画像のファイルアップロード
@@ -79,6 +81,77 @@ Firebase自体へのユーザー登録を制限するものではありません
 Firebase ConsoleでGoogle・メール／パスワードを有効化し、Cloud Runのホスト名を承認済みドメインに追加してください。ローカルで試す場合は `localhost` も必要です。Googleログインはポップアップを使用します。
 
 テスト: `pnpm test`。デプロイ後は対象アカウントでGoogleログイン、メール登録・確認、再設定、ログアウトとアカウント切替を確認してください。確認メール・再設定メールの実送信は自動テストでは行いません。
+
+## クリニック情報API
+
+クリニック情報はCloud RunからFirestoreへ接続し、ログイン済みユーザーだけが次のAPIを利用できます。ブラウザからFirestoreやGoogle Places APIを直接呼び出しません。
+
+```text
+GET /api/clinics
+GET /api/clinics/:clinicId
+```
+
+一覧APIでは `prefecture`、`city`、`keyword`、`treatment`、`hasPricing`、`verificationStatus`、`page`、`limit` を指定できます。公開状態が `published` の情報だけを返し、内部確認メモなどはレスポンスに含めません。
+
+既存の21院をFirestore用データへ変換するときは、最初にドライランを実行します。
+
+```powershell
+npm run clinics:check
+```
+
+Firestoreへ書き込む場合だけ確認用環境変数を付けます。Firebase Admin SDKのApplication Default CredentialsとFirestore書き込み権限が必要です。
+
+```powershell
+$env:CONFIRM_CLINIC_IMPORT="yes"
+npm run clinics:import
+```
+
+移行処理は同じIDへ再実行でき、既存ドキュメントの `createdAt` は保持します。従来データでは営業状態、料金詳細、リスク、保証などを確認できないため推測せず、確認状態を `needs_review` として登録します。
+
+### Google Placesから候補を収集する
+
+Places API（New）のText Searchを使い、都道府県ごとに「美容外科」「美容クリニック」を検索します。取得するのは候補発見に必要なPlace IDと名称だけです。名称は実行結果の確認用に一時表示し、Firestoreへは保存しません。写真・口コミ・住所・座標・電話番号・営業時間も候補収集では要求しません。
+
+まずAPIを呼ばず、最大リクエスト数だけを確認します。
+
+```powershell
+npm run clinics:places:plan -- --prefecture 大阪府 --max-pages 1
+npm run clinics:places:plan -- --all --max-pages 1
+```
+
+大阪府・2キーワード・1ページは最大2リクエスト、全国・2キーワード・1ページは最大94リクエストです。1ページは最大20件で、`--max-pages`は1〜3に制限しています。
+
+APIを呼び出して結果を確認するだけの場合:
+
+```powershell
+$env:GOOGLE_PLACES_API_KEY="Places API（New）専用キー"
+$env:CONFIRM_PLACES_REQUEST="yes"
+npm run clinics:places:check -- --prefecture 大阪府 --max-pages 1
+```
+
+Firestoreへ保存する場合:
+
+```powershell
+$env:GOOGLE_PLACES_API_KEY="Places API（New）専用キー"
+$env:CONFIRM_PLACES_REQUEST="yes"
+$env:CONFIRM_CLINIC_IMPORT="yes"
+npm run clinics:places:sync -- --prefecture 大阪府 --max-pages 1
+```
+
+新規候補はPlace ID、検索した都道府県・キーワード、確認日時だけを `draft / unverified` で保存し、利用者画面へ自動公開しません。Google Places由来の名称などは長期保存せず、公式サイトを確認した担当者がクリニック情報を登録します。既存Place IDを再取得した場合も、公式サイト、施術、料金、医師、確認状態などの人が確認した項目は上書きしません。全国実行の前に大阪府など1地域で結果と請求状況を確認してください。
+
+APIキーはFirebase Web APIキーやGemini APIキーと共用せず、Places API（New）だけに制限したサーバー用キーを使用します。Text SearchではField Maskが必須で、不要な項目を要求しないことが処理量と課金の抑制につながります。
+
+### クリニック候補を確認・公開する
+
+管理担当者は `/admin-clinics.html` で候補一覧を開き、Google Placesの候補名をその場で確認してから、公式サイトを情報源として施術、料金、医師、症例、リスク、保証などを登録します。候補名は確認用にPlaces APIから都度取得し、Firestoreへ保存しません。
+
+管理画面を利用できるメールアドレスは `CLINIC_ADMIN_EMAILS` にカンマ区切りで設定します。未設定時は `AUTH_ALLOWED_EMAILS` を使用します。公開には、確認済み状態、名称、都道府県、公式サイトURL、1件以上の情報源が必要です。下書きは利用者向けAPIに表示されません。
+
+```text
+CLINIC_ADMIN_EMAILS=admin1@example.com,admin2@example.com
+GOOGLE_PLACES_API_KEY=Places API（New）専用キー
+```
 
 ## Gemini APIについて
 
@@ -213,12 +286,15 @@ seikei_web_app/
 ├─ navigation.js     共通ナビゲーション
 ├─ account-data.js   設定・履歴の画面操作
 ├─ account-store.js  Firestore保存API
+├─ clinic-store.js   クリニック検索・詳細API
+├─ places-clinic-sync.js  Google Places候補収集・Firestore同期
 ├─ image-store.js    Cloud Storage画像保存API
 ├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
 ├─ server.js         Cloud Run用サーバー、認証・Firestore・Storage・Gemini API中継
 ├─ Dockerfile        Cloud Run用コンテナ設定
 ├─ package.json      Node.js起動設定
 ├─ start-server.ps1  ローカル起動用スクリプト
+├─ scripts/          Firestoreへのクリニック移行スクリプト
 ├─ data/             データ類
 └─ images/           画像素材
 ```

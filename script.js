@@ -1,5 +1,20 @@
 const faceImageInput = document.getElementById("face-image");
 const imagePreview = document.getElementById("image-preview");
+const imageCropDialog = document.getElementById("image-crop-dialog");
+const cropViewport = document.getElementById("crop-viewport");
+const cropImage = document.getElementById("crop-image");
+const cropWidthInput = document.getElementById("crop-width");
+const cropWidthValue = document.getElementById("crop-width-value");
+const cropHeightInput = document.getElementById("crop-height");
+const cropHeightValue = document.getElementById("crop-height-value");
+const cropResizeHandles = document.querySelectorAll("[data-crop-handle]");
+const cropAspectLockInput = document.getElementById("crop-aspect-lock");
+const cropRatioStatus = document.getElementById("crop-ratio-status");
+const cropZoomInput = document.getElementById("crop-zoom");
+const cropZoomValue = document.getElementById("crop-zoom-value");
+const cropError = document.getElementById("crop-error");
+const applyImageCropButton = document.getElementById("apply-image-crop");
+const cancelImageCropButton = document.getElementById("cancel-image-crop");
 const startCameraButton = document.getElementById("start-camera-button");
 const captureButton = document.getElementById("capture-button");
 const manualCaptureButton = document.getElementById("manual-capture-button");
@@ -37,16 +52,20 @@ const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
 const saveButton = document.getElementById("save-button");
-const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const resultComparison = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
+const adjustmentSummaryPanel = document.getElementById("adjustment-summary");
+const adjustmentStrength = document.getElementById("adjustment-strength");
+const adjustmentList = document.getElementById("adjustment-list");
+const procedureExamples = document.getElementById("procedure-examples");
+const procedureList = document.getElementById("procedure-list");
 const hospitalList = document.getElementById("hospital-list");
-const historyList = document.getElementById("history-list");
 const faceScorePanel = document.getElementById("face-score-panel");
 const beforeScoreValue = document.getElementById("before-score");
 const beforeScoreLabel = document.getElementById("before-score-label");
@@ -63,6 +82,14 @@ let guidedScan = null;
 let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
+let cropOffsetX = 0;
+let cropOffsetY = 0;
+let cropDrag = null;
+let cropMaxWidth = 0;
+let cropMaxHeight = 0;
+let cropFrameWidth = 0;
+let cropFrameHeight = 0;
+let cropResizeDrag = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -79,12 +106,12 @@ function updateStrengthValue() {
 const hospitals = window.CLINIC_DATA || [];
 const optionLabels = {
   style: {
-    none: "雰囲気は変更しない",
-    kawaii: "かわいい系",
-    cool: "クール系",
-    korean: "韓国アイドル風",
-    doll: "ドール系",
-    natural: "ナチュラル美人"
+    none: "追加指定なし",
+    kawaii: "頬や輪郭に丸みを残す",
+    cool: "輪郭と目元をすっきり見せる",
+    korean: "目元を明るく華やかに見せる",
+    doll: "目をぱっちり大きく見せる",
+    natural: "元の顔立ちを活かす"
   },
   eye: {
     none: "目元は変更しない",
@@ -101,11 +128,11 @@ const optionLabels = {
     natural: "自然な鼻"
   },
   face: {
-    none: "輪郭は変更しない",
-    vline: "Vライン小顔",
-    oval: "卵型フェイス",
-    sharp: "シャープな輪郭",
-    natural: "自然な輪郭"
+    none: "追加指定なし",
+    vline: "あご先を細く見せる",
+    oval: "頬の丸みを残し、あご先を細くする",
+    sharp: "頬からあごをシャープに見せる",
+    natural: "元の輪郭を活かす"
   },
   mouth: {
     none: "口元は変更しない",
@@ -135,12 +162,34 @@ const genderLabels = {
   female: "女性"
 };
 
+const fineDetailLabels = {
+  "shorten-face": "面長を短く見せる",
+  "slim-cheeks": "頬をすっきり見せる",
+  "soften-jaw": "エラの張りを目立ちにくくする",
+  "shorten-chin": "顎先を短く見せる",
+  "sharpen-jawline": "フェイスラインをシャープにする",
+  "open-eyes": "目をぱっちり大きく見せる",
+  "raise-eye-corners": "目尻を少し上げて見せる",
+  "soften-eye-corners": "目尻をやわらかく見せる",
+  "balance-eyes": "目の左右差を目立ちにくくする",
+  "emphasize-under-eye": "涙袋を自然に強調する",
+  "straighten-nose": "鼻筋をまっすぐ見せる",
+  "slim-nose-wings": "小鼻をすっきり見せる",
+  "refine-nose-tip": "鼻先を小さくすっきり見せる",
+  "lift-mouth-corners": "口角が上がった印象にする",
+  "fuller-lips": "唇に自然な立体感を出す",
+  "soften-mouth": "口元を控えめに見せる",
+  "round-forehead": "おでこに丸みを出す",
+  "smooth-forehead": "おでこの凹凸を目立ちにくくする"
+};
+
 faceImageInput.addEventListener("change", () => {
   const file = faceImageInput.files[0];
 
-  if (!file) {
-    selectedImageData = "";
-    imagePreview.innerHTML = "<span>画像を選択するとプレビューが表示されます</span>";
+  if (!file) return;
+  if (file.type && !file.type.startsWith("image/")) {
+    faceImageInput.value = "";
+    alert("画像ファイルを選択してください。");
     return;
   }
 
@@ -148,9 +197,302 @@ faceImageInput.addEventListener("change", () => {
   const imageGeneration = privacyGeneration;
   reader.addEventListener("load", () => {
     if (imageGeneration !== privacyGeneration) return;
-    setSelectedImage(reader.result);
+    openImageCrop(reader.result, imageGeneration);
+  });
+  reader.addEventListener("error", () => {
+    faceImageInput.value = "";
+    alert("画像を読み込めませんでした。別の画像を選択してください。");
   });
   reader.readAsDataURL(file);
+});
+
+function openImageCrop(imageData, imageGeneration) {
+  cropError.classList.add("hidden");
+  cropZoomInput.value = "1";
+  cropZoomValue.value = "100%";
+  cropImage.onload = () => {
+    if (imageGeneration !== privacyGeneration) return;
+    cropAspectLockInput.checked = false;
+    cropRatioStatus.textContent = "自由比率";
+    imageCropDialog.showModal();
+    requestAnimationFrame(() => {
+      fitCropViewportToImage(true);
+      const bounds = getCropViewportSize();
+      const coverScale = Math.max(
+        bounds.width / cropImage.naturalWidth,
+        bounds.height / cropImage.naturalHeight
+      );
+      cropOffsetX = 0;
+      cropOffsetY = Math.max(0, cropImage.naturalHeight * coverScale - bounds.height) * 0.14;
+      updateCropImagePosition();
+    });
+  };
+  cropImage.onerror = () => {
+    if (imageGeneration !== privacyGeneration) return;
+    faceImageInput.value = "";
+    alert("この画像を開けませんでした。別の画像を選択してください。");
+  };
+  cropImage.src = imageData;
+}
+
+function fitCropViewportToImage(reset = false) {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const previousWidthRatio = cropMaxWidth ? cropFrameWidth / cropMaxWidth : 1;
+  const previousHeightRatio = cropMaxHeight ? cropFrameHeight / cropMaxHeight : 1;
+  const aspectRatio = cropImage.naturalWidth / cropImage.naturalHeight;
+  const maxWidth = Math.min(cropViewport.parentElement.clientWidth, 560);
+  const maxHeight = Math.min(window.innerHeight * 0.55, 460);
+  cropMaxWidth = maxWidth;
+  cropMaxHeight = maxHeight;
+
+  if (reset || !cropFrameWidth || !cropFrameHeight) {
+    cropFrameWidth = Math.min(maxWidth, maxHeight * aspectRatio);
+    cropFrameHeight = cropFrameWidth / aspectRatio;
+  } else {
+    cropFrameWidth = maxWidth * previousWidthRatio;
+    cropFrameHeight = maxHeight * previousHeightRatio;
+    if (cropAspectLockInput.checked) {
+      const lockedRatio = cropFrameWidth / cropFrameHeight;
+      const fitScale = Math.min(1, maxWidth / cropFrameWidth, maxHeight / cropFrameHeight);
+      cropFrameWidth *= fitScale;
+      cropFrameHeight = cropFrameWidth / lockedRatio;
+    }
+  }
+
+  cropViewport.style.width = `${cropFrameWidth}px`;
+  cropViewport.style.height = `${cropFrameHeight}px`;
+  syncCropFrameControls();
+}
+
+function syncCropFrameControls() {
+  cropWidthInput.value = String(Math.round((cropFrameWidth / cropMaxWidth) * 100));
+  cropHeightInput.value = String(Math.round((cropFrameHeight / cropMaxHeight) * 100));
+  cropWidthValue.value = `${cropWidthInput.value}%`;
+  cropHeightValue.value = `${cropHeightInput.value}%`;
+}
+
+function resizeCropFrame(changedDimension) {
+  let width = cropMaxWidth * Number(cropWidthInput.value) / 100;
+  let height = cropMaxHeight * Number(cropHeightInput.value) / 100;
+
+  if (cropAspectLockInput.checked) {
+    const lockedRatio = cropFrameWidth / cropFrameHeight;
+    if (changedDimension === "width") {
+      height = width / lockedRatio;
+    } else {
+      width = height * lockedRatio;
+    }
+    const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
+    width *= fitScale;
+    height *= fitScale;
+  }
+
+  setCropFrameSize(width, height);
+}
+
+function setCropFrameSize(width, height) {
+  cropFrameWidth = Math.max(1, Math.min(cropMaxWidth, width));
+  cropFrameHeight = Math.max(1, Math.min(cropMaxHeight, height));
+  cropViewport.style.width = `${cropFrameWidth}px`;
+  cropViewport.style.height = `${cropFrameHeight}px`;
+  syncCropFrameControls();
+  updateCropImagePosition();
+}
+
+function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startHeight) {
+  const horizontalDirection = direction.includes("e") ? 1 : direction.includes("w") ? -1 : 0;
+  const verticalDirection = direction.includes("s") ? 1 : direction.includes("n") ? -1 : 0;
+  let width = startWidth + deltaX * horizontalDirection;
+  let height = startHeight + deltaY * verticalDirection;
+
+  if (cropAspectLockInput.checked) {
+    const ratio = startWidth / startHeight;
+    if (horizontalDirection) height = width / ratio;
+    else if (verticalDirection) width = height * ratio;
+  }
+
+  width = Math.max(80, width);
+  height = Math.max(80, height);
+  const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
+  width *= fitScale;
+  height *= fitScale;
+  setCropFrameSize(width, height);
+}
+
+function getCropViewportSize() {
+  return { width: cropViewport.clientWidth, height: cropViewport.clientHeight };
+}
+
+function updateCropImagePosition() {
+  if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+  const bounds = getCropViewportSize();
+  if (!bounds.width || !bounds.height) return;
+
+  const baseScale = Math.max(
+    bounds.width / cropImage.naturalWidth,
+    bounds.height / cropImage.naturalHeight
+  );
+  const scale = baseScale * Number(cropZoomInput.value);
+  const imageWidth = cropImage.naturalWidth * scale;
+  const imageHeight = cropImage.naturalHeight * scale;
+  const centeredLeft = (bounds.width - imageWidth) / 2;
+  const centeredTop = (bounds.height - imageHeight) / 2;
+  const left = Math.min(0, Math.max(bounds.width - imageWidth, centeredLeft + cropOffsetX));
+  const top = Math.min(0, Math.max(bounds.height - imageHeight, centeredTop + cropOffsetY));
+
+  cropOffsetX = left - centeredLeft;
+  cropOffsetY = top - centeredTop;
+  cropImage.style.width = `${imageWidth}px`;
+  cropImage.style.height = `${imageHeight}px`;
+  cropImage.style.left = `${left}px`;
+  cropImage.style.top = `${top}px`;
+}
+
+function createCroppedImageData() {
+  const bounds = getCropViewportSize();
+  const scale = Number.parseFloat(cropImage.style.width) / cropImage.naturalWidth;
+  const left = Number.parseFloat(cropImage.style.left);
+  const top = Number.parseFloat(cropImage.style.top);
+  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(left) || !Number.isFinite(top)) {
+    throw new Error("切り抜き範囲を準備できませんでした。もう一度お試しください。");
+  }
+  const sourceX = Math.max(0, -left / scale);
+  const sourceY = Math.max(0, -top / scale);
+  const sourceWidth = Math.min(bounds.width / scale, cropImage.naturalWidth - sourceX);
+  const sourceHeight = Math.min(bounds.height / scale, cropImage.naturalHeight - sourceY);
+  const output = document.createElement("canvas");
+  const aspectRatio = bounds.width / bounds.height;
+  output.width = aspectRatio >= 1 ? 1200 : Math.max(1, Math.round(1200 * aspectRatio));
+  output.height = aspectRatio >= 1 ? Math.max(1, Math.round(1200 / aspectRatio)) : 1200;
+  const context = output.getContext("2d");
+  if (!context || sourceWidth <= 0 || sourceHeight <= 0) {
+    throw new Error("切り抜き画像を作成できませんでした。");
+  }
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, output.width, output.height);
+  context.drawImage(
+    cropImage,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    output.width,
+    output.height
+  );
+  return output.toDataURL("image/jpeg", 0.9);
+}
+
+function cancelImageCrop() {
+  faceImageInput.value = "";
+  if (imageCropDialog.open) imageCropDialog.close();
+}
+
+cropZoomInput.addEventListener("input", () => {
+  cropZoomValue.value = `${Math.round(Number(cropZoomInput.value) * 100)}%`;
+  updateCropImagePosition();
+});
+
+cropWidthInput.addEventListener("input", () => resizeCropFrame("width"));
+cropHeightInput.addEventListener("input", () => resizeCropFrame("height"));
+cropAspectLockInput.addEventListener("change", () => {
+  cropRatioStatus.textContent = cropAspectLockInput.checked ? "比率固定" : "自由比率";
+});
+
+cropResizeHandles.forEach((handle) => {
+  handle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handle.setPointerCapture(event.pointerId);
+    cropResizeDrag = {
+      pointerId: event.pointerId,
+      direction: handle.dataset.cropHandle,
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: cropFrameWidth,
+      startHeight: cropFrameHeight
+    };
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!cropResizeDrag || event.pointerId !== cropResizeDrag.pointerId) return;
+    resizeCropFrameFromHandle(
+      cropResizeDrag.direction,
+      event.clientX - cropResizeDrag.startX,
+      event.clientY - cropResizeDrag.startY,
+      cropResizeDrag.startWidth,
+      cropResizeDrag.startHeight
+    );
+  });
+
+  const stopResize = (event) => {
+    if (cropResizeDrag?.pointerId === event.pointerId) cropResizeDrag = null;
+  };
+  handle.addEventListener("pointerup", stopResize);
+  handle.addEventListener("pointercancel", stopResize);
+});
+
+cropViewport.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+  event.preventDefault();
+  cropViewport.setPointerCapture(event.pointerId);
+  cropDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    offsetX: cropOffsetX,
+    offsetY: cropOffsetY
+  };
+});
+
+cropViewport.addEventListener("pointermove", (event) => {
+  if (!cropDrag || event.pointerId !== cropDrag.pointerId) return;
+  cropOffsetX = cropDrag.offsetX + event.clientX - cropDrag.startX;
+  cropOffsetY = cropDrag.offsetY + event.clientY - cropDrag.startY;
+  updateCropImagePosition();
+});
+
+cropViewport.addEventListener("pointerup", (event) => {
+  if (cropDrag?.pointerId === event.pointerId) cropDrag = null;
+});
+cropViewport.addEventListener("pointercancel", () => { cropDrag = null; });
+window.addEventListener("resize", () => {
+  if (imageCropDialog.open) {
+    fitCropViewportToImage();
+    updateCropImagePosition();
+  }
+});
+
+applyImageCropButton.addEventListener("click", () => {
+  try {
+    setSelectedImage(createCroppedImageData());
+    imageCropDialog.close();
+  } catch (error) {
+    cropError.textContent = error.message;
+    cropError.classList.remove("hidden");
+  }
+});
+
+cancelImageCropButton.addEventListener("click", cancelImageCrop);
+imageCropDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  cancelImageCrop();
+});
+imageCropDialog.addEventListener("close", () => {
+  cropImage.removeAttribute("src");
+  cropImage.style.removeProperty("width");
+  cropImage.style.removeProperty("height");
+  cropImage.style.removeProperty("left");
+  cropImage.style.removeProperty("top");
+  cropViewport.style.removeProperty("width");
+  cropViewport.style.removeProperty("height");
+  cropFrameWidth = 0;
+  cropFrameHeight = 0;
+  cropMaxWidth = 0;
+  cropMaxHeight = 0;
+  cropDrag = null;
+  cropResizeDrag = null;
 });
 
 const guidedScanSteps = [
@@ -444,10 +786,6 @@ saveButton.addEventListener("click", async () => {
   if (latestResult) await window.AccountData.saveHistory(latestResult);
 });
 
-clearHistoryButton.addEventListener("click", () => {
-  window.AccountData.clearHistory();
-});
-
 window.addEventListener("beforeunload", () => stopCamera());
 
 function setSelectedImage(imageData) {
@@ -455,6 +793,16 @@ function setSelectedImage(imageData) {
   analyzedImageData = "";
   latestFaceAnalysis = null;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
+  const previewImage = imagePreview.querySelector("img");
+  const updateComparisonAspect = () => {
+    if (!previewImage.naturalWidth || !previewImage.naturalHeight) return;
+    resultComparison.style.setProperty(
+      "--comparison-aspect-ratio",
+      `${previewImage.naturalWidth} / ${previewImage.naturalHeight}`
+    );
+  };
+  if (previewImage.complete) updateComparisonAspect();
+  else previewImage.addEventListener("load", updateComparisonAspect, { once: true });
 }
 
 function stopCamera(message = "カメラを停止しました。") {
@@ -488,6 +836,9 @@ function readProfile() {
     face: faceSelect.value,
     mouth: mouthSelect.value,
     forehead: foreheadSelect.value,
+    details: [...document.querySelectorAll('input[name="detail-option"]:checked')]
+      .map((input) => input.value)
+      .filter((value) => Object.hasOwn(fineDetailLabels, value)),
     custom: {
       style: styleCustomInput.value.trim(),
       eye: eyeCustomInput.value.trim(),
@@ -526,6 +877,7 @@ function createSimulationResult(requestText) {
     requestText,
     profile,
     designLabels,
+    adjustmentSummary: window.SimulationAdjustments.create(profile),
     category: designLabels.style,
     analysis,
     hospitals: matchedHospitals
@@ -626,7 +978,8 @@ function buildKeywords(requestText, profile, designLabels = createDesignLabels(p
     designLabels.nose,
     designLabels.face,
     designLabels.mouth,
-    designLabels.forehead
+    designLabels.forehead,
+    ...(profile.details || []).map((key) => fineDetailLabels[key]).filter(Boolean)
   ].join(" ");
 }
 
@@ -647,15 +1000,152 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
   const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺と「${clinicFocus}」を優先して選んでいます。` : `おすすめクリニックは「${clinicFocus}」を優先して選んでいます。`;
   const parts = [
     `性別：${genderLabels[profile.gender] || "未指定"}`,
-    `雰囲気：${designLabels.style}`,
+    `全体の見た目：${designLabels.style}`,
     `目元：${designLabels.eye}`,
     `鼻：${designLabels.nose}`,
     `輪郭：${designLabels.face}`,
     `口：${designLabels.mouth}`,
     `おでこ：${designLabels.forehead}`
   ].join("、");
+  const designDetails = createDesignDetails(profile);
+  const designDetailText = designDetails.length
+    ? `選択内容に合わせたデザイン目安：${designDetails.join("。 ")}。`
+    : "パーツの変更は指定せず、元の印象を保つデザインです。";
+  const procedureSuggestionText = createProcedureSuggestionText(profile);
 
-  return `${requestPart} ${parts}をもとにしたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
+  return `${requestPart} ${parts}をもとにしたAfter予測です。${designDetailText}${procedureSuggestionText}${regionPart}${priorityText[profile.priority]}画像生成によるシミュレーションで、実際の施術は行っていません。施術の適応や方法は医師にご相談ください。`;
+}
+
+function createDesignDetails(profile) {
+  const detailOptions = {
+    style: {
+      kawaii: "頬や輪郭に丸みを残します",
+      cool: "輪郭と目元をすっきり見せます",
+      korean: "目元を明るく華やかに見せます",
+      doll: "目をぱっちり大きく見せます",
+      natural: "元の顔立ちを活かし、各パーツのまとまりを整えます"
+    },
+    eye: {
+      wide: "二重ラインと目の縦幅を強調し、目元をはっきり見せます",
+      cat: "目尻側の横方向の印象を強め、切れ長に見せます",
+      soft: "目尻を下げたような、柔らかく優しい印象に寄せます",
+      natural: "元の目元を活かし、左右のバランスを整えます"
+    },
+    nose: {
+      high: "鼻筋の通った印象を強め、鼻先と顔全体のバランスを保ちます",
+      small: "小鼻の横幅を控えめに見せ、鼻先とのつながりを整えます",
+      sharp: "鼻先の輪郭をすっきり見せ、鼻筋との一体感を意識します",
+      natural: "元の鼻の形を活かし、顔全体との調和を優先します"
+    },
+    face: {
+      vline: "あご先を細く見せます",
+      oval: "頬の丸みを残し、あご先を細くします",
+      sharp: "頬からあごをシャープに見せます",
+      natural: "元の輪郭を活かし、顔全体の左右バランスを整えます"
+    },
+    mouth: {
+      full: "唇の厚みと立体感を強調します",
+      small: "口元の幅やボリュームを控えめに見せます",
+      smile: "口角が上がった明るい印象を意識します",
+      natural: "元の口元を活かし、顔全体との調和を優先します"
+    },
+    forehead: {
+      round: "おでこの中央に丸みがあるような柔らかい印象を意識します",
+      smooth: "凹凸を目立ちにくく見せ、滑らかな印象に整えます",
+      balanced: "眉・目元・輪郭との比率を見て、額の印象を整えます",
+      natural: "元のおでこの形を活かし、自然な印象を保ちます"
+    }
+  };
+  const fields = ["style", "eye", "nose", "face", "mouth", "forehead"];
+  return fields.flatMap((key) => {
+    const custom = profile.custom?.[key];
+    if (custom) return [`${key === "style" ? "全体の見た目" : key === "eye" ? "目元" : key === "nose" ? "鼻" : key === "face" ? "輪郭" : key === "mouth" ? "口元" : "おでこ"}は「${custom}」を優先します`];
+    if (profile[key] === "none") return [];
+    const detail = detailOptions[key]?.[profile[key]];
+    return detail ? [detail] : [];
+  }).concat((profile.details || [])
+    .map((key) => fineDetailLabels[key])
+    .filter(Boolean)
+    .map((detail) => `追加希望として「${detail}」を反映します`));
+}
+
+function createProcedureSuggestionText(profile) {
+  const procedureOptions = {
+    eye: {
+      wide: "二重の手術（埋没法・切開法など）",
+      cat: "目尻切開など",
+      soft: "下眼瞼下制術（たれ目形成）など"
+    },
+    nose: {
+      high: "隆鼻術など",
+      small: "鼻翼縮小術",
+      sharp: "鼻尖形成術"
+    },
+    face: {
+      vline: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）",
+      oval: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）",
+      sharp: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）"
+    },
+    mouth: {
+      full: "口唇へのヒアルロン酸注入など",
+      small: "口唇縮小術など",
+      smile: "口角挙上術など"
+    },
+    forehead: {
+      round: "額の形を整える治療（方法は医師に相談）",
+      smooth: "額の形を整える治療（方法は医師に相談）",
+      balanced: "額の形を整える治療（方法は医師に相談）"
+    }
+  };
+  const partNames = { eye: "目元", nose: "鼻", face: "輪郭", mouth: "口元", forehead: "おでこ" };
+  const suggestions = [];
+
+  for (const key of Object.keys(partNames)) {
+    if (profile.custom?.[key]) {
+      suggestions.push(`${partNames[key]}：自由入力の希望からは施術名を自動判定できません`);
+      continue;
+    }
+    const procedure = procedureOptions[key]?.[profile[key]];
+    if (procedure) suggestions.push(`${partNames[key]}：${procedure}`);
+  }
+
+  const content = suggestions.length ? suggestions.join("、") : "選択内容から特定できる候補はありません";
+  return `関連する施術候補の例（選択内容からの参考表示）：${content}。`;
+}
+
+function renderAdjustmentSummary(summary, generationStatus) {
+  adjustmentList.replaceChildren();
+  procedureList.replaceChildren();
+  const adjustments = Array.isArray(summary?.adjustments) ? summary.adjustments : [];
+  const procedures = Array.isArray(summary?.relatedProcedures) ? summary.relatedProcedures : [];
+  adjustmentStrength.textContent = `変化の強さ ${summary?.strength?.value ?? 50}%（${summary?.strength?.label || "標準"}）`;
+
+  for (const adjustment of adjustments) {
+    const item = document.createElement("article");
+    item.className = "adjustment-item";
+    const part = document.createElement("strong");
+    part.textContent = adjustment.part;
+    const change = document.createElement("p");
+    change.textContent = adjustment.change;
+    item.append(part, change);
+    adjustmentList.append(item);
+  }
+
+  if (!adjustments.length) {
+    const empty = document.createElement("p");
+    empty.className = "adjustment-empty";
+    empty.textContent = "パーツごとの変更は指定せず、元の印象を保つ条件で生成しました。";
+    adjustmentList.append(empty);
+  }
+
+  for (const procedure of procedures) {
+    const item = document.createElement("li");
+    item.textContent = `${procedure.part}：${procedure.examples.join("、")}`;
+    procedureList.append(item);
+  }
+  procedureExamples.hidden = !procedures.length;
+  adjustmentSummaryPanel.dataset.generationStatus = generationStatus || "unknown";
+  adjustmentSummaryPanel.classList.remove("hidden");
 }
 
 async function renderResult(result) {
@@ -664,6 +1154,7 @@ async function renderResult(result) {
   const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
+  adjustmentSummaryPanel.classList.add("hidden");
   saveButton.disabled = true;
 
   result.beforeImage = selectedImageData;
@@ -718,6 +1209,8 @@ async function renderResult(result) {
     `;
   }
 
+  renderAdjustmentSummary(result.adjustmentSummary, result.generationStatus);
+
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
   result.afterScore = result.afterFaceAnalysis?.ok ? result.afterFaceAnalysis.metrics.balanceScore : null;
   result.analysisText = analysisText.textContent;
@@ -759,6 +1252,12 @@ async function renderResult(result) {
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
   saveButton.disabled = false;
+
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  resultContent.querySelector(".comparison")?.scrollIntoView?.({
+    behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "center"
+  });
 }
 
 async function analyzeSelectedFace() {
@@ -898,6 +1397,9 @@ function runScanAnimation(profile, faceAnalysis) {
   if (faceAnalysis?.scan?.completed) {
     labels.unshift(`${faceAnalysis.scan.viewCount}方向スキャンで正面位置を確認`);
   }
+  if (profile.details?.length) {
+    labels.push(`細かい希望を${profile.details.length}項目反映`);
+  }
   labels.push(`性別：${genderLabels[profile.gender] || "未指定"}として生成`);
 
   partLabels.forEach((part) => {
@@ -1016,8 +1518,9 @@ function clamp(value, min, max) {
 }
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");
-  const width = 720;
-  const height = 720;
+  const scale = Math.min(1, 720 / Math.max(sourceImage.naturalWidth, sourceImage.naturalHeight));
+  const width = Math.max(1, Math.round(sourceImage.naturalWidth * scale));
+  const height = Math.max(1, Math.round(sourceImage.naturalHeight * scale));
   const baseCanvas = createCroppedCanvas(sourceImage, width, height);
   const warpedCanvas = warpFaceImage(baseCanvas, profile);
   const finalCanvas = applyBeautyFinish(warpedCanvas, profile);
@@ -1341,6 +1844,8 @@ window.AccountData.init({
 
 window.addEventListener("app-locked", () => {
   privacyGeneration++;
+  if (imageCropDialog.open) imageCropDialog.close();
+  cropImage.removeAttribute("src");
   stopCamera();
   resetGuidedScan();
   cameraPreview.srcObject = null;
@@ -1352,11 +1857,14 @@ window.addEventListener("app-locked", () => {
   faceImageInput.value = "";
   requestTextInput.value = "";
   imagePreview.replaceChildren();
+  resultComparison.style.removeProperty("--comparison-aspect-ratio");
   beforeImage.replaceChildren();
   afterImage.replaceChildren();
-  historyList.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
+  adjustmentList.replaceChildren();
+  procedureList.replaceChildren();
+  adjustmentSummaryPanel.classList.add("hidden");
   document.getElementById("clinic-summary").textContent = "";
   scanSteps.replaceChildren();
   scanPanel.classList.remove("is-scanning");

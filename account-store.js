@@ -2,7 +2,22 @@ const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
 const PARTS = ["style", "eye", "nose", "face", "mouth", "forehead"];
 const FIELDS = ["gender", ...PARTS, "imageEngine", "budget", "downtime", "clinicPriority", "priority"];
+const DETAIL_OPTIONS = new Set([
+  "shorten-face", "slim-cheeks", "soften-jaw", "shorten-chin", "sharpen-jawline",
+  "open-eyes", "raise-eye-corners", "soften-eye-corners", "balance-eyes", "emphasize-under-eye",
+  "straighten-nose", "slim-nose-wings", "refine-nose-tip", "lift-mouth-corners", "fuller-lips",
+  "soften-mouth", "round-forehead", "smooth-forehead"
+]);
 const HISTORY_LIMIT = 10;
+const PREFECTURES = [
+  "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+  "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+  "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
+  "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
+  "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+  "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
+  "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
+];
 class InputError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 function object(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
 function text(value, max) {
@@ -22,15 +37,54 @@ function normalizeSettings(input) {
     throw new InputError("変化の強さは0〜100で指定してください。");
   }
   profile.strength = source.strength;
+  const details = source.details === undefined ? [] : source.details;
+  if (!Array.isArray(details) || details.length > DETAIL_OPTIONS.size) throw new InputError("細かい希望の選択が不正です。");
+  profile.details = [...new Set(details.map((value) => text(value, 40)))];
+  if (profile.details.some((value) => !DETAIL_OPTIONS.has(value))) throw new InputError("細かい希望の選択が不正です。");
   profile.region = text(source.region, 200);
   if (!object(source.custom)) throw new InputError("自由入力が不正です。");
   profile.custom = Object.fromEntries(PARTS.map((key) => [key, text(source.custom[key], 500)]));
   return { requestText: text(input.requestText, 2000), profile };
 }
+function normalizeProfile(input) {
+  if (!object(input)) throw new InputError("プロフィールデータが不正です。");
+  if (typeof input.residencePrefecture !== "string") throw new InputError("都道府県を確認してください。");
+  const residencePrefecture = input.residencePrefecture.trim();
+  if (residencePrefecture.length > 4) throw new InputError("都道府県を確認してください。");
+  if (residencePrefecture && !PREFECTURES.includes(residencePrefecture)) {
+    throw new InputError("都道府県を確認してください。");
+  }
+  return { residencePrefecture };
+}
 function optionalScore(value) {
   if (value === null || value === undefined) return null;
   if (!Number.isInteger(value) || value < 0 || value > 100) throw new InputError("顔バランススコアが不正です。");
   return value;
+}
+function normalizeAdjustments(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 6) throw new InputError("調整内容が不正です。");
+  return value.map((item) => {
+    if (!object(item)) throw new InputError("調整内容が不正です。");
+    return { part: text(item.part, 30), change: text(item.change, 500) };
+  });
+}
+function normalizeAdjustmentStrength(value) {
+  if (value === undefined || value === null) return null;
+  if (!object(value) || !Number.isInteger(value.value) || value.value < 0 || value.value > 100) {
+    throw new InputError("調整の強さが不正です。");
+  }
+  return { value: value.value, label: text(value.label, 20) };
+}
+function normalizeRelatedProcedures(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 5) throw new InputError("関連施術例が不正です。");
+  return value.map((item) => {
+    if (!object(item) || !Array.isArray(item.examples) || item.examples.length > 5) {
+      throw new InputError("関連施術例が不正です。");
+    }
+    return { part: text(item.part, 30), examples: item.examples.map((example) => text(example, 100)) };
+  });
 }
 function normalizeResult(input) {
   const source = object(input) ? input : {};
@@ -47,6 +101,9 @@ function normalizeResult(input) {
     clinicNames: clinicNames.map((name) => text(name, 200)),
     generationModel: text(source.generationModel || "", 100),
     generationStatus,
+    adjustments: normalizeAdjustments(source.adjustments),
+    adjustmentStrength: normalizeAdjustmentStrength(source.adjustmentStrength),
+    relatedProcedures: normalizeRelatedProcedures(source.relatedProcedures),
     images: { before: false, after: false }
   };
 }
@@ -60,6 +117,12 @@ function createStore(db) {
     return db.collection("users").doc(uid).collection("private").doc(name);
   }
   return {
+    async profile(uid) { return (await ref(uid, "profile").get()).data()?.profile || null; },
+    async saveProfile(uid, profile) {
+      await ref(uid, "profile").set({ schemaVersion: 1, profile, updatedAt: new Date().toISOString() });
+      return profile;
+    },
+    async deleteProfile(uid) { await ref(uid, "profile").delete(); },
     async settings(uid) { return (await ref(uid, "settings").get()).data()?.settings || null; },
     async saveSettings(uid, settings) {
       await ref(uid, "settings").set({ schemaVersion: 1, settings, updatedAt: new Date().toISOString() });
@@ -126,15 +189,15 @@ function createAccountHandler({ authenticate = authorize, getStore, deleteImages
     try {
       const access = await authenticate(request);
       const url = new URL(request.url, "http://localhost");
-      const match = /^\/api\/account\/(settings|history)(?:\/([a-zA-Z0-9-]{16,64}))?$/.exec(url.pathname);
-      if (!match || url.search || (match[1] === "settings" && match[2])) return { status: 404, data: { error: "Not found" } };
+      const match = /^\/api\/account\/(profile|settings|history)(?:\/([a-zA-Z0-9-]{16,64}))?$/.exec(url.pathname);
+      if (!match || url.search || (["profile", "settings"].includes(match[1]) && match[2])) return { status: 404, data: { error: "Not found" } };
       const [, resource, id] = match;
       const method = request.method;
       if (!["GET", "PUT", "DELETE"].includes(method) || (id && method !== "DELETE")) return { status: 405, data: { error: "Method not allowed" } };
       let payload;
       if (method === "PUT") {
         const input = await readBody(request);
-        payload = normalizeSettings(input);
+        payload = resource === "profile" ? normalizeProfile(input) : normalizeSettings(input);
         if (resource === "history") payload = {
           ...payload, id: validId(input.id), category: text(input.category, 500),
           result: normalizeResult(input.result)
@@ -143,6 +206,12 @@ function createAccountHandler({ authenticate = authorize, getStore, deleteImages
       // Never take an owner ID from the body, query string or route.
       const uid = access.uid;
       const database = getStore();
+      if (resource === "profile") {
+        if (method === "GET") return { status: 200, data: { profile: await database.profile(uid) } };
+        if (method === "PUT") return { status: 200, data: { profile: await database.saveProfile(uid, payload) } };
+        await database.deleteProfile(uid);
+        return { status: 200, data: { profile: null } };
+      }
       if (resource === "settings") {
         if (method === "GET") return { status: 200, data: { settings: await database.settings(uid) } };
         if (method === "PUT") return { status: 200, data: { settings: await database.saveSettings(uid, payload) } };
@@ -175,4 +244,4 @@ function createAccountHandler({ authenticate = authorize, getStore, deleteImages
     }
   };
 }
-module.exports = { createStore, createAccountHandler, normalizeSettings, normalizeResult, HISTORY_LIMIT };
+module.exports = { createStore, createAccountHandler, normalizeSettings, normalizeProfile, normalizeResult, HISTORY_LIMIT, PREFECTURES };

@@ -5,10 +5,19 @@ const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
 const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
+const { createAccountDeleteHandler } = require("./account-delete");
+const { createClinicStore, createClinicHandler } = require("./clinic-store");
+const { createClinicAdminStore, createClinicAdminHandler } = require("./clinic-admin");
 const firebaseConfig = require("./firebase-config");
-const accountDatabase = createStore(new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" }));
+const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
+const accountDatabase = createStore(firestore);
+const clinicDatabase = createClinicStore(firestore);
+const clinicAdminDatabase = createClinicAdminStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
+const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
+const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
+const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdminDatabase });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -29,8 +38,28 @@ const server = http.createServer(async (request, response) => {
       sendResult(response, await imageService.handle(request));
       return;
     }
+    if (request.url === "/api/account" || request.url.startsWith("/api/account?")) {
+      const result = await handleAccountDelete(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
     if (request.url.startsWith("/api/account/")) {
       const result = await handleAccount(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url === "/api/admin/clinics" || request.url.startsWith("/api/admin/clinics?")) {
+      const result = await handleClinicAdmin(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url.startsWith("/api/admin/clinics/")) {
+      const result = await handleClinicAdmin(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url === "/api/clinics" || request.url.startsWith("/api/clinics?") || request.url.startsWith("/api/clinics/")) {
+      const result = await handleClinics(request);
       sendJson(response, result.status, result.data);
       return;
     }
@@ -260,6 +289,35 @@ function buildGeminiPrompt(body, options = {}) {
   const strength = body.profile?.strength ?? 50;
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const detailInstructions = {
+    "shorten-face": "make the face look slightly shorter vertically while keeping natural facial proportions",
+    "slim-cheeks": "make the cheeks look subtly slimmer",
+    "soften-jaw": "make a prominent jaw angle look softer",
+    "shorten-chin": "make the chin look slightly shorter",
+    "sharpen-jawline": "make the jawline look more defined",
+    "open-eyes": "make the eyes look more open and bright without changing identity",
+    "raise-eye-corners": "give the outer eye corners a subtly lifted appearance",
+    "soften-eye-corners": "give the outer eye corners a softer appearance",
+    "balance-eyes": "make the eyes appear more balanced while preserving natural asymmetry",
+    "emphasize-under-eye": "add subtle, natural-looking under-eye fullness",
+    "straighten-nose": "make the nose bridge appear straighter",
+    "slim-nose-wings": "make the nostril wings appear subtly narrower",
+    "refine-nose-tip": "make the nose tip appear slightly more refined",
+    "lift-mouth-corners": "give the mouth corners a subtly lifted appearance",
+    "fuller-lips": "add natural-looking lip fullness and dimension",
+    "soften-mouth": "make the mouth appear more understated",
+    "round-forehead": "give the forehead a subtly rounder appearance",
+    "smooth-forehead": "make forehead contours appear smoother"
+  };
+  const selectedDetailInstructions = Array.isArray(body.profile?.details)
+    ? [...new Set(body.profile.details)]
+      .filter((key) => Object.hasOwn(detailInstructions, key))
+      .slice(0, 18)
+      .map((key) => detailInstructions[key])
+    : [];
+  const detailGuide = selectedDetailInstructions.length
+    ? `Additional specific visual requests: ${selectedDetailInstructions.join("; ")}. Apply each as a modest appearance-only image change; do not imply a medical result.`
+    : "No additional fine-detail requests were selected.";
   const compact = Boolean(options.compact);
   const genderGuide = buildGenderGuide(body.profile?.gender);
   const faceGeometryGuide = buildFaceGeometryGuide(body.faceAnalysis);
@@ -270,12 +328,12 @@ function buildGeminiPrompt(body, options = {}) {
     parts: "Generation priority: strongly reflect the specified parts and custom requests. Requested eyes, nose, mouth, forehead, and contour changes should be visibly represented."
   };
   const strengthGuide = strength >= 75
-    ? "Apply a strong visual beauty design transformation. Make the Before and After clearly different by enhancing eyelid appearance, brighter eye impression, clearer nose bridge appearance, sharper face outline appearance, smaller-face impression, V-line style contour appearance, and balanced polished portrait aesthetics. Keep the same identity and a realistic human face."
+    ? "Apply the requested visual design changes strongly and clearly while keeping the same identity and a realistic human face. Do not alter any facial part marked as no change."
     : strength >= 60
-      ? "Apply a medium-strong visual beauty design transformation. The eyes, nose bridge appearance, face outline appearance, smaller-face impression, and portrait balance should be clearly improved while keeping the same identity and realism."
+      ? "Apply the requested visual design changes at a medium-strong intensity while keeping the same identity and realism. Do not alter any facial part marked as no change."
       : strength >= 35
-        ? "Apply a moderate beauty design retouch. Improve eye impression, nose bridge appearance, face outline appearance, and overall balance in a natural but noticeable way."
-        : "Apply a light natural beauty retouch. Keep changes gentle, but still make the requested style visible.";
+        ? "Apply the requested visual design changes at a moderate intensity so they are natural but noticeable. Do not alter any facial part marked as no change."
+        : "Apply the requested visual design changes lightly and naturally. Keep them gentle but visible, and do not alter any facial part marked as no change.";
 
   return [
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
@@ -284,6 +342,7 @@ function buildGeminiPrompt(body, options = {}) {
     "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
+    detailGuide,
     `User request: ${requestText}. Strength: ${strength}%.`,
     faceGeometryGuide,
     priorityGuide[generationPriority] || priorityGuide.natural,
@@ -333,10 +392,12 @@ function serveStatic(request, response) {
   const urlPath = decodeURIComponent(requestUrl.pathname);
   // Only explicitly public assets may be served. Never expose .env, source,
   // dependencies, Git metadata or server-side access policy.
+  const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
+  const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
-    "/", "/index.html", "/login.html", "/app.html", "/style.css", "/script.js", "/auth-client.js",
-    "/account-data.js", "/face-analysis.js", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css"
+    "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
+    "/account-data.js", "/face-analysis.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
+    "/navigation.js", "/navigation.css", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);

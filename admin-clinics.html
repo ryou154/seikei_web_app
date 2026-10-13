@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4fbff">
+  <title>クリニック管理 | MEYLON</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="admin-clinics.css">
+  <script src="navigation.js" defer></script>
+  <script src="admin-clinics.js" defer></script>
+</head>
+<body class="app-page admin-clinics-page">
+  <div id="common-navigation"></div>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Clinic administration</p>
+      <h1>クリニック管理</h1>
+      <p class="lead">未確認候補を公式情報と照合し、内容を確認してから公開します。</p>
+    </div>
+  </header>
+  <div id="page-transition-content">
+    <main id="app-content" class="admin-layout" hidden>
+      <aside class="panel candidate-panel" aria-labelledby="candidate-heading">
+        <div class="candidate-heading-row">
+          <div>
+            <p class="eyebrow">Candidates</p>
+            <h2 id="candidate-heading">確認候補</h2>
+          </div>
+          <button id="admin-reload" type="button" class="sub-button">再読込</button>
+        </div>
+        <label for="admin-status-filter">表示する状態</label>
+        <select id="admin-status-filter">
+          <option value="draft">下書き</option>
+          <option value="published">公開済み</option>
+          <option value="all">すべて</option>
+        </select>
+        <p id="candidate-status" class="admin-status" role="status" aria-live="polite"></p>
+        <div id="candidate-list" class="candidate-list"></div>
+        <div class="candidate-pagination">
+          <button id="candidate-previous" type="button" class="sub-button" disabled>前へ</button>
+          <button id="candidate-next" type="button" class="sub-button" disabled>次へ</button>
+        </div>
+      </aside>
+
+      <section class="panel editor-panel" aria-labelledby="editor-heading">
+        <div class="editor-heading-row">
+          <div>
+            <p class="eyebrow">Official review</p>
+            <h2 id="editor-heading">公式情報を確認</h2>
+          </div>
+          <span id="editor-badge" class="status-badge">未選択</span>
+        </div>
+        <div id="editor-empty" class="editor-empty">左の一覧から候補を選択してください。</div>
+        <form id="clinic-editor" hidden>
+          <div class="place-preview">
+            <div>
+              <span class="field-label">Place ID</span>
+              <code id="clinic-place-id"></code>
+            </div>
+            <div>
+              <span class="field-label">Google候補名（一時表示）</span>
+              <strong id="place-preview-name">未取得</strong>
+              <a id="place-preview-map" href="#" target="_blank" rel="noopener" hidden>Google Mapsで確認</a>
+            </div>
+            <p id="place-attribution" class="place-attribution" hidden>
+              <img src="https://developers.google.com/static/maps/documentation/images/google_on_white.png" alt="Google">
+              提供情報（画面表示時に取得し、保存しません）
+            </p>
+          </div>
+
+          <fieldset>
+            <legend>基本情報</legend>
+            <div class="form-grid">
+              <label>クリニック名<input id="clinic-name" maxlength="200" required></label>
+              <label>都道府県<input id="clinic-prefecture" maxlength="10" required></label>
+              <label>市区町村<input id="clinic-city" maxlength="100"></label>
+              <label>エリア<input id="clinic-area" maxlength="100"></label>
+              <label class="wide">住所<input id="clinic-address" maxlength="300"></label>
+              <label>電話番号<input id="clinic-phone" maxlength="50"></label>
+              <label>営業状態
+                <select id="clinic-business-status">
+                  <option value="">未確認</option>
+                  <option value="OPERATIONAL">営業中</option>
+                  <option value="CLOSED_TEMPORARILY">一時休業</option>
+                  <option value="CLOSED_PERMANENTLY">閉業</option>
+                </select>
+              </label>
+              <label class="wide">公式サイトURL<input id="clinic-official-url" type="url" placeholder="https://" required></label>
+              <label class="wide">診療時間<textarea id="clinic-opening-hours" rows="3" maxlength="1000"></textarea></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>施術・検索情報</legend>
+            <div class="form-grid">
+              <label class="wide">対応施術（1行1件）<textarea id="clinic-treatments" rows="5"></textarea></label>
+              <label class="wide">タグ（1行1件）<textarea id="clinic-tags" rows="3"></textarea></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>料金・追加費用</legend>
+            <p class="format-note">1行ごとに「施術名｜表示料金｜条件（カンマ区切り）｜追加費用（カンマ区切り）｜情報源URL」</p>
+            <textarea id="clinic-pricing" rows="6"></textarea>
+          </fieldset>
+
+          <fieldset>
+            <legend>医師・資格</legend>
+            <p class="format-note">1行ごとに「医師名｜役職｜得意分野（カンマ区切り）｜資格（カンマ区切り）｜情報源URL」</p>
+            <textarea id="clinic-doctors" rows="6"></textarea>
+          </fieldset>
+
+          <fieldset>
+            <legend>症例件数</legend>
+            <div class="form-grid">
+              <label class="wide">概要<textarea id="clinic-case-summary" rows="3"></textarea></label>
+              <label>集計期間<input id="clinic-case-period" maxlength="100"></label>
+              <label>集計範囲<input id="clinic-case-scope" maxlength="200"></label>
+              <label class="wide">情報源URL<input id="clinic-case-source" type="url" placeholder="https://"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>ダウンタイム・リスク</legend>
+            <p class="format-note">1行ごとに「項目｜説明｜対象施術｜情報源URL」</p>
+            <textarea id="clinic-risks" rows="6"></textarea>
+          </fieldset>
+
+          <fieldset>
+            <legend>保証・アフターケア</legend>
+            <p class="format-note">1行ごとに「項目｜説明｜対象施術｜情報源URL」</p>
+            <textarea id="clinic-aftercare" rows="6"></textarea>
+          </fieldset>
+
+          <fieldset>
+            <legend>確認・公開</legend>
+            <div class="form-grid">
+              <label>確認状態
+                <select id="clinic-verification-status">
+                  <option value="unverified">未確認</option>
+                  <option value="needs_review">要再確認</option>
+                  <option value="verified">確認済み</option>
+                </select>
+              </label>
+              <label>公開状態
+                <select id="clinic-publication-status">
+                  <option value="draft">下書き</option>
+                  <option value="published">公開</option>
+                </select>
+              </label>
+              <label class="wide">情報源URL（1行1件、公式サイトのみ）<textarea id="clinic-sources" rows="4" required></textarea></label>
+            </div>
+          </fieldset>
+
+          <p id="editor-status" class="admin-status" role="status" aria-live="polite"></p>
+          <div class="editor-actions">
+            <button id="save-draft" type="button" class="sub-button">下書き保存</button>
+            <button id="publish-clinic" type="button" class="main-button">確認して公開</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="auth-core.js"></script>
+</body>
+</html>
