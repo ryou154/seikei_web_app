@@ -82,6 +82,32 @@ Firebase ConsoleでGoogle・メール／パスワードを有効化し、Cloud R
 
 テスト: `pnpm test`。デプロイ後は対象アカウントでGoogleログイン、メール登録・確認、再設定、ログアウトとアカウント切替を確認してください。確認メール・再設定メールの実送信は自動テストでは行いません。
 
+## クリニック情報API
+
+クリニック情報はCloud RunからFirestoreへ接続し、ログイン済みユーザーだけが次のAPIを利用できます。ブラウザからFirestoreやGoogle Places APIを直接呼び出しません。
+
+```text
+GET /api/clinics
+GET /api/clinics/:clinicId
+```
+
+一覧APIでは `prefecture`、`city`、`keyword`、`treatment`、`hasPricing`、`verificationStatus`、`page`、`limit` を指定できます。公開状態が `published` の情報だけを返し、内部確認メモなどはレスポンスに含めません。
+
+既存の21院をFirestore用データへ変換するときは、最初にドライランを実行します。
+
+```powershell
+npm run clinics:check
+```
+
+Firestoreへ書き込む場合だけ確認用環境変数を付けます。Firebase Admin SDKのApplication Default CredentialsとFirestore書き込み権限が必要です。
+
+```powershell
+$env:CONFIRM_CLINIC_IMPORT="yes"
+npm run clinics:import
+```
+
+移行処理は同じIDへ再実行でき、既存ドキュメントの `createdAt` は保持します。従来データでは営業状態、料金詳細、リスク、保証などを確認できないため推測せず、確認状態を `needs_review` として登録します。
+
 ## Gemini APIについて
 
 現在、画像生成には次のモデルを使用しています。
@@ -215,12 +241,14 @@ seikei_web_app/
 ├─ navigation.js     共通ナビゲーション
 ├─ account-data.js   設定・履歴の画面操作
 ├─ account-store.js  Firestore保存API
+├─ clinic-store.js   クリニック検索・詳細API
 ├─ image-store.js    Cloud Storage画像保存API
 ├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
 ├─ server.js         Cloud Run用サーバー、認証・Firestore・Storage・Gemini API中継
 ├─ Dockerfile        Cloud Run用コンテナ設定
 ├─ package.json      Node.js起動設定
 ├─ start-server.ps1  ローカル起動用スクリプト
+├─ scripts/          Firestoreへのクリニック移行スクリプト
 ├─ data/             データ類
 └─ images/           画像素材
 ```

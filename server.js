@@ -6,11 +6,15 @@ const { authorize } = require("./auth-server");
 const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
 const { createAccountDeleteHandler } = require("./account-delete");
+const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const firebaseConfig = require("./firebase-config");
-const accountDatabase = createStore(new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" }));
+const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
+const accountDatabase = createStore(firestore);
+const clinicDatabase = createClinicStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
+const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -38,6 +42,11 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.url.startsWith("/api/account/")) {
       const result = await handleAccount(request);
+      sendJson(response, result.status, result.data);
+      return;
+    }
+    if (request.url === "/api/clinics" || request.url.startsWith("/api/clinics?") || request.url.startsWith("/api/clinics/")) {
+      const result = await handleClinics(request);
       sendJson(response, result.status, result.data);
       return;
     }

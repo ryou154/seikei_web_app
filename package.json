@@ -7,7 +7,9 @@
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "clinics:check": "node --env-file-if-exists=.env scripts/import-clinics.js",
+    "clinics:import": "node --env-file-if-exists=.env scripts/import-clinics.js --write"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.2.0",

@@ -54,6 +54,8 @@ test("history read, save and deletion reject missing or forged authentication ov
       ["GET", "/api/session"],
       ["GET", "/api/account/history"],
       ["GET", "/api/account/profile"],
+      ["GET", "/api/clinics"],
+      ["GET", "/api/clinics/clinic-test"],
       ["PUT", "/api/account/history"],
       ["DELETE", "/api/account/history"],
       ["DELETE", "/api/account"],
