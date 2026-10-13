@@ -60,6 +60,11 @@ const resultComparison = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
+const adjustmentSummaryPanel = document.getElementById("adjustment-summary");
+const adjustmentStrength = document.getElementById("adjustment-strength");
+const adjustmentList = document.getElementById("adjustment-list");
+const procedureExamples = document.getElementById("procedure-examples");
+const procedureList = document.getElementById("procedure-list");
 const hospitalList = document.getElementById("hospital-list");
 const faceScorePanel = document.getElementById("face-score-panel");
 const beforeScoreValue = document.getElementById("before-score");
@@ -848,6 +853,7 @@ function createSimulationResult(requestText) {
     requestText,
     profile,
     designLabels,
+    adjustmentSummary: window.SimulationAdjustments.create(profile),
     category: designLabels.style,
     analysis,
     hospitals: matchedHospitals
@@ -980,12 +986,48 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
   return `${requestPart} ${parts}をもとにしたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
 }
 
+function renderAdjustmentSummary(summary, generationStatus) {
+  adjustmentList.replaceChildren();
+  procedureList.replaceChildren();
+  const adjustments = Array.isArray(summary?.adjustments) ? summary.adjustments : [];
+  const procedures = Array.isArray(summary?.relatedProcedures) ? summary.relatedProcedures : [];
+  adjustmentStrength.textContent = `変化の強さ ${summary?.strength?.value ?? 50}%（${summary?.strength?.label || "標準"}）`;
+
+  for (const adjustment of adjustments) {
+    const item = document.createElement("article");
+    item.className = "adjustment-item";
+    const part = document.createElement("strong");
+    part.textContent = adjustment.part;
+    const change = document.createElement("p");
+    change.textContent = adjustment.change;
+    item.append(part, change);
+    adjustmentList.append(item);
+  }
+
+  if (!adjustments.length) {
+    const empty = document.createElement("p");
+    empty.className = "adjustment-empty";
+    empty.textContent = "パーツごとの変更は指定せず、元の印象を保つ条件で生成しました。";
+    adjustmentList.append(empty);
+  }
+
+  for (const procedure of procedures) {
+    const item = document.createElement("li");
+    item.textContent = `${procedure.part}：${procedure.examples.join("、")}`;
+    procedureList.append(item);
+  }
+  procedureExamples.hidden = !procedures.length;
+  adjustmentSummaryPanel.dataset.generationStatus = generationStatus || "unknown";
+  adjustmentSummaryPanel.classList.remove("hidden");
+}
+
 async function renderResult(result) {
   const ownerUid = window.AppAuth?.uid;
   if (!ownerUid) return;
   const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
+  adjustmentSummaryPanel.classList.add("hidden");
   saveButton.disabled = true;
 
   result.beforeImage = selectedImageData;
@@ -1039,6 +1081,8 @@ async function renderResult(result) {
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
     `;
   }
+
+  renderAdjustmentSummary(result.adjustmentSummary, result.generationStatus);
 
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
   result.afterScore = result.afterFaceAnalysis?.ok ? result.afterFaceAnalysis.metrics.balanceScore : null;
@@ -1688,6 +1732,9 @@ window.addEventListener("app-locked", () => {
   afterImage.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
+  adjustmentList.replaceChildren();
+  procedureList.replaceChildren();
+  adjustmentSummaryPanel.classList.add("hidden");
   document.getElementById("clinic-summary").textContent = "";
   scanSteps.replaceChildren();
   scanPanel.classList.remove("is-scanning");

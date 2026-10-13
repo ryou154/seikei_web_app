@@ -102,7 +102,7 @@ test("login page starts locked and public assets are available", async () => {
     assert.match(html, /src="navigation\.js"/);
     assert.match(html, /href="navigation\.css"/);
   }
-  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js"]) {
+  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js", "/simulation-adjustments.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
   assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);

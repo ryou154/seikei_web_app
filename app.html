@@ -338,6 +338,23 @@
           <p id="analysis-text"></p>
         </div>
 
+        <section id="adjustment-summary" class="adjustment-summary hidden" aria-labelledby="adjustment-summary-title">
+          <div class="adjustment-summary-heading">
+            <div>
+              <p class="section-kicker">Applied design</p>
+              <h3 id="adjustment-summary-title">After画像に反映した調整内容</h3>
+            </div>
+            <span id="adjustment-strength" class="adjustment-strength"></span>
+          </div>
+          <p class="adjustment-summary-note">画像生成時に指定した内容です。生成画像から医療行為や効果を判定したものではありません。</p>
+          <div id="adjustment-list" class="adjustment-list"></div>
+          <div id="procedure-examples" class="procedure-examples" hidden>
+            <h4>関連する施術例</h4>
+            <p>希望した見た目に関連する一般的な例です。適応や方法は医師の診察で異なります。</p>
+            <ul id="procedure-list"></ul>
+          </div>
+        </section>
+
       </div>
     </section>
 
@@ -388,6 +405,7 @@
   <script src="data/clinics.js"></script>
   <script src="data/clinic-details.js"></script>
   <script src="face-analysis.js"></script>
+  <script src="simulation-adjustments.js"></script>
   <script src="account-data.js"></script>
   <script type="module" src="auth-core.js"></script>
   <script type="module">

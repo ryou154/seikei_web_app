@@ -32,6 +32,16 @@
 .history-detail dt { color: var(--muted); font-size: 12px; font-weight: 700; }
 .history-detail dd { margin: 4px 0 0; overflow-wrap: anywhere; }
 .history-scores { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.history-adjustments { margin: 16px 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.history-adjustments-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.history-adjustments-heading h4 { margin-bottom: 0; }
+.history-adjustment-strength { padding: 5px 8px; border-radius: 8px; background: var(--blue-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.history-adjustment-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.history-adjustment-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.history-adjustment-item { min-width: 0; padding: 10px 12px; border-radius: 8px; background: var(--soft); }
+.history-adjustment-item p { margin: 4px 0 0; line-height: 1.6; }
+.history-adjustments h5 { margin: 14px 0 4px; font-size: 14px; }
+.history-procedure-list { margin: 6px 0; padding-left: 1.3em; line-height: 1.75; }
 .history-score { flex: 1 1 130px; padding: 12px; border-radius: 8px; background: var(--blue-soft); }
 .history-score strong { display: block; margin-top: 3px; font-size: 20px; }
 .history-disclaimer, .history-image-message { color: var(--muted); font-size: 12px; line-height: 1.6; }
@@ -46,6 +56,8 @@
   .history-heading-row, .history-card-header { align-items: stretch; flex-direction: column; }
   .history-toolbar button, .history-actions button { flex: 1 1 140px; }
   .history-details { grid-template-columns: minmax(0, 1fr); }
+  .history-adjustments-heading { flex-direction: column; }
+  .history-adjustment-list { grid-template-columns: minmax(0, 1fr); }
   .history-images { grid-template-columns: minmax(0, 1fr); }
   .history-layout { width: min(100% - 20px, 1000px); }
 }

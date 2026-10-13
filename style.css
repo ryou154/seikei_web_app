@@ -527,6 +527,60 @@ button:disabled {
   line-height: 1.85;
 }
 
+.adjustment-summary {
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.adjustment-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.adjustment-summary-heading h3 { margin-bottom: 0; }
+.adjustment-strength {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.adjustment-summary-note,
+.procedure-examples > p,
+.adjustment-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.adjustment-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.adjustment-item {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.adjustment-item strong { color: var(--primary-dark); }
+.adjustment-item p { margin: 5px 0 0; line-height: 1.6; }
+.procedure-examples { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.procedure-examples h4 { margin-bottom: 6px; }
+.procedure-examples ul { margin: 10px 0 0; padding-left: 1.3em; line-height: 1.8; }
+
 .hospital-list,
 .history-list {
   display: grid;
@@ -1053,6 +1107,8 @@ body.camera-open {
 .auth-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
 #auth-status { overflow-wrap: anywhere; }
 @media (max-width: 700px) {
+  .adjustment-summary-heading { flex-direction: column; }
+  .adjustment-list { grid-template-columns: minmax(0, 1fr); }
   .auth-panel { margin: 12px; }
   .auth-buttons { flex-direction: column; }
 }

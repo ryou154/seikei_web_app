@@ -53,3 +53,14 @@ test("history images keep the before then after order regardless of fetch timing
   assert.match(source, /imageArea\.append\(\.\.\.items\.map\(\(\{ element \}\) => element\)\)/);
   assert.doesNotMatch(source, /imageArea\.append\(figure\)/);
 });
+
+test("result and history pages explain applied adjustments separately from procedure examples", () => {
+  const app = read("app.html");
+  const accountData = read("account-data.js");
+  const history = read("history-page.js");
+  assert.match(app, /After画像に反映した調整内容/);
+  assert.match(app, /関連する施術例/);
+  assert.match(accountData, /adjustments: result\.adjustmentSummary\?\.adjustments/);
+  assert.match(history, /buildAdjustmentSummary\(result\)/);
+  assert.match(history, /医療行為や効果を判定したものではありません/);
+});

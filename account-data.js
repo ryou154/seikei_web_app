@@ -102,7 +102,10 @@
           analysis: result.analysisText || result.analysis || "",
           clinicNames: result.clinicNames || [],
           generationModel: result.generationModel || "",
-          generationStatus: result.generationStatus || "unknown"
+          generationStatus: result.generationStatus || "unknown",
+          adjustments: result.adjustmentSummary?.adjustments || [],
+          adjustmentStrength: result.adjustmentSummary?.strength || null,
+          relatedProcedures: result.adjustmentSummary?.relatedProcedures || []
         }
       };
       await request("/api/account/history", { method: "PUT", body: JSON.stringify(payload) });

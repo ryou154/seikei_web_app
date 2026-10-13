@@ -51,6 +51,31 @@ function optionalScore(value) {
   if (!Number.isInteger(value) || value < 0 || value > 100) throw new InputError("顔バランススコアが不正です。");
   return value;
 }
+function normalizeAdjustments(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 6) throw new InputError("調整内容が不正です。");
+  return value.map((item) => {
+    if (!object(item)) throw new InputError("調整内容が不正です。");
+    return { part: text(item.part, 30), change: text(item.change, 500) };
+  });
+}
+function normalizeAdjustmentStrength(value) {
+  if (value === undefined || value === null) return null;
+  if (!object(value) || !Number.isInteger(value.value) || value.value < 0 || value.value > 100) {
+    throw new InputError("調整の強さが不正です。");
+  }
+  return { value: value.value, label: text(value.label, 20) };
+}
+function normalizeRelatedProcedures(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 5) throw new InputError("関連施術例が不正です。");
+  return value.map((item) => {
+    if (!object(item) || !Array.isArray(item.examples) || item.examples.length > 5) {
+      throw new InputError("関連施術例が不正です。");
+    }
+    return { part: text(item.part, 30), examples: item.examples.map((example) => text(example, 100)) };
+  });
+}
 function normalizeResult(input) {
   const source = object(input) ? input : {};
   const clinicNames = Array.isArray(source.clinicNames) ? source.clinicNames : [];
@@ -66,6 +91,9 @@ function normalizeResult(input) {
     clinicNames: clinicNames.map((name) => text(name, 200)),
     generationModel: text(source.generationModel || "", 100),
     generationStatus,
+    adjustments: normalizeAdjustments(source.adjustments),
+    adjustmentStrength: normalizeAdjustmentStrength(source.adjustmentStrength),
+    relatedProcedures: normalizeRelatedProcedures(source.relatedProcedures),
     images: { before: false, after: false }
   };
 }

@@ -113,6 +113,35 @@
     return optionLabels[field]?.[storedValue] || storedValue;
   }
 
+  function buildAdjustmentSummary(result) {
+    const adjustments = Array.isArray(result.adjustments) ? result.adjustments : [];
+    const procedures = Array.isArray(result.relatedProcedures) ? result.relatedProcedures : [];
+    if (!adjustments.length && !procedures.length) return null;
+    const section = node("section", "history-adjustments");
+    const heading = node("div", "history-adjustments-heading");
+    heading.append(node("h4", "", "After画像に反映した調整内容"));
+    if (result.adjustmentStrength) {
+      heading.append(node("span", "history-adjustment-strength", `${result.adjustmentStrength.value}%（${result.adjustmentStrength.label}）`));
+    }
+    section.append(heading, node("p", "history-adjustment-note", "画像生成時に指定した内容です。医療行為や効果を判定したものではありません。"));
+    const list = node("div", "history-adjustment-list");
+    for (const adjustment of adjustments) {
+      const item = node("div", "history-adjustment-item");
+      item.append(node("strong", "", adjustment.part), node("p", "", adjustment.change));
+      list.append(item);
+    }
+    section.append(list);
+    if (procedures.length) {
+      section.append(node("h5", "", "関連する施術例"));
+      const procedureList = node("ul", "history-procedure-list");
+      for (const procedure of procedures) {
+        procedureList.append(node("li", "", `${procedure.part}：${procedure.examples.join("、")}`));
+      }
+      section.append(procedureList, node("p", "history-adjustment-note", "一般的な参考例です。適応や方法は医師の診察で異なります。"));
+    }
+    return section;
+  }
+
   function buildCard(entry) {
     const card = node("article", "history-card");
     const heading = node("div", "history-card-header");
@@ -138,6 +167,7 @@
     appendDetail(fields, "ダウンタイム", displayOption("downtime", "", profile.downtime));
 
     const result = entry.result || {};
+    const adjustmentSummary = buildAdjustmentSummary(result);
     const scores = node("div", "history-scores");
     for (const [label, value] of [["変更前", result.beforeScore], ["変更後", result.afterScore]]) {
       const score = node("div", "history-score");
@@ -194,7 +224,9 @@
     remove.addEventListener("click", () => deleteEntry(entry, remove));
     actions.append(load, repeat, remove);
 
-    card.append(heading, request, fields, scores, disclaimer, imageMessage, imageArea, actions);
+    card.append(heading, request, fields);
+    if (adjustmentSummary) card.append(adjustmentSummary);
+    card.append(scores, disclaimer, imageMessage, imageArea, actions);
     return card;
   }
 
