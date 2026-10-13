@@ -8,8 +8,9 @@ function setup() {
   const nodes = new Map();
   function node(id) {
     if (!nodes.has(id)) nodes.set(id, {
-      value: "", textContent: "", innerHTML: "", style: {}, files: [{}], width: 720,
+      value: "", textContent: "", innerHTML: "", style: { removeProperty() {} }, files: [{}], width: 720,
       listeners: {}, addEventListener(event, handler) { this.listeners[event] = handler; },
+      removeAttribute() {},
       replaceChildren() { this.innerHTML = ""; this.textContent = ""; },
       classList: { add() {}, remove() {}, toggle() {} },
       querySelectorAll() { return []; }
@@ -23,8 +24,17 @@ function setup() {
     addEventListener(event, handler) { events[event] = handler; }
   };
   const context = vm.createContext({
-    window, document: { getElementById: node, body: node("body") },
-    console, setTimeout, clearTimeout, setInterval, clearInterval,
+    window, document: {
+      getElementById: node,
+      querySelector: () => node("comparison"),
+      querySelectorAll: () => [],
+      body: node("body")
+    },
+    console,
+    setTimeout: () => 1,
+    clearTimeout() {},
+    setInterval: () => 1,
+    clearInterval() {},
     FileReader: class {
       constructor() { readers.push(this); }
       addEventListener(event, handler) { this[event] = handler; }
