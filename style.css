@@ -1702,12 +1702,26 @@ button:hover:not(:disabled) {
 .crop-ratio-lock {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
+  width: fit-content;
+  margin: 14px 0 4px;
+  padding: 10px 14px;
+  border: 1px solid #cfe3ea;
+  border-radius: 10px;
+  background: #f3f9fb;
   color: var(--ink);
+  line-height: 1.4;
   font-weight: 700;
+  cursor: pointer;
 }
 
-.crop-ratio-lock input { accent-color: var(--primary); }
+.crop-ratio-lock input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+}
 
 .crop-image {
   position: absolute;
