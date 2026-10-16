@@ -317,6 +317,18 @@ button:disabled {
   text-align: center;
   overflow: hidden;
 }
+.secondary-button { margin-top: 8px; background: #eef5f8; color: var(--ink); }
+.crop-modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgb(20 35 45 / 68%); }
+.crop-modal[hidden] { display: none; }
+.crop-dialog { width: min(720px, 100%); max-height: 92vh; overflow: auto; padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 20px 60px rgb(0 0 0 / 25%); }
+.crop-stage { position: relative; width: min(620px, 100%); margin: 16px auto; background: #111; }
+.crop-stage canvas { display: block; width: 100%; height: auto; }
+.crop-handles { position: absolute; inset: 0; pointer-events: none; }
+.crop-handle { position: absolute; width: 16px; height: 16px; transform: translate(-50%, -50%); border: 2px solid #fff; border-radius: 50%; background: #4d9abd; box-shadow: 0 1px 4px #0008; pointer-events: auto; touch-action: none; }
+.crop-handle.n, .crop-handle.s { cursor: ns-resize; }
+.crop-handle.e, .crop-handle.w { cursor: ew-resize; }
+.crop-handle.nw, .crop-handle.ne, .crop-handle.sw, .crop-handle.se { cursor: nwse-resize; }
+.crop-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 .preview img,
 .image-placeholder img,
