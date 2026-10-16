@@ -6,7 +6,12 @@ const DETAIL_OPTIONS = new Set([
   "shorten-face", "slim-cheeks", "soften-jaw", "shorten-chin", "sharpen-jawline",
   "open-eyes", "raise-eye-corners", "soften-eye-corners", "balance-eyes", "emphasize-under-eye",
   "straighten-nose", "slim-nose-wings", "refine-nose-tip", "lift-mouth-corners", "fuller-lips",
-  "soften-mouth", "round-forehead", "smooth-forehead"
+  "soften-mouth", "round-forehead", "smooth-forehead",
+  "balance-face-length", "center-face", "balance-cheekbones", "soften-face-outline",
+  "balance-brows", "lower-brow-distance", "brighten-eyes", "reduce-eye-fatigue",
+  "smooth-skin", "natural-skin-texture", "reduce-shine", "soften-shadows",
+  "hair-removal-after", "reduce-facial-hair-shadow", "even-skin-tone", "reduce-redness",
+  "bright-clear-skin"
 ]);
 const HISTORY_LIMIT = 10;
 const PREFECTURES = [
@@ -37,6 +42,7 @@ function normalizeSettings(input) {
     throw new InputError("変化の強さは0〜100で指定してください。");
   }
   profile.strength = source.strength;
+  profile.detailFreeText = text(source.detailFreeText === undefined ? "" : source.detailFreeText, 1000);
   const details = source.details === undefined ? [] : source.details;
   if (!Array.isArray(details) || details.length > DETAIL_OPTIONS.size) throw new InputError("細かい希望の選択が不正です。");
   profile.details = [...new Set(details.map((value) => text(value, 40)))];
