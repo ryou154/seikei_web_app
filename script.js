@@ -774,6 +774,7 @@ function setSelectedImage(imageData) {
   selectedImageData = imageData;
   analyzedImageData = "";
   latestFaceAnalysis = null;
+  simulateButton.disabled = false;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
 }
 
