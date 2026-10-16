@@ -731,7 +731,6 @@ function completeGuidedScan() {
 stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
-  if (!window.AppAuth?.uid) return;
   const requestText = requestTextInput.value.trim();
 
   if (!selectedImageData) {
@@ -1036,8 +1035,7 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
 
 async function renderResult(result) {
   const ownerUid = window.AppAuth?.uid;
-  if (!ownerUid) return;
-  const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
+  const stillCurrent = () => latestResult === result && (!ownerUid || window.AppAuth?.uid === ownerUid);
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
   saveButton.disabled = true;
