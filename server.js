@@ -307,12 +307,29 @@ function buildGeminiPrompt(body, options = {}) {
     "fuller-lips": "add natural-looking lip fullness and dimension",
     "soften-mouth": "make the mouth appear more understated",
     "round-forehead": "give the forehead a subtly rounder appearance",
-    "smooth-forehead": "make forehead contours appear smoother"
+    "smooth-forehead": "make forehead contours appear smoother",
+    "balance-face-length": "make the face height-to-width balance look more naturally proportioned",
+    "center-face": "make the facial centerline look more balanced while preserving natural asymmetry",
+    "balance-cheekbones": "make prominent cheekbones look subtly more balanced",
+    "soften-face-outline": "make sharp corners of the face outline look softer",
+    "balance-brows": "make the eyebrows look more balanced while keeping a natural shape",
+    "lower-brow-distance": "make the distance between the eyebrows and eyes look slightly closer",
+    "brighten-eyes": "make the eye area look brighter without changing identity",
+    "reduce-eye-fatigue": "soften the tired appearance around the eyes",
+    "smooth-skin": "make the skin texture look smoother while keeping realistic pores",
+    "natural-skin-texture": "preserve natural skin texture while lightly improving the overall finish",
+    "reduce-shine": "reduce excessive facial shine while keeping realistic highlights",
+    "soften-shadows": "soften harsh shadows on the face",
+    "hair-removal-after": "make the visible skin look smooth and clean like the appearance after facial hair removal",
+    "reduce-facial-hair-shadow": "reduce the visible shadow from facial hair or fine hair while preserving natural skin",
+    "even-skin-tone": "make uneven skin tone look more even and natural",
+    "reduce-redness": "reduce visible redness while keeping realistic skin color",
+    "bright-clear-skin": "make the skin look brighter, clear, and clean without an artificial filter"
   };
   const selectedDetailInstructions = Array.isArray(body.profile?.details)
     ? [...new Set(body.profile.details)]
       .filter((key) => Object.hasOwn(detailInstructions, key))
-      .slice(0, 18)
+      .slice(0, 40)
       .map((key) => detailInstructions[key])
     : [];
   const detailGuide = selectedDetailInstructions.length
@@ -343,11 +360,11 @@ function buildGeminiPrompt(body, options = {}) {
     "Preserve natural human anatomy and realistic skin texture.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     detailGuide,
-    `User request: ${requestText}. Strength: ${strength}%.`,
+    `User request: ${requestText}. Additional free-form fine-detail request: ${body.profile?.detailFreeText || "none"}. Strength: ${strength}%.`,
     faceGeometryGuide,
     priorityGuide[generationPriority] || priorityGuide.natural,
     strengthGuide,
-    compact ? "Use a simple, stable edit. Keep identity, pose, lighting, background, and realistic anatomy. Apply the requested facial design changes clearly but avoid overprocessing." : "For stronger settings, the Before and After must be easy to tell apart at a glance. Prioritize visible requested changes to eyes, nose bridge, nose tip, jawline, cheeks, mouth, lips, forehead, and face contour while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
+    compact ? "Use a simple, stable edit. Keep identity, pose, lighting, background, and realistic anatomy. Apply every selected fine-detail request clearly but naturally." : "For stronger settings, the Before and After must be easy to tell apart at a glance. Apply every selected fine-detail request and the free-form request visibly but naturally, prioritizing the requested areas while preserving identity and realistic human anatomy. If a field says no change, keep that part close to the original.",
     "Do not create a medical result, surgical procedure, anime, doll, mask, distorted anatomy, or a different person.",
     "Return only the edited image."
   ].join(" ");

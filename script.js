@@ -1645,6 +1645,7 @@ function warpFaceImage(sourceCanvas, profile) {
   const outputContext = outputCanvas.getContext("2d");
   const outputData = outputContext.createImageData(width, height);
   const strength = profile.strength / 100;
+  const details = new Set(profile.details || []);
   const faceCenterX = width * 0.5;
   const eyeY = height * 0.38;
   const noseY = height * 0.5;
@@ -1667,9 +1668,12 @@ function warpFaceImage(sourceCanvas, profile) {
       const rightEyePower = getEllipsePower(x, y, width * 0.62, eyeY, width * 0.13, height * 0.08);
       const eyePower = leftEyePower + rightEyePower;
 
-      const jawAmount = getFaceAmount(profile.face) * strength;
-      const eyeAmount = getEyeAmount(profile.eye) * strength;
-      const noseAmount = getNoseAmount(profile.nose) * strength;
+      const jawDetailBoost = ["shorten-face", "slim-cheeks", "soften-jaw", "shorten-chin", "sharpen-jawline", "balance-cheekbones", "soften-face-outline"].some((key) => details.has(key)) ? 0.12 : 0;
+      const eyeDetailBoost = ["open-eyes", "raise-eye-corners", "brighten-eyes", "lower-brow-distance"].some((key) => details.has(key)) ? 0.1 : 0;
+      const noseDetailBoost = ["straighten-nose", "slim-nose-wings", "refine-nose-tip"].some((key) => details.has(key)) ? 0.08 : 0;
+      const jawAmount = getFaceAmount(profile.face) * strength + jawDetailBoost * strength;
+      const eyeAmount = getEyeAmount(profile.eye) * strength + eyeDetailBoost * strength;
+      const noseAmount = getNoseAmount(profile.nose) * strength + noseDetailBoost * strength;
       const styleAmount = getStyleAmount(profile.style) * strength;
 
       sampleX = faceCenterX + (sampleX - faceCenterX) / (1 - (jawPower + cheekPower * 0.7) * jawAmount);
@@ -1716,7 +1720,9 @@ function applyBeautyFinish(sourceCanvas, profile) {
   context.drawImage(sourceCanvas, 0, 0);
   context.filter = "none";
 
-  context.globalAlpha = 0.08 + profile.strength * 0.02;
+  const skinDetails = new Set(profile.details || []);
+  const skinBoost = ["smooth-skin", "hair-removal-after", "reduce-facial-hair-shadow", "even-skin-tone", "reduce-redness", "bright-clear-skin"].some((key) => skinDetails.has(key)) ? 0.08 : 0;
+  context.globalAlpha = 0.08 + profile.strength * 0.02 + skinBoost;
   context.filter = "blur(5px)";
   context.drawImage(sourceCanvas, 0, 0);
   context.filter = "none";

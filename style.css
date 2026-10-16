@@ -1744,6 +1744,9 @@ button:hover:not(:disabled) {
 .terms-summary p { margin: 0.5rem 0 0; line-height: 1.7; }
 .auth-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
 .login-page .auth-panel { max-width: 560px; padding: clamp(24px, 5vw, 44px); }
+.login-page .app-header h1 { display: none; }
+.login-page .app-header .eyebrow { margin-bottom: 12px; font-size: clamp(1.25rem, 2.4vw, 1.7rem); letter-spacing: 0.08em; }
+.login-page .app-header .lead { margin-top: 0; }
 .login-page .auth-panel > h2 { margin-bottom: 8px; }
 .login-page .auth-panel > p:not([id]) { color: var(--muted); }
 .login-page .auth-links { justify-content: center; gap: 10px 24px; padding-top: 8px; border-top: 1px solid #e2edf1; }
