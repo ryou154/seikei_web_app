@@ -68,7 +68,9 @@
 
     const content = document.createElement("div");
     const heading = document.createElement("h3");
-    heading.textContent = `${entry.category || "設定"}のシミュレーション`;
+    const savedName = entry.category || "無題のシミュレーション";
+    heading.textContent = savedName === "無題のシミュレーションのシミュレーション"
+      ? "無題のシミュレーション" : savedName;
     const date = document.createElement("p");
     date.className = "home-muted";
     date.textContent = displayDate(entry.savedAt);
