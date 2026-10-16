@@ -317,7 +317,6 @@ function fitCropViewportToImage(reset = false) {
 
   cropViewport.style.width = `${cropFrameWidth}px`;
   cropViewport.style.height = `${cropFrameHeight}px`;
-  cropViewport.style.margin = "0 auto";
   syncCropFrameControls();
 }
 
@@ -359,11 +358,10 @@ function setCropFrameSize(width, height) {
 function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startHeight) {
   const horizontalDirection = direction.includes("e") ? 1 : direction.includes("w") ? -1 : 0;
   const verticalDirection = direction.includes("s") ? 1 : direction.includes("n") ? -1 : 0;
-  const parent = cropViewport.parentElement;
-  const startLeft = cropViewport.offsetLeft;
-  const startTop = cropViewport.offsetTop;
   let width = startWidth + deltaX * horizontalDirection;
   let height = startHeight + deltaY * verticalDirection;
+  const parentWidth = cropViewport.parentElement?.clientWidth || cropMaxWidth;
+  const startLeft = cropResizeDrag?.startLeft ?? cropViewport.offsetLeft;
 
   if (cropAspectLockInput.checked) {
     const ratio = startWidth / startHeight;
@@ -373,22 +371,17 @@ function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startH
 
   width = Math.max(80, width);
   height = Math.max(80, height);
+  if (horizontalDirection > 0) width = Math.min(width, parentWidth - startLeft);
+  if (horizontalDirection < 0) width = Math.min(width, startLeft + startWidth);
   const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
   width *= fitScale;
   height *= fitScale;
   setCropFrameSize(width, height);
 
-  // Keep the opposite edge fixed, like a standard image editor. The old
-  // centered margin made an east resize move both left and right edges.
-  if (parent) {
-    const maxLeft = Math.max(0, parent.clientWidth - width);
-    const maxTop = Math.max(0, parent.clientHeight - height);
-    const left = horizontalDirection < 0 ? startLeft + deltaX : startLeft;
-    const top = verticalDirection < 0 ? startTop + deltaY : startTop;
-    cropViewport.style.marginLeft = `${Math.max(0, Math.min(maxLeft, left))}px`;
+  if (horizontalDirection) {
+    const left = horizontalDirection < 0 ? startLeft + startWidth - width : startLeft;
+    cropViewport.style.marginLeft = `${Math.max(0, left)}px`;
     cropViewport.style.marginRight = "0";
-    cropViewport.style.marginTop = `${Math.max(0, Math.min(maxTop, top))}px`;
-    cropViewport.style.marginBottom = "0";
   }
 }
 
@@ -484,7 +477,8 @@ cropResizeHandles.forEach((handle) => {
       startX: event.clientX,
       startY: event.clientY,
       startWidth: cropFrameWidth,
-      startHeight: cropFrameHeight
+      startHeight: cropFrameHeight,
+      startLeft: cropViewport.offsetLeft
     };
   });
 
