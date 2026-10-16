@@ -1514,6 +1514,8 @@ button:hover:not(:disabled) {
   .app-page .input-panel > .section-kicker,
   .app-page .input-panel > h2,
   .app-page .input-panel > .part-grid,
+  .app-page .input-panel > .detail-options,
+  .app-page .input-panel > .change-strength-field,
   .app-page .input-panel > .clinic-filter-grid,
   .app-page .input-panel > .clinic-filter-note,
   .app-page .input-panel > #simulate-button,
