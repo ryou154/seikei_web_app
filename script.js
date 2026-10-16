@@ -731,21 +731,33 @@ function completeGuidedScan() {
 stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
-  const requestText = requestTextInput.value.trim();
+  if (simulateButton.disabled) return;
+  simulateButton.disabled = true;
+  const originalLabel = simulateButton.textContent;
+  simulateButton.textContent = "シミュレーション準備中…";
+  try {
+    const requestText = requestTextInput.value.trim();
 
-  if (!selectedImageData) {
-    alert("顔画像を選択してください。");
-    return;
+    if (!selectedImageData) {
+      alert("顔画像を選択してください。");
+      return;
+    }
+
+    if (!genderSelect.value) {
+      alert("性別を選択してください。");
+      genderSelect.focus();
+      return;
+    }
+
+    latestResult = createSimulationResult(requestText);
+    await renderResult(latestResult);
+  } catch (error) {
+    console.error("Simulation failed", error);
+    alert(`シミュレーションを開始できませんでした。${error?.message ? `\\n${error.message}` : ""}`);
+  } finally {
+    simulateButton.disabled = false;
+    simulateButton.textContent = originalLabel;
   }
-
-  if (!genderSelect.value) {
-    alert("性別を選択してください。");
-    genderSelect.focus();
-    return;
-  }
-
-  latestResult = createSimulationResult(requestText);
-  await renderResult(latestResult);
 });
 
 saveButton.addEventListener("click", async () => {
