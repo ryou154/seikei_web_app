@@ -26,10 +26,19 @@
       <label class="field">
         <span>顔画像</span>
         <input id="face-image" type="file" accept="image/*">
+        <button id="open-crop" type="button" class="secondary-button" disabled>画像をトリミング</button>
       </label>
 
       <div class="preview" id="image-preview">
         <span>画像を選択するとプレビューが表示されます</span>
+      </div>
+      <div id="crop-modal" class="crop-modal" hidden>
+        <div class="crop-dialog" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+          <h2 id="crop-title">画像をトリミング</h2>
+          <p>四隅は縦横比を維持し、4辺はその方向だけを変更します。</p>
+          <div class="crop-stage"><canvas id="crop-canvas"></canvas><div id="crop-handles" class="crop-handles"></div></div>
+          <div class="crop-actions"><button id="cancel-crop" type="button" class="secondary-button">キャンセル</button><button id="apply-crop" type="button">適用</button></div>
+        </div>
       </div>
 
       <dialog id="image-crop-dialog" class="image-crop-dialog" aria-labelledby="image-crop-title">

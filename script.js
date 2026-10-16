@@ -1,20 +1,11 @@
 const faceImageInput = document.getElementById("face-image");
+const openCropButton = document.getElementById("open-crop");
+const cropModal = document.getElementById("crop-modal");
+const cropCanvas = document.getElementById("crop-canvas");
+const cropHandles = document.getElementById("crop-handles");
+const applyCropButton = document.getElementById("apply-crop");
+const cancelCropButton = document.getElementById("cancel-crop");
 const imagePreview = document.getElementById("image-preview");
-const imageCropDialog = document.getElementById("image-crop-dialog");
-const cropViewport = document.getElementById("crop-viewport");
-const cropImage = document.getElementById("crop-image");
-const cropWidthInput = document.getElementById("crop-width");
-const cropWidthValue = document.getElementById("crop-width-value");
-const cropHeightInput = document.getElementById("crop-height");
-const cropHeightValue = document.getElementById("crop-height-value");
-const cropResizeHandles = document.querySelectorAll("[data-crop-handle]");
-const cropAspectLockInput = document.getElementById("crop-aspect-lock");
-const cropRatioStatus = document.getElementById("crop-ratio-status");
-const cropZoomInput = document.getElementById("crop-zoom");
-const cropZoomValue = document.getElementById("crop-zoom-value");
-const cropError = document.getElementById("crop-error");
-const applyImageCropButton = document.getElementById("apply-image-crop");
-const cancelImageCropButton = document.getElementById("cancel-image-crop");
 const startCameraButton = document.getElementById("start-camera-button");
 const captureButton = document.getElementById("capture-button");
 const manualCaptureButton = document.getElementById("manual-capture-button");
@@ -52,35 +43,25 @@ const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
 const saveButton = document.getElementById("save-button");
+const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
-const resultComparison = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
-const adjustmentSummaryPanel = document.getElementById("adjustment-summary");
-const adjustmentStrength = document.getElementById("adjustment-strength");
-const adjustmentList = document.getElementById("adjustment-list");
-const procedureExamples = document.getElementById("procedure-examples");
-const procedureList = document.getElementById("procedure-list");
 const hospitalList = document.getElementById("hospital-list");
+const historyList = document.getElementById("history-list");
 const faceScorePanel = document.getElementById("face-score-panel");
 const beforeScoreValue = document.getElementById("before-score");
 const beforeScoreLabel = document.getElementById("before-score-label");
 const afterScoreValue = document.getElementById("after-score");
 const afterScoreLabel = document.getElementById("after-score-label");
 const scoreDelta = document.getElementById("score-delta");
-const capturePanel = document.querySelector(".capture-panel");
-const conditionsPanel = document.querySelector(".conditions-panel");
-const toConditionsButton = document.getElementById("to-conditions-button");
-const backToCaptureButton = document.getElementById("back-to-capture-button");
-const comparisonSlider = document.getElementById("comparison-slider");
-const comparisonSliderValue = document.getElementById("comparison-slider-value");
-const comparisonSliderView = document.getElementById("comparison-slider-view");
 
 let selectedImageData = "";
+let cropState = null;
 let latestResult = null;
 let cameraStream = null;
 let analyzedImageData = "";
@@ -89,14 +70,6 @@ let guidedScan = null;
 let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
-let cropOffsetX = 0;
-let cropOffsetY = 0;
-let cropDrag = null;
-let cropMaxWidth = 0;
-let cropMaxHeight = 0;
-let cropFrameWidth = 0;
-let cropFrameHeight = 0;
-let cropResizeDrag = null;
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -110,47 +83,15 @@ function updateStrengthValue() {
   changeStrengthValue.textContent = `${changeStrengthInput.value}%`;
 }
 
-function showInputStep(step) {
-  const capture = step === "capture";
-  capturePanel?.classList.toggle("step-hidden", !capture);
-  conditionsPanel?.classList.toggle("step-hidden", capture);
-  (capture ? toConditionsButton : backToCaptureButton)?.focus();
-}
-
-toConditionsButton?.addEventListener("click", () => {
-  if (!selectedImageData) {
-    faceImageInput?.focus();
-    alert("顔写真を選択または撮影してから次へ進んでください。");
-    return;
-  }
-  showInputStep("conditions");
-});
-backToCaptureButton?.addEventListener("click", () => showInputStep("capture"));
-
-function updateComparisonSlider() {
-  const value = Number(comparisonSlider?.value || 50);
-  if (comparisonSliderValue) comparisonSliderValue.textContent = `${value}%`;
-  const before = comparisonSliderView?.querySelector(".comparison-slider-before");
-  if (before) before.style.width = `${value}%`;
-}
-
-function renderComparisonSlider(beforeData, afterData) {
-  if (!comparisonSliderView || !beforeData || !afterData) return;
-  comparisonSliderView.innerHTML = `<div class="comparison-slider-after"><img src="${afterData}" alt="After画像"></div><div class="comparison-slider-before"><img src="${beforeData}" alt="Before画像"></div>`;
-  updateComparisonSlider();
-}
-
-comparisonSlider?.addEventListener("input", updateComparisonSlider);
-
 const hospitals = window.CLINIC_DATA || [];
 const optionLabels = {
   style: {
-    none: "追加指定なし",
-    kawaii: "頬や輪郭に丸みを残す",
-    cool: "輪郭と目元をすっきり見せる",
-    korean: "目元を明るく華やかに見せる",
-    doll: "目をぱっちり大きく見せる",
-    natural: "元の顔立ちを活かす"
+    none: "雰囲気は変更しない",
+    kawaii: "かわいい系",
+    cool: "クール系",
+    korean: "韓国アイドル風",
+    doll: "ドール系",
+    natural: "ナチュラル美人"
   },
   eye: {
     none: "目元は変更しない",
@@ -167,11 +108,11 @@ const optionLabels = {
     natural: "自然な鼻"
   },
   face: {
-    none: "追加指定なし",
-    vline: "あご先を細く見せる",
-    oval: "頬の丸みを残し、あご先を細くする",
-    sharp: "頬からあごをシャープに見せる",
-    natural: "元の輪郭を活かす"
+    none: "輪郭は変更しない",
+    vline: "Vライン小顔",
+    oval: "卵型フェイス",
+    sharp: "シャープな輪郭",
+    natural: "自然な輪郭"
   },
   mouth: {
     none: "口元は変更しない",
@@ -201,51 +142,12 @@ const genderLabels = {
   female: "女性"
 };
 
-const fineDetailLabels = {
-  "shorten-face": "面長を短く見せる",
-  "slim-cheeks": "頬をすっきり見せる",
-  "soften-jaw": "エラの張りを目立ちにくくする",
-  "shorten-chin": "顎先を短く見せる",
-  "sharpen-jawline": "フェイスラインをシャープにする",
-  "open-eyes": "目をぱっちり大きく見せる",
-  "raise-eye-corners": "目尻を少し上げて見せる",
-  "soften-eye-corners": "目尻をやわらかく見せる",
-  "balance-eyes": "目の左右差を目立ちにくくする",
-  "emphasize-under-eye": "涙袋を自然に強調する",
-  "straighten-nose": "鼻筋をまっすぐ見せる",
-  "slim-nose-wings": "小鼻をすっきり見せる",
-  "refine-nose-tip": "鼻先を小さくすっきり見せる",
-  "lift-mouth-corners": "口角が上がった印象にする",
-  "fuller-lips": "唇に自然な立体感を出す",
-  "soften-mouth": "口元を控えめに見せる",
-  "round-forehead": "おでこに丸みを出す",
-  "smooth-forehead": "おでこの凹凸を目立ちにくくする",
-  "balance-face-length": "顔の縦横比を自然に整える",
-  "center-face": "顔の中心のずれを目立ちにくくする",
-  "balance-cheekbones": "頬骨の張りを目立ちにくくする",
-  "soften-face-outline": "輪郭の角をやわらかく見せる",
-  "balance-brows": "眉の左右差を整えて見せる",
-  "lower-brow-distance": "眉と目の距離を近く見せる",
-  "brighten-eyes": "目元を明るく見せる",
-  "reduce-eye-fatigue": "目元の疲れた印象をやわらげる",
-  "smooth-skin": "肌の質感をなめらかに見せる",
-  "natural-skin-texture": "肌の質感を残して自然に見せる",
-  "reduce-shine": "テカリを控えめに見せる",
-  "soften-shadows": "顔の影をやわらかく見せる",
-  "hair-removal-after": "脱毛後のように肌をなめらかに見せる",
-  "reduce-facial-hair-shadow": "産毛やひげの影を目立ちにくくする",
-  "even-skin-tone": "肌の色むらを均一に見せる",
-  "reduce-redness": "赤みを控えめに見せる",
-  "bright-clear-skin": "明るく清潔感のある肌に見せる"
-};
-
 faceImageInput.addEventListener("change", () => {
   const file = faceImageInput.files[0];
 
-  if (!file) return;
-  if (file.type && !file.type.startsWith("image/")) {
-    faceImageInput.value = "";
-    alert("画像ファイルを選択してください。");
+  if (!file) {
+    selectedImageData = "";
+    imagePreview.innerHTML = "<span>画像を選択するとプレビューが表示されます</span>";
     return;
   }
 
@@ -253,11 +155,8 @@ faceImageInput.addEventListener("change", () => {
   const imageGeneration = privacyGeneration;
   reader.addEventListener("load", () => {
     if (imageGeneration !== privacyGeneration) return;
-    openImageCrop(reader.result, imageGeneration);
-  });
-  reader.addEventListener("error", () => {
-    faceImageInput.value = "";
-    alert("画像を読み込めませんでした。別の画像を選択してください。");
+    setSelectedImage(reader.result);
+    openCropButton.disabled = false;
   });
   reader.readAsDataURL(file);
 });
@@ -853,6 +752,10 @@ saveButton.addEventListener("click", async () => {
   if (latestResult) await window.AccountData.saveHistory(latestResult);
 });
 
+clearHistoryButton.addEventListener("click", () => {
+  window.AccountData.clearHistory();
+});
+
 window.addEventListener("beforeunload", () => stopCamera());
 
 function setSelectedImage(imageData) {
@@ -860,16 +763,59 @@ function setSelectedImage(imageData) {
   analyzedImageData = "";
   latestFaceAnalysis = null;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
-  const previewImage = imagePreview.querySelector("img");
-  const updateComparisonAspect = () => {
-    if (!previewImage.naturalWidth || !previewImage.naturalHeight) return;
-    resultComparison.style.setProperty(
-      "--comparison-aspect-ratio",
-      `${previewImage.naturalWidth} / ${previewImage.naturalHeight}`
-    );
+}
+
+openCropButton.addEventListener("click", () => {
+  if (!selectedImageData) return;
+  const image = new Image();
+  image.onload = () => {
+    const max = 620;
+    const scale = Math.min(1, max / image.naturalWidth);
+    cropCanvas.width = Math.round(image.naturalWidth * scale);
+    cropCanvas.height = Math.round(image.naturalHeight * scale);
+    cropCanvas.getContext("2d").drawImage(image, 0, 0, cropCanvas.width, cropCanvas.height);
+    cropState = { image, left: 0, top: 0, right: cropCanvas.width, bottom: cropCanvas.height };
+    cropModal.hidden = false;
+    renderCropHandles();
   };
-  if (previewImage.complete) updateComparisonAspect();
-  else previewImage.addEventListener("load", updateComparisonAspect, { once: true });
+  image.src = selectedImageData;
+});
+cancelCropButton.addEventListener("click", () => { cropModal.hidden = true; });
+applyCropButton.addEventListener("click", () => {
+  if (!cropState) return;
+  const { image, left, top, right, bottom } = cropState;
+  const scale = image.naturalWidth / cropCanvas.width;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round((right - left) * scale));
+  canvas.height = Math.max(1, Math.round((bottom - top) * scale));
+  canvas.getContext("2d").drawImage(image, left * scale, top * scale, (right - left) * scale, (bottom - top) * scale, 0, 0, canvas.width, canvas.height);
+  setSelectedImage(canvas.toDataURL("image/jpeg", 0.92));
+  cropModal.hidden = true;
+});
+function renderCropHandles() {
+  cropHandles.replaceChildren();
+  const { left, top, right, bottom } = cropState;
+  const handles = { nw:[left,top], n:[(left+right)/2,top], ne:[right,top], e:[right,(top+bottom)/2], se:[right,bottom], s:[(left+right)/2,bottom], sw:[left,bottom], w:[left,(top+bottom)/2] };
+  for (const [name, [x, y]] of Object.entries(handles)) {
+    const el = document.createElement("span"); el.className = `crop-handle ${name}`; el.dataset.handle = name; el.style.left = `${x / cropCanvas.width * 100}%`; el.style.top = `${y / cropCanvas.height * 100}%`; cropHandles.append(el);
+    el.addEventListener("pointerdown", startCropDrag);
+  }
+}
+function startCropDrag(event) {
+  event.preventDefault();
+  const name = event.currentTarget.dataset.handle; const start = { ...cropState, x:event.clientX, y:event.clientY };
+  const move = (e) => {
+    const dx = e.clientX - start.x, dy = e.clientY - start.y, min = 24;
+    let { left, top, right, bottom } = start;
+    if (name.includes("w")) left = clamp(start.left + dx, 0, start.right - min);
+    if (name.includes("e")) right = clamp(start.right + dx, start.left + min, cropCanvas.width);
+    if (name.includes("n")) top = clamp(start.top + dy, 0, start.bottom - min);
+    if (name.includes("s")) bottom = clamp(start.bottom + dy, start.top + min, cropCanvas.height);
+    if (name.length === 2) { const ratio = (start.right-start.left)/(start.bottom-start.top); if (Math.abs(dx) >= Math.abs(dy)) bottom = clamp(top + (right-left)/ratio, start.top+min, cropCanvas.height); else right = clamp(left + (bottom-top)*ratio, start.left+min, cropCanvas.width); }
+    cropState = { ...cropState, left, top, right, bottom }; renderCropHandles();
+  };
+  const end = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", end);
 }
 
 function stopCamera(message = "カメラを停止しました。") {
@@ -903,10 +849,6 @@ function readProfile() {
     face: faceSelect.value,
     mouth: mouthSelect.value,
     forehead: foreheadSelect.value,
-    detailFreeText: document.getElementById("detail-free-text")?.value.trim() || "",
-    details: [...document.querySelectorAll('input[name="detail-option"]:checked')]
-      .map((input) => input.value)
-      .filter((value) => Object.hasOwn(fineDetailLabels, value)),
     custom: {
       style: styleCustomInput.value.trim(),
       eye: eyeCustomInput.value.trim(),
@@ -945,7 +887,6 @@ function createSimulationResult(requestText) {
     requestText,
     profile,
     designLabels,
-    adjustmentSummary: window.SimulationAdjustments.create(profile),
     category: designLabels.style,
     analysis,
     hospitals: matchedHospitals
@@ -1041,19 +982,16 @@ function normalizeText(value) {
 function buildKeywords(requestText, profile, designLabels = createDesignLabels(profile)) {
   return [
     requestText,
-    profile.detailFreeText,
     designLabels.style,
     designLabels.eye,
     designLabels.nose,
     designLabels.face,
     designLabels.mouth,
-    designLabels.forehead,
-    ...(profile.details || []).map((key) => fineDetailLabels[key]).filter(Boolean)
+    designLabels.forehead
   ].join(" ");
 }
 
 function createAnalysisText(requestText, profile, designLabels = createDesignLabels(profile)) {
-  requestText = [requestText, profile.detailFreeText].filter(Boolean).join(" ");
   const priorityText = {
     natural: "自然さを少し残しながら、指定されたパーツの変化が分かるように調整しています。",
     balance: "顔全体のバランスを見ながら、パーツ単体ではなく全体の印象が整うようにしています。",
@@ -1070,152 +1008,15 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
   const regionPart = profile.region ? `おすすめクリニックは「${profile.region}」周辺と「${clinicFocus}」を優先して選んでいます。` : `おすすめクリニックは「${clinicFocus}」を優先して選んでいます。`;
   const parts = [
     `性別：${genderLabels[profile.gender] || "未指定"}`,
-    `全体の見た目：${designLabels.style}`,
+    `雰囲気：${designLabels.style}`,
     `目元：${designLabels.eye}`,
     `鼻：${designLabels.nose}`,
     `輪郭：${designLabels.face}`,
     `口：${designLabels.mouth}`,
     `おでこ：${designLabels.forehead}`
   ].join("、");
-  const designDetails = createDesignDetails(profile);
-  const designDetailText = designDetails.length
-    ? `選択内容に合わせたデザイン目安：${designDetails.join("。 ")}。`
-    : "パーツの変更は指定せず、元の印象を保つデザインです。";
-  const procedureSuggestionText = createProcedureSuggestionText(profile);
 
-  return `${requestPart} ${parts}をもとにしたAfter予測です。${designDetailText}${procedureSuggestionText}${regionPart}${priorityText[profile.priority]}画像生成によるシミュレーションで、実際の施術は行っていません。施術の適応や方法は医師にご相談ください。`;
-}
-
-function createDesignDetails(profile) {
-  const detailOptions = {
-    style: {
-      kawaii: "頬や輪郭に丸みを残します",
-      cool: "輪郭と目元をすっきり見せます",
-      korean: "目元を明るく華やかに見せます",
-      doll: "目をぱっちり大きく見せます",
-      natural: "元の顔立ちを活かし、各パーツのまとまりを整えます"
-    },
-    eye: {
-      wide: "二重ラインと目の縦幅を強調し、目元をはっきり見せます",
-      cat: "目尻側の横方向の印象を強め、切れ長に見せます",
-      soft: "目尻を下げたような、柔らかく優しい印象に寄せます",
-      natural: "元の目元を活かし、左右のバランスを整えます"
-    },
-    nose: {
-      high: "鼻筋の通った印象を強め、鼻先と顔全体のバランスを保ちます",
-      small: "小鼻の横幅を控えめに見せ、鼻先とのつながりを整えます",
-      sharp: "鼻先の輪郭をすっきり見せ、鼻筋との一体感を意識します",
-      natural: "元の鼻の形を活かし、顔全体との調和を優先します"
-    },
-    face: {
-      vline: "あご先を細く見せます",
-      oval: "頬の丸みを残し、あご先を細くします",
-      sharp: "頬からあごをシャープに見せます",
-      natural: "元の輪郭を活かし、顔全体の左右バランスを整えます"
-    },
-    mouth: {
-      full: "唇の厚みと立体感を強調します",
-      small: "口元の幅やボリュームを控えめに見せます",
-      smile: "口角が上がった明るい印象を意識します",
-      natural: "元の口元を活かし、顔全体との調和を優先します"
-    },
-    forehead: {
-      round: "おでこの中央に丸みがあるような柔らかい印象を意識します",
-      smooth: "凹凸を目立ちにくく見せ、滑らかな印象に整えます",
-      balanced: "眉・目元・輪郭との比率を見て、額の印象を整えます",
-      natural: "元のおでこの形を活かし、自然な印象を保ちます"
-    }
-  };
-  const fields = ["style", "eye", "nose", "face", "mouth", "forehead"];
-  return fields.flatMap((key) => {
-    const custom = profile.custom?.[key];
-    if (custom) return [`${key === "style" ? "全体の見た目" : key === "eye" ? "目元" : key === "nose" ? "鼻" : key === "face" ? "輪郭" : key === "mouth" ? "口元" : "おでこ"}は「${custom}」を優先します`];
-    if (profile[key] === "none") return [];
-    const detail = detailOptions[key]?.[profile[key]];
-    return detail ? [detail] : [];
-  }).concat((profile.details || [])
-    .map((key) => fineDetailLabels[key])
-    .filter(Boolean)
-    .map((detail) => `追加希望として「${detail}」を反映します`));
-}
-
-function createProcedureSuggestionText(profile) {
-  const procedureOptions = {
-    eye: {
-      wide: "二重の手術（埋没法・切開法など）",
-      cat: "目尻切開など",
-      soft: "下眼瞼下制術（たれ目形成）など"
-    },
-    nose: {
-      high: "隆鼻術など",
-      small: "鼻翼縮小術",
-      sharp: "鼻尖形成術"
-    },
-    face: {
-      vline: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）",
-      oval: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）",
-      sharp: "顔面輪郭形成術など（骨格・軟部組織の診察が必要）"
-    },
-    mouth: {
-      full: "口唇へのヒアルロン酸注入など",
-      small: "口唇縮小術など",
-      smile: "口角挙上術など"
-    },
-    forehead: {
-      round: "額の形を整える治療（方法は医師に相談）",
-      smooth: "額の形を整える治療（方法は医師に相談）",
-      balanced: "額の形を整える治療（方法は医師に相談）"
-    }
-  };
-  const partNames = { eye: "目元", nose: "鼻", face: "輪郭", mouth: "口元", forehead: "おでこ" };
-  const suggestions = [];
-
-  for (const key of Object.keys(partNames)) {
-    if (profile.custom?.[key]) {
-      suggestions.push(`${partNames[key]}：自由入力の希望からは施術名を自動判定できません`);
-      continue;
-    }
-    const procedure = procedureOptions[key]?.[profile[key]];
-    if (procedure) suggestions.push(`${partNames[key]}：${procedure}`);
-  }
-
-  const content = suggestions.length ? suggestions.join("、") : "選択内容から特定できる候補はありません";
-  return `関連する施術候補の例（選択内容からの参考表示）：${content}。`;
-}
-
-function renderAdjustmentSummary(summary, generationStatus) {
-  adjustmentList.replaceChildren();
-  procedureList.replaceChildren();
-  const adjustments = Array.isArray(summary?.adjustments) ? summary.adjustments : [];
-  const procedures = Array.isArray(summary?.relatedProcedures) ? summary.relatedProcedures : [];
-  adjustmentStrength.textContent = `変化の強さ ${summary?.strength?.value ?? 50}%（${summary?.strength?.label || "標準"}）`;
-
-  for (const adjustment of adjustments) {
-    const item = document.createElement("article");
-    item.className = "adjustment-item";
-    const part = document.createElement("strong");
-    part.textContent = adjustment.part;
-    const change = document.createElement("p");
-    change.textContent = adjustment.change;
-    item.append(part, change);
-    adjustmentList.append(item);
-  }
-
-  if (!adjustments.length) {
-    const empty = document.createElement("p");
-    empty.className = "adjustment-empty";
-    empty.textContent = "パーツごとの変更は指定せず、元の印象を保つ条件で生成しました。";
-    adjustmentList.append(empty);
-  }
-
-  for (const procedure of procedures) {
-    const item = document.createElement("li");
-    item.textContent = `${procedure.part}：${procedure.examples.join("、")}`;
-    procedureList.append(item);
-  }
-  procedureExamples.hidden = !procedures.length;
-  adjustmentSummaryPanel.dataset.generationStatus = generationStatus || "unknown";
-  adjustmentSummaryPanel.classList.remove("hidden");
+  return `${requestPart} ${parts}をもとにしたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
 }
 
 async function renderResult(result) {
@@ -1224,7 +1025,6 @@ async function renderResult(result) {
   const stillCurrent = () => window.AppAuth?.uid === ownerUid && latestResult === result;
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
-  adjustmentSummaryPanel.classList.add("hidden");
   saveButton.disabled = true;
 
   result.beforeImage = selectedImageData;
@@ -1252,7 +1052,6 @@ async function renderResult(result) {
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
-    renderComparisonSlider(result.beforeImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
@@ -1278,10 +1077,7 @@ async function renderResult(result) {
       </div>
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
     `;
-    renderComparisonSlider(result.beforeImage, localImage);
   }
-
-  renderAdjustmentSummary(result.adjustmentSummary, result.generationStatus);
 
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
   result.afterScore = result.afterFaceAnalysis?.ok ? result.afterFaceAnalysis.metrics.balanceScore : null;
@@ -1324,12 +1120,6 @@ async function renderResult(result) {
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
   saveButton.disabled = false;
-
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  resultContent.querySelector(".comparison")?.scrollIntoView?.({
-    behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-    block: "center"
-  });
 }
 
 async function analyzeSelectedFace() {
@@ -1469,9 +1259,6 @@ function runScanAnimation(profile, faceAnalysis) {
   if (faceAnalysis?.scan?.completed) {
     labels.unshift(`${faceAnalysis.scan.viewCount}方向スキャンで正面位置を確認`);
   }
-  if (profile.details?.length) {
-    labels.push(`細かい希望を${profile.details.length}項目反映`);
-  }
   labels.push(`性別：${genderLabels[profile.gender] || "未指定"}として生成`);
 
   partLabels.forEach((part) => {
@@ -1590,9 +1377,8 @@ function clamp(value, min, max) {
 }
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");
-  const scale = Math.min(1, 720 / Math.max(sourceImage.naturalWidth, sourceImage.naturalHeight));
-  const width = Math.max(1, Math.round(sourceImage.naturalWidth * scale));
-  const height = Math.max(1, Math.round(sourceImage.naturalHeight * scale));
+  const width = 720;
+  const height = 720;
   const baseCanvas = createCroppedCanvas(sourceImage, width, height);
   const warpedCanvas = warpFaceImage(baseCanvas, profile);
   const finalCanvas = applyBeautyFinish(warpedCanvas, profile);
@@ -1639,7 +1425,6 @@ function warpFaceImage(sourceCanvas, profile) {
   const outputContext = outputCanvas.getContext("2d");
   const outputData = outputContext.createImageData(width, height);
   const strength = profile.strength / 100;
-  const details = new Set(profile.details || []);
   const faceCenterX = width * 0.5;
   const eyeY = height * 0.38;
   const noseY = height * 0.5;
@@ -1662,12 +1447,9 @@ function warpFaceImage(sourceCanvas, profile) {
       const rightEyePower = getEllipsePower(x, y, width * 0.62, eyeY, width * 0.13, height * 0.08);
       const eyePower = leftEyePower + rightEyePower;
 
-      const jawDetailBoost = ["shorten-face", "slim-cheeks", "soften-jaw", "shorten-chin", "sharpen-jawline", "balance-cheekbones", "soften-face-outline"].some((key) => details.has(key)) ? 0.12 : 0;
-      const eyeDetailBoost = ["open-eyes", "raise-eye-corners", "brighten-eyes", "lower-brow-distance"].some((key) => details.has(key)) ? 0.1 : 0;
-      const noseDetailBoost = ["straighten-nose", "slim-nose-wings", "refine-nose-tip"].some((key) => details.has(key)) ? 0.08 : 0;
-      const jawAmount = getFaceAmount(profile.face) * strength + jawDetailBoost * strength;
-      const eyeAmount = getEyeAmount(profile.eye) * strength + eyeDetailBoost * strength;
-      const noseAmount = getNoseAmount(profile.nose) * strength + noseDetailBoost * strength;
+      const jawAmount = getFaceAmount(profile.face) * strength;
+      const eyeAmount = getEyeAmount(profile.eye) * strength;
+      const noseAmount = getNoseAmount(profile.nose) * strength;
       const styleAmount = getStyleAmount(profile.style) * strength;
 
       sampleX = faceCenterX + (sampleX - faceCenterX) / (1 - (jawPower + cheekPower * 0.7) * jawAmount);
@@ -1714,9 +1496,7 @@ function applyBeautyFinish(sourceCanvas, profile) {
   context.drawImage(sourceCanvas, 0, 0);
   context.filter = "none";
 
-  const skinDetails = new Set(profile.details || []);
-  const skinBoost = ["smooth-skin", "hair-removal-after", "reduce-facial-hair-shadow", "even-skin-tone", "reduce-redness", "bright-clear-skin"].some((key) => skinDetails.has(key)) ? 0.08 : 0;
-  context.globalAlpha = 0.08 + profile.strength * 0.02 + skinBoost;
+  context.globalAlpha = 0.08 + profile.strength * 0.02;
   context.filter = "blur(5px)";
   context.drawImage(sourceCanvas, 0, 0);
   context.filter = "none";
@@ -1922,8 +1702,6 @@ window.AccountData.init({
 
 window.addEventListener("app-locked", () => {
   privacyGeneration++;
-  if (imageCropDialog.open) imageCropDialog.close();
-  cropImage.removeAttribute("src");
   stopCamera();
   resetGuidedScan();
   cameraPreview.srcObject = null;
@@ -1935,14 +1713,11 @@ window.addEventListener("app-locked", () => {
   faceImageInput.value = "";
   requestTextInput.value = "";
   imagePreview.replaceChildren();
-  resultComparison.style.removeProperty("--comparison-aspect-ratio");
   beforeImage.replaceChildren();
   afterImage.replaceChildren();
+  historyList.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
-  adjustmentList.replaceChildren();
-  procedureList.replaceChildren();
-  adjustmentSummaryPanel.classList.add("hidden");
   document.getElementById("clinic-summary").textContent = "";
   scanSteps.replaceChildren();
   scanPanel.classList.remove("is-scanning");
