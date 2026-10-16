@@ -574,6 +574,8 @@ function startGuidedScan() {
   if (!cameraStream || guidedScan) return;
   if (!window.FaceBalanceAnalyzer) {
     cameraScanStatus.textContent = "顔解析を読み込めません。通常撮影を使用してください。";
+    captureButton.disabled = false;
+    captureButton.textContent = "顔スキャンを再試行";
     return;
   }
 
@@ -634,6 +636,13 @@ async function processGuidedScanFrame() {
     cameraScanStatus.textContent = guidedScan.failures > 5
       ? "顔を検出できません。明るい場所でガイド中央に合わせるか、通常撮影を使用してください。"
       : "顔を探しています。ガイドの中央に合わせてください。";
+    if (guidedScan.failures > 5) {
+      clearTimeout(guidedScanTimer);
+      guidedScanTimer = null;
+      guidedScan = null;
+      captureButton.disabled = false;
+      captureButton.textContent = "顔スキャンを再試行";
+    }
   } finally {
     guidedScanBusy = false;
     if (guidedScan) scheduleGuidedScan();
