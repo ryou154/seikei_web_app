@@ -8,13 +8,22 @@ const vm = require("node:vm");
 // passwords or accounts are created by these tests.
 async function setup(page = "/app.html", configOk = true) {
   const nodes = new Map();
-  const document = { getElementById(id) {
+  function makeNode(id = "") {
+    return {
+      id, hidden: id === "app-content", disabled: id === "auth-controls", textContent: "", value: "",
+      className: "", innerHTML: "", listeners: {},
+      addEventListener(event, fn) { this.listeners[event] = fn; },
+      reportValidity() { return true; },
+      remove() {}, after() {}, focus() {}, setAttribute() {}, insertAdjacentHTML() {}
+    };
+  }
+  const document = {
+    body: { dataset: { authPage: page === "/register.html" ? "register" : page === "/reset-password.html" ? "reset" : "login" } },
+    querySelector() { return null; },
+    createElement() { return makeNode(); },
+    getElementById(id) {
     if (id === "app-content" && page === "/login.html") return null;
-    if (!nodes.has(id)) nodes.set(id, {
-      hidden: id === "app-content", disabled: id === "auth-controls", textContent: "", value: "",
-      listeners: {}, addEventListener(event, fn) { this.listeners[event] = fn; },
-      reportValidity() { return true; }
-    });
+    if (!nodes.has(id)) nodes.set(id, makeNode(id));
     return nodes.get(id);
   } };
   const auth = { currentUser: null };

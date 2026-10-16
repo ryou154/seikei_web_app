@@ -40,7 +40,7 @@ test("simulation page saves results without duplicating the history browser", ()
 
 test("history page translates stored option values into Japanese labels", () => {
   const source = read("history-page.js");
-  assert.match(source, /kawaii: "かわいい系"/);
+  assert.match(source, /kawaii: "頬や輪郭に丸みを残す"/);
   assert.match(source, /under20: "20万円未満"/);
   assert.match(source, /displayOption\("budget", "", profile\.budget\)/);
   assert.match(source, /\["変更前", result\.beforeScore\]/);

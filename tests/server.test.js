@@ -56,6 +56,8 @@ test("history read, save and deletion reject missing or forged authentication ov
       ["GET", "/api/account/profile"],
       ["GET", "/api/clinics"],
       ["GET", "/api/clinics/clinic-test"],
+      ["GET", "/api/admin/clinics"],
+      ["POST", "/api/admin/clinics/discover"],
       ["PUT", "/api/account/history"],
       ["DELETE", "/api/account/history"],
       ["DELETE", "/api/account"],
@@ -84,6 +86,8 @@ test("login page starts locked and public assets are available", async () => {
   const app = await (await fetch(`${base}/app.html`)).text();
   const history = await (await fetch(`${base}/history.html`)).text();
   const mypage = await (await fetch(`${base}/mypage.html`)).text();
+  const adminClinics = await (await fetch(`${base}/admin-clinics.html`)).text();
+  const adminClinicsScript = await (await fetch(`${base}/admin-clinics.js`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
@@ -97,12 +101,17 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(history, /src="auth-core\.js"/);
   assert.match(mypage, /<h1>マイページ<\/h1>/);
   assert.match(mypage, /src="mypage\.js"/);
+  assert.match(adminClinics, /id="discover-clinics"/);
+  assert.match(adminClinics, /id="discovery-prefectures"/);
+  assert.match(adminClinics, /複数選択可・最大10件/);
+  assert.match(adminClinicsScript, /if \(initialized \|\| !window\.AppAuth\?\.uid\) return;/);
+  assert.doesNotMatch(adminClinicsScript, /!content\.hidden/);
   for (const html of [login, home, app, history, mypage]) {
     assert.match(html, /id="common-navigation"/);
     assert.match(html, /src="navigation\.js"/);
     assert.match(html, /href="navigation\.css"/);
   }
-  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/data/clinics.js", "/face-analysis.js", "/simulation-adjustments.js"]) {
+  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/face-analysis.js", "/simulation-adjustments.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
   assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);

@@ -93,9 +93,13 @@
         <canvas id="capture-canvas" class="hidden"></canvas>
         <p id="camera-message" class="notice">カメラ撮影でも顔画像を登録できます。</p>
       </div>
+      <div class="step-navigation">
+        <span class="step-progress" aria-current="step">1 / 2　画像を準備</span>
+        <button id="to-conditions-button" type="button" class="main-action">次へ：希望条件を入力</button>
+      </div>
     </section>
 
-    <section class="panel input-panel conditions-panel" aria-labelledby="input-title">
+    <section class="panel input-panel conditions-panel step-hidden" aria-labelledby="input-title">
       <p class="section-kicker">Step 02</p>
         <h2 id="input-title">細かい希望</h2>
 
@@ -255,7 +259,7 @@
         </div>
       </fieldset>
 
-      <label class="field">
+      <label class="field change-strength-field">
         <span>変化の強さ</span>
         <div class="range-control">
           <output id="change-strength-value" for="change-strength">50%</output>
@@ -318,6 +322,10 @@
       </label>
 
       <button id="simulate-button" type="button" class="main-action">AIシミュレーションを実行</button>
+      <div class="step-navigation">
+        <button id="back-to-capture-button" type="button" class="sub-button">戻る：画像を確認</button>
+        <span class="step-progress" aria-current="step">2 / 2　希望条件</span>
+      </div>
       <div class="account-data-actions">
         <button id="settings-save" type="button">設定を保存</button>
         <button id="settings-load" type="button">保存設定を読込</button>
@@ -365,6 +373,10 @@
       </div>
 
       <div id="result-content" class="hidden">
+        <aside class="safety-notice" role="note">
+          <strong>ご利用前にご確認ください</strong>
+          <p>この結果はAIによる参考シミュレーションで、診断や施術結果の保証ではありません。画像や分析コメントだけで判断せず、施術を検討する場合は医師へご相談ください。</p>
+        </aside>
         <section id="face-score-panel" class="face-score-panel hidden" aria-live="polite">
           <div class="face-score-heading">
             <div>
@@ -399,6 +411,18 @@
             <div id="after-image" class="after-preview">予測イメージ</div>
           </div>
         </div>
+        <section class="comparison-slider-panel" aria-labelledby="comparison-slider-title">
+          <div class="comparison-slider-heading">
+            <h3 id="comparison-slider-title">Before / After を比較</h3>
+            <output id="comparison-slider-value" for="comparison-slider">50%</output>
+          </div>
+          <div id="comparison-slider-view" class="comparison-slider-view">
+            <div class="comparison-slider-empty">画像生成後に比較できます</div>
+          </div>
+          <label class="comparison-slider-control" for="comparison-slider">境界線を動かす
+            <input id="comparison-slider" type="range" min="0" max="100" value="50">
+          </label>
+        </section>
 
         <div class="analysis-box">
           <h3>AI分析コメント</h3>
