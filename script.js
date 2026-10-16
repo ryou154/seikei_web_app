@@ -172,7 +172,6 @@ faceImageInput.addEventListener("change", () => {
     if (imageGeneration !== privacyGeneration) return;
     setSelectedImage(reader.result);
     openCropButton.disabled = false;
-    openImageCrop(reader.result, imageGeneration);
   });
   reader.readAsDataURL(file);
 });
@@ -804,8 +803,6 @@ function setSelectedImage(imageData) {
 
 openCropButton.addEventListener("click", () => {
   if (!selectedImageData) return;
-  openImageCrop(selectedImageData, privacyGeneration);
-  return;
   const image = new Image();
   image.onload = () => {
     const max = 620;
