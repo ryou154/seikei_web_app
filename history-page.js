@@ -185,7 +185,7 @@
     const headingText = node("div");
     const profile = entry.profile || {};
     const custom = profile.custom || {};
-    const title = node("h3", "", "シミュレーション履歴");
+    const title = node("h3", "", entry.category || "シミュレーション履歴");
     const date = node("p", "history-date", `作成日時：${dateText(entry.savedAt)}`);
     headingText.append(title, date);
     heading.append(headingText);

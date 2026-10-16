@@ -4,6 +4,8 @@
 #settings-status[data-error="true"], #history-status[data-error="true"] { color: #b42318; }
 
 .result-save-controls { display: grid; justify-items: end; gap: 8px; }
+.history-name-field { display: grid; grid-template-columns: auto minmax(180px, 260px); align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+.history-name-field input { width: 100%; min-height: 34px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
 .image-save-consent { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
 .image-save-consent input { width: 18px; height: 18px; accent-color: var(--accent); }
 .image-save-note { margin: -8px 0 14px; color: var(--muted); font-size: 12px; text-align: right; }
@@ -16,6 +18,7 @@
 @media (max-width: 600px) {
   .result-heading { align-items: flex-start; }
   .result-save-controls { justify-items: stretch; }
+  .history-name-field { grid-template-columns: 1fr; gap: 4px; }
   .image-save-consent { max-width: 180px; }
   .image-save-note { text-align: left; }
 }

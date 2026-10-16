@@ -142,11 +142,11 @@
   async function saveHistory(result) {
     await withBusy(document.getElementById("save-button"), controls.saveStatus, async () => {
       if (!result) return;
-      const payload = {
+    const payload = {
         id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 18)}`,
         requestText: result.requestText || "",
         profile: result.profile,
-        category: result.category || "設定",
+        category: controls.historyName?.value.trim() || result.category || "設定",
         result: {
           beforeScore: result.beforeScore ?? null,
           afterScore: result.afterScore ?? null,
@@ -186,6 +186,7 @@
     readSettings = options.readSettings;
     controls.settingsStatus = document.getElementById("settings-status");
     controls.saveStatus = document.getElementById("save-status");
+    controls.historyName = document.getElementById("history-name");
     controls.imageConsent = document.getElementById("save-images-consent");
     document.getElementById("settings-save").addEventListener("click", (event) => withBusy(event.currentTarget, controls.settingsStatus, async () => {
       await request("/api/account/settings", { method: "PUT", body: JSON.stringify(readSettings()) });
