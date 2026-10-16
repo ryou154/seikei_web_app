@@ -360,6 +360,8 @@ function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startH
   const verticalDirection = direction.includes("s") ? 1 : direction.includes("n") ? -1 : 0;
   let width = startWidth + deltaX * horizontalDirection;
   let height = startHeight + deltaY * verticalDirection;
+  const parentWidth = cropViewport.parentElement?.clientWidth || cropMaxWidth;
+  const startLeft = cropResizeDrag?.startLeft ?? cropViewport.offsetLeft;
 
   if (cropAspectLockInput.checked) {
     const ratio = startWidth / startHeight;
@@ -369,10 +371,18 @@ function resizeCropFrameFromHandle(direction, deltaX, deltaY, startWidth, startH
 
   width = Math.max(80, width);
   height = Math.max(80, height);
+  if (horizontalDirection > 0) width = Math.min(width, parentWidth - startLeft);
+  if (horizontalDirection < 0) width = Math.min(width, startLeft + startWidth);
   const fitScale = Math.min(1, cropMaxWidth / width, cropMaxHeight / height);
   width *= fitScale;
   height *= fitScale;
   setCropFrameSize(width, height);
+
+  if (horizontalDirection) {
+    const left = horizontalDirection < 0 ? startLeft + startWidth - width : startLeft;
+    cropViewport.style.marginLeft = `${Math.max(0, left)}px`;
+    cropViewport.style.marginRight = "0";
+  }
 }
 
 function getCropViewportSize() {
@@ -467,7 +477,8 @@ cropResizeHandles.forEach((handle) => {
       startX: event.clientX,
       startY: event.clientY,
       startWidth: cropFrameWidth,
-      startHeight: cropFrameHeight
+      startHeight: cropFrameHeight,
+      startLeft: cropViewport.offsetLeft
     };
   });
 
