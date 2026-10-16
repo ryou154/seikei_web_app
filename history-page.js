@@ -125,7 +125,24 @@
     "fuller-lips": "唇に自然な立体感を出す",
     "soften-mouth": "口元を控えめに見せる",
     "round-forehead": "おでこに丸みを出す",
-    "smooth-forehead": "おでこの凹凸を目立ちにくくする"
+    "smooth-forehead": "おでこの凹凸を目立ちにくくする",
+    "balance-face-length": "顔の縦横比を自然に整える",
+    "center-face": "顔の中心のずれを目立ちにくくする",
+    "balance-cheekbones": "頬骨の張りを目立ちにくくする",
+    "soften-face-outline": "輪郭の角をやわらかく見せる",
+    "balance-brows": "眉の左右差を整えて見せる",
+    "lower-brow-distance": "眉と目の距離を近く見せる",
+    "brighten-eyes": "目元を明るく見せる",
+    "reduce-eye-fatigue": "目元の疲れた印象をやわらげる",
+    "smooth-skin": "肌の質感をなめらかに見せる",
+    "natural-skin-texture": "肌の質感を残して自然に見せる",
+    "reduce-shine": "テカリを控えめに見せる",
+    "soften-shadows": "顔の影をやわらかく見せる",
+    "hair-removal-after": "脱毛後のように肌をなめらかに見せる",
+    "reduce-facial-hair-shadow": "産毛やひげの影を目立ちにくくする",
+    "even-skin-tone": "肌の色むらを均一に見せる",
+    "reduce-redness": "赤みを控えめに見せる",
+    "bright-clear-skin": "明るく清潔感のある肌に見せる"
   };
 
   function displayOption(field, customValue, storedValue) {
@@ -168,8 +185,7 @@
     const headingText = node("div");
     const profile = entry.profile || {};
     const custom = profile.custom || {};
-    const category = displayOption("style", custom.style, profile.style) || entry.category || "設定";
-    const title = node("h3", "", `${category}のシミュレーション`);
+    const title = node("h3", "", "シミュレーション履歴");
     const date = node("p", "history-date", `作成日時：${dateText(entry.savedAt)}`);
     headingText.append(title, date);
     heading.append(headingText);
@@ -177,17 +193,12 @@
     const request = node("p", "history-request", entry.requestText || "選択した項目に基づくシミュレーションです。");
     const result = entry.result || {};
     const fields = node("dl", "history-details");
-    appendDetail(fields, "全体の見た目", displayOption("style", custom.style, profile.style));
-    appendDetail(fields, "目", displayOption("eye", custom.eye, profile.eye));
-    appendDetail(fields, "鼻", displayOption("nose", custom.nose, profile.nose));
-    appendDetail(fields, "輪郭", displayOption("face", custom.face, profile.face));
-    appendDetail(fields, "口", displayOption("mouth", custom.mouth, profile.mouth));
-    appendDetail(fields, "額", displayOption("forehead", custom.forehead, profile.forehead));
+    appendDetail(fields, "自由入力の細かい希望", profile.detailFreeText);
     appendDetail(fields, "変化の強さ", profile.strength === undefined ? "未設定" : `${profile.strength}%`);
     appendDetail(fields, "地域", profile.region);
     appendDetail(fields, "予算", displayOption("budget", "", profile.budget));
     appendDetail(fields, "ダウンタイム", displayOption("downtime", "", profile.downtime));
-    appendDetail(fields, "細かい希望", (profile.details || []).map((key) => detailOptionLabels[key]).filter(Boolean).join("、"));
+    appendDetail(fields, "選択した細かい希望", (profile.details || []).map((key) => detailOptionLabels[key]).filter(Boolean).join("、"));
 
     let analysisDetails = null;
     if (result.analysis) {
