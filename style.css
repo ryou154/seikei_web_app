@@ -197,6 +197,9 @@ h3 {
   font-size: 13px;
   line-height: 1.6;
 }
+.detail-free-text { margin: 18px 0 14px; }
+.detail-free-text textarea { min-height: 96px; resize: vertical; }
+.app-page .part-grid { display: none; }
 
 .detail-options-grid {
   display: grid;
