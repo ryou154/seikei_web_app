@@ -30,7 +30,24 @@
     "fuller-lips": "唇に自然な立体感を出す",
     "soften-mouth": "口元を控えめに見せる",
     "round-forehead": "おでこに丸みを出す",
-    "smooth-forehead": "おでこの凹凸を目立ちにくくする"
+    "smooth-forehead": "おでこの凹凸を目立ちにくくする",
+    "balance-face-length": "顔の縦横比を自然に整える",
+    "center-face": "顔の中心のずれを目立ちにくくする",
+    "balance-cheekbones": "頬骨の張りを目立ちにくくする",
+    "soften-face-outline": "輪郭の角をやわらかく見せる",
+    "balance-brows": "眉の左右差を整えて見せる",
+    "lower-brow-distance": "眉と目の距離を近く見せる",
+    "brighten-eyes": "目元を明るく見せる",
+    "reduce-eye-fatigue": "目元の疲れた印象をやわらげる",
+    "smooth-skin": "肌の質感をなめらかに見せる",
+    "natural-skin-texture": "肌の質感を残して自然に見せる",
+    "reduce-shine": "テカリを控えめに見せる",
+    "soften-shadows": "顔の影をやわらかく見せる",
+    "hair-removal-after": "脱毛後のように肌をなめらかに見せる",
+    "reduce-facial-hair-shadow": "産毛やひげの影を目立ちにくくする",
+    "even-skin-tone": "肌の色むらを均一に見せる",
+    "reduce-redness": "赤みを控えめに見せる",
+    "bright-clear-skin": "明るく清潔感のある肌に見せる"
   };
   const styleHistoryLabels = {
     none: "設定",
@@ -95,6 +112,8 @@
     document.querySelectorAll('input[name="detail-option"]').forEach((element) => {
       element.checked = selectedDetails.has(element.value);
     });
+    const detailFreeText = document.getElementById("detail-free-text");
+    if (detailFreeText) detailFreeText.value = settings.profile.detailFreeText || "";
     const strength = document.getElementById("change-strength");
     strength.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
