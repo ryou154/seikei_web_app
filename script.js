@@ -840,6 +840,13 @@ function stopCamera(message = "カメラを停止しました。") {
   cameraMessage.textContent = message;
 }
 
+const fineDetailLabels = {
+  "shorten-face": "面長を短く見せる", "slim-cheeks": "頬をすっきり見せる", "soften-jaw": "エラの張りを目立ちにくくする", "shorten-chin": "顎先を短く見せる", "sharpen-jawline": "フェイスラインをシャープにする",
+  "open-eyes": "目をぱっちり大きく見せる", "raise-eye-corners": "目尻を少し上げて見せる", "soften-eye-corners": "目尻をやわらかく見せる", "balance-eyes": "目の左右差を目立ちにくくする", "emphasize-under-eye": "涙袋を自然に強調する",
+  "straighten-nose": "鼻筋をまっすぐ見せる", "slim-nose-wings": "小鼻をすっきり見せる", "refine-nose-tip": "鼻先を小さくすっきり見せる", "lift-mouth-corners": "口角が上がった印象にする", "fuller-lips": "唇に自然な立体感を出す", "soften-mouth": "口元を控えめに見せる", "round-forehead": "おでこに丸みを出す", "smooth-forehead": "おでこの凹凸を目立ちにくくする",
+  "balance-face-length": "顔の縦横比を自然に整える", "center-face": "顔の中心のずれを目立ちにくくする", "balance-cheekbones": "頬骨の張りを目立ちにくくする", "soften-face-outline": "輪郭の角をやわらかく見せる", "balance-brows": "眉の左右差を整えて見せる", "lower-brow-distance": "眉と目の距離を近く見せる", "brighten-eyes": "目元を明るく見せる", "reduce-eye-fatigue": "目元の疲れた印象をやわらげる", "smooth-skin": "肌の質感をなめらかに見せる", "natural-skin-texture": "肌の質感を残して自然に見せる", "reduce-shine": "テカリを控えめに見せる", "soften-shadows": "顔の影をやわらかく見せる", "hair-removal-after": "脱毛後のように肌をなめらかに見せる", "reduce-facial-hair-shadow": "産毛やひげの影を目立ちにくくする", "even-skin-tone": "肌の色むらを均一に見せる", "reduce-redness": "赤みを控えめに見せる", "bright-clear-skin": "明るく清潔感のある肌に見せる"
+};
+
 function readProfile() {
   return {
     gender: genderSelect.value,
@@ -849,6 +856,8 @@ function readProfile() {
     face: faceSelect.value,
     mouth: mouthSelect.value,
     forehead: foreheadSelect.value,
+    detailFreeText: document.getElementById("detail-free-text")?.value.trim() || "",
+    details: [...document.querySelectorAll('input[name="detail-option"]:checked')].map((input) => input.value).filter((value) => Object.hasOwn(fineDetailLabels, value)),
     custom: {
       style: styleCustomInput.value.trim(),
       eye: eyeCustomInput.value.trim(),
@@ -982,16 +991,19 @@ function normalizeText(value) {
 function buildKeywords(requestText, profile, designLabels = createDesignLabels(profile)) {
   return [
     requestText,
+    profile.detailFreeText,
     designLabels.style,
     designLabels.eye,
     designLabels.nose,
     designLabels.face,
     designLabels.mouth,
-    designLabels.forehead
+    designLabels.forehead,
+    ...(profile.details || []).map((key) => fineDetailLabels[key]).filter(Boolean)
   ].join(" ");
 }
 
 function createAnalysisText(requestText, profile, designLabels = createDesignLabels(profile)) {
+  requestText = [requestText, profile.detailFreeText].filter(Boolean).join(" ");
   const priorityText = {
     natural: "自然さを少し残しながら、指定されたパーツの変化が分かるように調整しています。",
     balance: "顔全体のバランスを見ながら、パーツ単体ではなく全体の印象が整うようにしています。",
