@@ -773,8 +773,8 @@ saveButton.addEventListener("click", async () => {
   if (latestResult) await window.AccountData.saveHistory(latestResult);
 });
 
-clearHistoryButton.addEventListener("click", () => {
-  window.AccountData.clearHistory();
+clearHistoryButton?.addEventListener("click", () => {
+  window.AccountData?.clearHistory?.();
 });
 
 window.addEventListener("beforeunload", () => stopCamera());
@@ -1750,7 +1750,7 @@ window.addEventListener("app-locked", () => {
   imagePreview.replaceChildren();
   beforeImage.replaceChildren();
   afterImage.replaceChildren();
-  historyList.replaceChildren();
+  historyList?.replaceChildren();
   hospitalList.replaceChildren();
   analysisText.textContent = "";
   document.getElementById("clinic-summary").textContent = "";
