@@ -72,6 +72,13 @@ const beforeScoreLabel = document.getElementById("before-score-label");
 const afterScoreValue = document.getElementById("after-score");
 const afterScoreLabel = document.getElementById("after-score-label");
 const scoreDelta = document.getElementById("score-delta");
+const capturePanel = document.querySelector(".capture-panel");
+const conditionsPanel = document.querySelector(".conditions-panel");
+const toConditionsButton = document.getElementById("to-conditions-button");
+const backToCaptureButton = document.getElementById("back-to-capture-button");
+const comparisonSlider = document.getElementById("comparison-slider");
+const comparisonSliderValue = document.getElementById("comparison-slider-value");
+const comparisonSliderView = document.getElementById("comparison-slider-view");
 
 let selectedImageData = "";
 let latestResult = null;
@@ -102,6 +109,38 @@ function syncCameraPreviewFlip() {
 function updateStrengthValue() {
   changeStrengthValue.textContent = `${changeStrengthInput.value}%`;
 }
+
+function showInputStep(step) {
+  const capture = step === "capture";
+  capturePanel?.classList.toggle("step-hidden", !capture);
+  conditionsPanel?.classList.toggle("step-hidden", capture);
+  (capture ? toConditionsButton : backToCaptureButton)?.focus();
+}
+
+toConditionsButton?.addEventListener("click", () => {
+  if (!selectedImageData) {
+    faceImageInput?.focus();
+    alert("顔写真を選択または撮影してから次へ進んでください。");
+    return;
+  }
+  showInputStep("conditions");
+});
+backToCaptureButton?.addEventListener("click", () => showInputStep("capture"));
+
+function updateComparisonSlider() {
+  const value = Number(comparisonSlider?.value || 50);
+  if (comparisonSliderValue) comparisonSliderValue.textContent = `${value}%`;
+  const before = comparisonSliderView?.querySelector(".comparison-slider-before");
+  if (before) before.style.width = `${value}%`;
+}
+
+function renderComparisonSlider(beforeData, afterData) {
+  if (!comparisonSliderView || !beforeData || !afterData) return;
+  comparisonSliderView.innerHTML = `<div class="comparison-slider-after"><img src="${afterData}" alt="After画像"></div><div class="comparison-slider-before"><img src="${beforeData}" alt="Before画像"></div>`;
+  updateComparisonSlider();
+}
+
+comparisonSlider?.addEventListener("input", updateComparisonSlider);
 
 const hospitals = window.CLINIC_DATA || [];
 const optionLabels = {
@@ -1182,6 +1221,7 @@ async function renderResult(result) {
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
     afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
+    renderComparisonSlider(result.beforeImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
@@ -1207,6 +1247,7 @@ async function renderResult(result) {
       </div>
       <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
     `;
+    renderComparisonSlider(result.beforeImage, localImage);
   }
 
   renderAdjustmentSummary(result.adjustmentSummary, result.generationStatus);
