@@ -146,7 +146,7 @@
         id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 18)}`,
         requestText: result.requestText || "",
         profile: result.profile,
-        category: controls.historyName?.value.trim() || result.category || "設定",
+        category: controls.historyName?.value.trim() || "無題のシミュレーション",
         result: {
           beforeScore: result.beforeScore ?? null,
           afterScore: result.afterScore ?? null,
