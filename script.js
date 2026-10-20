@@ -172,7 +172,6 @@ faceImageInput.addEventListener("change", () => {
     if (imageGeneration !== privacyGeneration) return;
     setSelectedImage(reader.result);
     openCropButton.disabled = false;
-    openImageCrop(reader.result, imageGeneration);
   });
   reader.readAsDataURL(file);
 });
