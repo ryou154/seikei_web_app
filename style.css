@@ -1628,7 +1628,7 @@ button:hover:not(:disabled) {
 .crop-viewport {
   position: relative;
   width: min(100%, 560px, 66.6667vh);
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 4;
   margin: 0 auto;
   overflow: visible;
   cursor: grab;
