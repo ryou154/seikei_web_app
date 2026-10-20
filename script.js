@@ -1427,8 +1427,10 @@ function clamp(value, min, max) {
 }
 function createAfterImage(profile) {
   const sourceImage = imagePreview.querySelector("img");
-  const width = 720;
-  const height = 720;
+  const sourceRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+  const maxSize = 720;
+  const width = sourceRatio >= 1 ? maxSize : Math.max(1, Math.round(maxSize * sourceRatio));
+  const height = sourceRatio >= 1 ? Math.max(1, Math.round(maxSize / sourceRatio)) : maxSize;
   const baseCanvas = createCroppedCanvas(sourceImage, width, height);
   const warpedCanvas = warpFaceImage(baseCanvas, profile);
   const finalCanvas = applyBeautyFinish(warpedCanvas, profile);
