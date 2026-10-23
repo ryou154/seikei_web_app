@@ -198,6 +198,7 @@ function adminClinic(id, value) {
     reviewedBy: typeof source.reviewedBy === "string" ? source.reviewedBy : "",
     officialDataCheckedAt: typeof source.officialDataCheckedAt === "string" ? source.officialDataCheckedAt : "",
     extractionStatus: typeof source.extractionStatus === "string" ? source.extractionStatus : "",
+    extractionError: typeof source.extractionError === "string" ? source.extractionError : "",
     detectedData: source.detectedData && typeof source.detectedData === "object" ? source.detectedData : null,
     updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : ""
   };
@@ -285,13 +286,14 @@ function createClinicAdminStore(db) {
       await reference.set(result.update, { merge: true });
       return result;
     },
-    async markOfficialSyncFailed(id, now = new Date().toISOString()) {
+    async markOfficialSyncFailed(id, errorMessage = "", now = new Date().toISOString()) {
       const reference = collection.doc(validAdminClinicId(id));
       const snapshot = await reference.get();
       if (!snapshot.exists) return false;
       await reference.set({
         officialDataCheckedAt: now,
         extractionStatus: "failed",
+        extractionError: String(errorMessage || "公式情報の抽出に失敗しました。").slice(0, 500),
         updatedAt: now
       }, { merge: true });
       return true;
@@ -444,7 +446,7 @@ function createClinicAdminHandler({
               });
             } catch (error) {
               if (typeof store.markOfficialSyncFailed === "function") {
-                await store.markOfficialSyncFailed(clinic.id);
+                await store.markOfficialSyncFailed(clinic.id, error.message);
               }
               results.push({ id: clinic.id, name: clinic.name, ok: false, error: error.message });
             }

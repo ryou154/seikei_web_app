@@ -1,5 +1,5 @@
 (() => {
-  const PAGE_SIZE = 30;
+  const PAGE_SIZE = 10;
   const PREFECTURES = [
     "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
     "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
@@ -60,7 +60,7 @@
     if (!currentCandidates.length) {
       const empty = document.createElement("p");
       empty.className = "editor-empty";
-      empty.textContent = "候補がありません。上の『候補を収集』から地域を指定してください。";
+      empty.textContent = "選択した都道府県に公開済みのクリニックがありません。";
       list.append(empty);
     }
     for (const clinic of currentCandidates) {
@@ -72,7 +72,7 @@
       const title = document.createElement("strong");
       title.textContent = candidateLabel(clinic);
       const meta = document.createElement("span");
-      meta.textContent = `${clinic.verificationStatus} / ${clinic.id}`;
+      meta.textContent = `${clinic.verificationStatus}${clinic.extractionStatus ? ` / 抽出: ${clinic.extractionStatus}` : ""}`;
       button.append(title, meta);
       button.addEventListener("click", () => void selectClinic(clinic.id));
       list.append(button);
@@ -160,7 +160,6 @@
         byId("discovery-status"),
         `${prefectures.length}都道府県・${totals.requests}回のAPI呼び出しで${totals.uniqueCandidates}件を確認し、新規${totals.inserted}件・既存更新${totals.updated}件を下書きへ反映しました。`
       );
-      byId("admin-status-filter").value = "draft";
       busy = false;
       await loadCandidates({ reset: true });
     } catch (error) {
@@ -192,9 +191,13 @@
         method: "POST",
         body: JSON.stringify({ prefectures, limit, autoApply, confirmed: true })
       });
+      const failures = (data.results || [])
+        .filter((result) => !result.ok && result.error)
+        .slice(0, 3)
+        .map((result) => `${result.name || result.id}: ${result.error}`);
       setStatus(
         byId("official-sync-status"),
-        `${data.requested}件を処理し、成功${data.succeeded}件・失敗${data.failed}件・変更検出${data.changed}件・自動反映${data.autoApplied}件でした。`,
+        `${data.requested}件を処理し、成功${data.succeeded}件・失敗${data.failed}件・変更検出${data.changed}件・自動反映${data.autoApplied}件でした。${failures.length ? ` 失敗理由: ${failures.join(" / ")}` : ""}`,
         data.failed > 0
       );
     } catch (error) {
@@ -241,10 +244,12 @@
       const groups = prefectureGroups();
       let processed = 0;
       const maximumClinics = PREFECTURES.length * 10;
+      let reachedSafetyLimit = false;
       for (const [groupIndex, prefectures] of groups.entries()) {
         while (true) {
           if (processed >= maximumClinics) {
-            throw new Error(`安全上限の${maximumClinics}院に達したため停止しました。`);
+            reachedSafetyLimit = true;
+            break;
           }
           setStatus(
             status,
@@ -266,11 +271,12 @@
             totals[key] += Number(data[key] || 0);
           }
         }
+        if (reachedSafetyLimit) break;
       }
 
       setStatus(
         status,
-        `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。`,
+        `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。${reachedSafetyLimit ? ` 安全上限の${maximumClinics}院まで処理しました。` : ""}`,
         totals.failed > 0
       );
       busy = false;
@@ -304,7 +310,7 @@
     renderCandidates();
     setStatus(byId("candidate-status"), "候補を読み込んでいます…");
     try {
-      const params = new URLSearchParams({ status: byId("admin-status-filter").value, limit: String(PAGE_SIZE) });
+      const params = new URLSearchParams({ status: "published", limit: String(PAGE_SIZE) });
       for (const prefecture of prefectures) params.append("prefecture", prefecture);
       if (cursor) params.set("cursor", cursor);
       const data = await api(`/api/admin/clinics?${params}`);
@@ -369,7 +375,11 @@
     byId("clinic-publication-status").value = clinic.publicationStatus || "draft";
     byId("editor-badge").textContent = clinic.publicationStatus === "published" ? "公開済み" : "下書き";
     byId("apply-detected-data").disabled = !currentDetectedData;
-    setStatus(byId("editor-status"), "");
+    setStatus(
+      byId("editor-status"),
+      clinic.extractionStatus === "failed" ? `公式情報の抽出に失敗しました: ${clinic.extractionError || "原因は記録されていません。再実行すると詳細を記録します。"}` : "",
+      clinic.extractionStatus === "failed"
+    );
     renderCandidates();
   }
 
@@ -544,7 +554,6 @@
     byId("discover-clinics").addEventListener("click", () => void discoverClinics());
     byId("extract-official").addEventListener("click", () => void extractOfficialInformation());
     byId("update-nationwide-clinics").addEventListener("click", () => void updateNationwideClinics());
-    byId("admin-status-filter").addEventListener("change", () => void loadCandidates({ reset: true }));
     byId("candidate-next").addEventListener("click", () => {
       if (!nextCursor) return;
       cursorHistory.push(cursor);

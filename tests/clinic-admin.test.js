@@ -269,7 +269,7 @@ test("failed official extraction is marked so the nationwide loop can advance", 
         return [{ id: "candidate-1", name: "候補名", officialUrl: "https://example.com" }];
       },
       async saveOfficialExtraction() { throw new Error("unexpected save"); },
-      async markOfficialSyncFailed(id) { failed.push(id); }
+      async markOfficialSyncFailed(id, message) { failed.push({ id, message }); }
     },
     extractOfficial: async () => { throw new Error("Gemini unavailable"); }
   });
@@ -279,7 +279,7 @@ test("failed official extraction is marked so the nationwide loop can advance", 
   }));
   assert.equal(result.status, 200);
   assert.equal(result.data.failed, 1);
-  assert.deepEqual(failed, ["candidate-1"]);
+  assert.deepEqual(failed, [{ id: "candidate-1", message: "Gemini unavailable" }]);
 });
 
 test("non-admins, bad media types and unsupported routes fail closed", async () => {

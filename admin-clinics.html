@@ -76,12 +76,8 @@
           <p class="format-note">このボタンを押した時だけGemini APIを使用します。選択中の都道府県にある公開済みクリニックを対象に、公式サイト上の根拠URLと本文を保存します。手動確認済みデータは上書きしません。</p>
           <p id="official-sync-status" class="admin-status" role="status" aria-live="polite"></p>
         </section>
-        <label for="admin-status-filter">表示する状態</label>
-        <select id="admin-status-filter">
-          <option value="draft">下書き</option>
-          <option value="published">公開済み</option>
-          <option value="all">すべて</option>
-        </select>
+        <span class="picker-label">表示する状態</span>
+        <p class="format-note">公開済みのクリニックを、選択した都道府県ごとに最大10件表示します。</p>
         <p id="candidate-status" class="admin-status" role="status" aria-live="polite"></p>
         <div id="candidate-list" class="candidate-list"></div>
         <div class="candidate-pagination">

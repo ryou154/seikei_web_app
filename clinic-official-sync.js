@@ -1,8 +1,8 @@
 const crypto = require("node:crypto");
 const net = require("node:net");
 
-const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
-const DEFAULT_GEMINI_TEXT_MODEL = "gemini-3.6-flash";
+const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1/interactions";
+const DEFAULT_GEMINI_TEXT_MODEL = "gemini-3.8-flash";
 const MAX_EXTRACTED_ITEMS = 50;
 const AUTO_APPLY_CONFIDENCE = 0.9;
 
@@ -360,6 +360,7 @@ function officialExtractionUpdate(existing, extraction, {
     officialExtractionHash: nextHash,
     officialDataCheckedAt: now,
     extractionModel: cleanText(model, 100),
+    extractionError: "",
     extractionStatus: changed ? (canAutoApply ? "applied" : "needs_review") : "unchanged",
     changeHistory: history,
     updatedAt: now

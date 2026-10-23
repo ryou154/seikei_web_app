@@ -74,6 +74,7 @@ test("automatic records apply only high-confidence official information", () => 
   assert.equal(result.autoApplied, true);
   assert.deepEqual(result.update.treatments, ["二重埋没法"]);
   assert.equal(result.update.extractionStatus, "applied");
+  assert.equal(result.update.extractionError, "");
   assert.equal(result.update.verificationStatus, "automated");
 });
 
