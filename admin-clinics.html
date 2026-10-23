@@ -49,7 +49,7 @@
           <p id="discovery-status" class="admin-status" role="status" aria-live="polite"></p>
         </section>
         <section class="discovery-controls" aria-labelledby="official-sync-heading">
-          <h3 id="official-sync-heading">公式サイト情報を抽出</h3>
+          <h3 id="official-sync-heading">公式サイト情報を更新</h3>
           <label for="official-sync-limit">今回の処理件数</label>
           <select id="official-sync-limit">
             <option value="1">1件（動作確認）</option>
@@ -57,11 +57,11 @@
             <option value="10">10件</option>
           </select>
           <label class="check-row">
-            <input id="official-sync-auto-apply" type="checkbox">
-            自動登録したクリニックへ高信頼データを反映
+            <input id="official-sync-auto-apply" type="checkbox" checked>
+            高信頼データを自動登録情報へ反映（手動確認済みデータは保護）
           </label>
-          <button id="extract-official" type="button" class="main-button">公式情報を抽出</button>
-          <p class="format-note">選択中の都道府県にある公開済みクリニックを対象にします。公式サイト上の根拠URLと本文を保存し、手動確認済みデータは上書きしません。</p>
+          <button id="extract-official" type="button" class="main-button">公式情報を更新</button>
+          <p class="format-note">このボタンを押した時だけGemini APIを使用します。選択中の都道府県にある公開済みクリニックを対象に、公式サイト上の根拠URLと本文を保存します。手動確認済みデータは上書きしません。</p>
           <p id="official-sync-status" class="admin-status" role="status" aria-live="polite"></p>
         </section>
         <label for="admin-status-filter">表示する状態</label>

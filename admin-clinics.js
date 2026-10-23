@@ -185,7 +185,7 @@
     if (!confirm(message)) return;
     busy = true;
     renderCandidates();
-    setStatus(byId("official-sync-status"), "Geminiで公式サイトを確認しています…。1件ずつ処理するため時間がかかる場合があります。");
+    setStatus(byId("official-sync-status"), "Geminiで公式情報を更新しています…。1件ずつ処理するため時間がかかる場合があります。");
     try {
       const data = await api("/api/admin/clinics/extract-official", {
         method: "POST",
