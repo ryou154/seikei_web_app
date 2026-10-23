@@ -89,9 +89,9 @@ let guidedScanBusy = false;
 let privacyGeneration = 0;
 let cropperInstance = null;
 
-function scrollToSimulationResult(target = resultPanel) {
+function scrollToSimulationResult(target = resultPanel, block = "start") {
   if (!target) return;
-  window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+  window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block }));
 }
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
@@ -1215,7 +1215,8 @@ async function renderResult(result) {
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
   saveButton.disabled = false;
-  scrollToSimulationResult(analysisText.closest(".analysis-box") || resultPanel);
+  // After generation, show the actual Before / After image comparison.
+  scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
 }
 
 async function analyzeSelectedFace() {
