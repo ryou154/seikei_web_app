@@ -787,7 +787,8 @@ simulateButton.addEventListener("click", async () => {
   const originalLabel = simulateButton.textContent;
   simulateButton.textContent = "シミュレーション準備中…";
   try {
-    const requestText = requestTextInput.value.trim();
+    const requestText = window.InputGuard?.sanitizeAestheticRequest(requestTextInput.value)
+      || "";
 
     if (!selectedImageData) {
       alert("顔画像を選択してください。");
@@ -1127,6 +1128,8 @@ async function renderResult(result) {
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
+  const inputValidation = window.InputGuard?.validateFaceInput(result.faceAnalysis);
+  if (inputValidation && !inputValidation.ok) throw new Error(inputValidation.message);
   if (!stillCurrent()) return;
   analysisText.textContent = appendFaceAnalysis(result.analysis, result.faceAnalysis);
   renderFaceScoreComparison(result.faceAnalysis, null);
