@@ -64,7 +64,6 @@ const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
 const comparisonPanel = document.querySelector(".comparison");
-const comparisonSliderView = document.getElementById("comparison-slider-view");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
@@ -836,7 +835,6 @@ function updateComparisonAspectRatio(imageData) {
     beforeImage?.style.setProperty("aspect-ratio", ratio);
     afterImage?.style.setProperty("aspect-ratio", ratio);
     comparisonPanel?.style.setProperty("--comparison-aspect-ratio", ratio);
-    comparisonSliderView?.style.setProperty("aspect-ratio", ratio);
   };
   image.src = imageData;
 }
