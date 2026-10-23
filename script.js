@@ -787,8 +787,12 @@ simulateButton.addEventListener("click", async () => {
   const originalLabel = simulateButton.textContent;
   simulateButton.textContent = "シミュレーション準備中…";
   try {
-    const requestText = window.InputGuard?.sanitizeAestheticRequest(requestTextInput.value)
-      || "";
+    const requestValidation = window.InputGuard?.validateAestheticRequest(requestTextInput.value)
+      || { ok: true, sanitized: requestTextInput.value.trim() };
+    if (!requestValidation.ok) {
+      throw new Error(requestValidation.message);
+    }
+    const requestText = requestValidation.sanitized;
 
     if (!selectedImageData) {
       alert("顔画像を選択してください。");
