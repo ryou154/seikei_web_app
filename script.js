@@ -831,8 +831,12 @@ function updateComparisonAspectRatio(imageData) {
   image.onload = () => {
     if (!image.naturalWidth || !image.naturalHeight) return;
     const ratio = `${image.naturalWidth} / ${image.naturalHeight}`;
+    // Set the ratio on each media frame directly so later layout rules cannot
+    // fall back to the comparison panel's default ratio.
+    beforeImage?.style.setProperty("aspect-ratio", ratio);
+    afterImage?.style.setProperty("aspect-ratio", ratio);
     comparisonPanel?.style.setProperty("--comparison-aspect-ratio", ratio);
-    comparisonSliderView?.style.setProperty("--comparison-aspect-ratio", ratio);
+    comparisonSliderView?.style.setProperty("aspect-ratio", ratio);
   };
   image.src = imageData;
 }
