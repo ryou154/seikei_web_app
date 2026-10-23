@@ -172,6 +172,31 @@ node --env-file-if-exists=.env scripts/sync-google-places.js --all --auto-publis
 
 APIキーはFirebase Web APIキーやGemini APIキーと共用せず、Places API（New）だけに制限したサーバー用キーを使用します。Text SearchではField Maskが必須で、不要な項目を要求しないことが処理量と課金の抑制につながります。
 
+### 公式サイトから詳細情報を抽出・更新する
+
+GeminiのURL ContextとGoogle Searchを使い、公開済みクリニックの公式サイトから施術、料金・追加費用、医師・資格、症例件数、ダウンタイム・リスク、保証・アフターケアを構造化して保存します。各項目には公式ドメイン上の根拠URL、根拠本文、信頼度を保持し、別ドメインの情報は破棄します。
+
+管理画面では都道府県と最大10件を選び、「公式情報を抽出」から実行できます。初回は自動反映をOFFにして抽出結果を保存し、内容を確認してください。自動反映をONにしても、反映対象は `automated` のクリニックと信頼度0.9以上の項目だけです。人が `verified` にした公開情報は上書きしません。
+
+コマンドでは、最終確認日時が古い公開クリニックから順に処理します。計画表示ではAPIもFirestoreも使用しません。
+
+```powershell
+npm run clinics:official:plan
+
+$env:CONFIRM_GEMINI_REQUEST="yes"
+$env:CONFIRM_CLINIC_OFFICIAL_WRITE="yes"
+npm run clinics:official:sync
+```
+
+高信頼項目を自動登録データへ反映する場合だけ、追加確認を設定します。
+
+```powershell
+$env:CONFIRM_CLINIC_OFFICIAL_AUTO_APPLY="yes"
+npm run clinics:official:auto-apply
+```
+
+このコマンドをCloud Run JobとCloud Schedulerから定期実行すれば更新確認を自動化できます。ジョブとスケジュール自体は別途Google Cloudへ作成する必要があります。閉業・移転などの基本情報はPlaces同期、公式サイトの詳細情報はこの公式情報同期で更新します。
+
 ### クリニック候補を確認・公開する
 
 管理担当者は `/admin-clinics.html` で候補一覧を開き、Google Placesの候補名をその場で確認してから、公式サイトを情報源として施術、料金、医師、症例、リスク、保証などを登録します。候補名は確認用にPlaces APIから都度取得し、Firestoreへ保存しません。
@@ -241,6 +266,7 @@ Cloud Runのサービス設定で次の環境変数を設定します。
 
 ```text
 GEMINI_API_KEY=Google AI Studioで取得したAPIキー
+GEMINI_TEXT_MODEL=gemini-3.6-flash
 FIREBASE_API_KEY=Firebase WebアプリのapiKey
 FIREBASE_AUTH_DOMAIN=Firebase WebアプリのauthDomain
 FIREBASE_PROJECT_ID=対象プロジェクトID
@@ -330,6 +356,7 @@ seikei_web_app/
 ├─ account-store.js  Firestore保存API
 ├─ clinic-store.js   クリニック検索・詳細API
 ├─ places-clinic-sync.js  Google Places候補収集・Firestore同期
+├─ clinic-official-sync.js  Geminiによる公式サイト情報の抽出・差分保存
 ├─ image-store.js    Cloud Storage画像保存API
 ├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
 ├─ server.js         Cloud Run用サーバー、認証・Firestore・Storage・Gemini API中継

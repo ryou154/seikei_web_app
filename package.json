@@ -13,7 +13,10 @@
     "clinics:places:plan": "node --env-file-if-exists=.env scripts/sync-google-places.js",
     "clinics:places:check": "node --env-file-if-exists=.env scripts/sync-google-places.js --execute",
     "clinics:places:sync": "node --env-file-if-exists=.env scripts/sync-google-places.js --write",
-    "clinics:places:auto-publish": "node --env-file-if-exists=.env scripts/sync-google-places.js --all --auto-publish --limit-per-prefecture 10"
+    "clinics:places:auto-publish": "node --env-file-if-exists=.env scripts/sync-google-places.js --all --auto-publish --limit-per-prefecture 10",
+    "clinics:official:plan": "node --env-file-if-exists=.env scripts/sync-clinic-official.js --all --limit 10",
+    "clinics:official:sync": "node --env-file-if-exists=.env scripts/sync-clinic-official.js --all --limit 10 --execute",
+    "clinics:official:auto-apply": "node --env-file-if-exists=.env scripts/sync-clinic-official.js --all --limit 10 --execute --auto-apply"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.2.0",

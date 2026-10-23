@@ -48,6 +48,22 @@
           <p class="format-note">選択地域ごとに「美容外科」「美容クリニック」の2検索を実行します。候補一覧も選択地域だけに絞られ、新規候補は自動公開されません。</p>
           <p id="discovery-status" class="admin-status" role="status" aria-live="polite"></p>
         </section>
+        <section class="discovery-controls" aria-labelledby="official-sync-heading">
+          <h3 id="official-sync-heading">公式サイト情報を抽出</h3>
+          <label for="official-sync-limit">今回の処理件数</label>
+          <select id="official-sync-limit">
+            <option value="1">1件（動作確認）</option>
+            <option value="5" selected>5件</option>
+            <option value="10">10件</option>
+          </select>
+          <label class="check-row">
+            <input id="official-sync-auto-apply" type="checkbox">
+            自動登録したクリニックへ高信頼データを反映
+          </label>
+          <button id="extract-official" type="button" class="main-button">公式情報を抽出</button>
+          <p class="format-note">選択中の都道府県にある公開済みクリニックを対象にします。公式サイト上の根拠URLと本文を保存し、手動確認済みデータは上書きしません。</p>
+          <p id="official-sync-status" class="admin-status" role="status" aria-live="polite"></p>
+        </section>
         <label for="admin-status-filter">表示する状態</label>
         <select id="admin-status-filter">
           <option value="draft">下書き</option>
@@ -176,6 +192,7 @@
 
           <p id="editor-status" class="admin-status" role="status" aria-live="polite"></p>
           <div class="editor-actions">
+            <button id="apply-detected-data" type="button" class="sub-button" disabled>抽出候補を入力欄へ反映</button>
             <button id="save-draft" type="button" class="sub-button">下書き保存</button>
             <button id="publish-clinic" type="button" class="main-button">確認して公開</button>
           </div>

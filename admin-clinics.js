@@ -11,6 +11,7 @@
   ];
   const byId = (id) => document.getElementById(id);
   let currentClinicId = "";
+  let currentDetectedData = null;
   let currentCandidates = [];
   let nextCursor = "";
   let cursor = "";
@@ -80,6 +81,8 @@
     byId("candidate-next").disabled = busy || !nextCursor;
     byId("admin-reload").disabled = busy;
     byId("discover-clinics").disabled = busy;
+    byId("extract-official").disabled = busy;
+    byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
   function populatePrefectures() {
@@ -167,6 +170,40 @@
     }
   }
 
+  async function extractOfficialInformation() {
+    if (busy) return;
+    const prefectures = selectedPrefectures();
+    if (!prefectures.length) {
+      setStatus(byId("official-sync-status"), "都道府県を1件以上選択してください。", true);
+      return;
+    }
+    const limit = Number(byId("official-sync-limit").value);
+    const autoApply = byId("official-sync-auto-apply").checked;
+    const message = autoApply
+      ? `選択地域の公開済みクリニック最大${limit}件を解析し、自動登録データへ高信頼情報を反映します。実行しますか？`
+      : `選択地域の公開済みクリニック最大${limit}件を解析し、確認用データとして保存します。実行しますか？`;
+    if (!confirm(message)) return;
+    busy = true;
+    renderCandidates();
+    setStatus(byId("official-sync-status"), "Geminiで公式サイトを確認しています…。1件ずつ処理するため時間がかかる場合があります。");
+    try {
+      const data = await api("/api/admin/clinics/extract-official", {
+        method: "POST",
+        body: JSON.stringify({ prefectures, limit, autoApply, confirmed: true })
+      });
+      setStatus(
+        byId("official-sync-status"),
+        `${data.requested}件を処理し、成功${data.succeeded}件・失敗${data.failed}件・変更検出${data.changed}件・自動反映${data.autoApplied}件でした。`,
+        data.failed > 0
+      );
+    } catch (error) {
+      setStatus(byId("official-sync-status"), error.message, true);
+    } finally {
+      busy = false;
+      renderCandidates();
+    }
+  }
+
   async function loadCandidates({ reset = false } = {}) {
     if (busy) return;
     busy = true;
@@ -175,6 +212,7 @@
       nextCursor = "";
       cursorHistory.length = 0;
       currentClinicId = "";
+      currentDetectedData = null;
     }
     const prefectures = selectedPrefectures();
     if (!prefectures.length) {
@@ -224,6 +262,7 @@
 
   function fillEditor(clinic) {
     currentClinicId = clinic.id;
+    currentDetectedData = clinic.detectedData || null;
     byId("editor-empty").hidden = true;
     byId("clinic-editor").hidden = false;
     byId("clinic-place-id").textContent = clinic.placeId || clinic.id;
@@ -250,6 +289,7 @@
     byId("clinic-verification-status").value = clinic.verificationStatus || "unverified";
     byId("clinic-publication-status").value = clinic.publicationStatus || "draft";
     byId("editor-badge").textContent = clinic.publicationStatus === "published" ? "公開済み" : "下書き";
+    byId("apply-detected-data").disabled = !currentDetectedData;
     setStatus(byId("editor-status"), "");
     renderCandidates();
   }
@@ -274,6 +314,34 @@
     if (!byId("clinic-sources").value.trim() && place.officialUrl) {
       byId("clinic-sources").value = place.officialUrl;
     }
+  }
+
+  function applyDetectedData() {
+    if (!currentDetectedData) return;
+    fillEmptyField("clinic-treatments", (currentDetectedData.treatments || []).map((item) => item.name).filter(Boolean).join("\n"));
+    fillEmptyField("clinic-pricing", formatPricing(currentDetectedData.pricing));
+    fillEmptyField("clinic-doctors", formatDoctors(currentDetectedData.doctors));
+    const caseInformation = currentDetectedData.caseInformation?.[0];
+    if (caseInformation) {
+      fillEmptyField("clinic-case-summary", caseInformation.summary);
+      fillEmptyField("clinic-case-period", caseInformation.period);
+      fillEmptyField("clinic-case-scope", caseInformation.scope);
+      fillEmptyField("clinic-case-source", caseInformation.sourceUrl);
+    }
+    fillEmptyField("clinic-risks", formatInformation(currentDetectedData.downtimeAndRisks));
+    fillEmptyField("clinic-aftercare", formatInformation(currentDetectedData.warrantyAndAftercare));
+    if (!byId("clinic-sources").value.trim()) {
+      const sourceUrls = new Set([currentDetectedData.officialUrl]);
+      for (const group of [
+        currentDetectedData.treatments, currentDetectedData.pricing, currentDetectedData.doctors,
+        currentDetectedData.caseInformation, currentDetectedData.downtimeAndRisks,
+        currentDetectedData.warrantyAndAftercare
+      ]) {
+        for (const item of group || []) if (item.sourceUrl) sourceUrls.add(item.sourceUrl);
+      }
+      byId("clinic-sources").value = [...sourceUrls].filter(Boolean).join("\n");
+    }
+    setStatus(byId("editor-status"), "抽出候補を空欄へ入力しました。根拠URLと公式サイトの記載を確認してから保存してください。");
   }
 
   async function selectClinic(id) {
@@ -395,6 +463,7 @@
     });
     byId("admin-reload").addEventListener("click", () => void loadCandidates({ reset: true }));
     byId("discover-clinics").addEventListener("click", () => void discoverClinics());
+    byId("extract-official").addEventListener("click", () => void extractOfficialInformation());
     byId("admin-status-filter").addEventListener("change", () => void loadCandidates({ reset: true }));
     byId("candidate-next").addEventListener("click", () => {
       if (!nextCursor) return;
@@ -409,6 +478,7 @@
     });
     byId("save-draft").addEventListener("click", () => void save("draft"));
     byId("publish-clinic").addEventListener("click", () => void save("published"));
+    byId("apply-detected-data").addEventListener("click", applyDetectedData);
     void loadCandidates({ reset: true });
   }
 

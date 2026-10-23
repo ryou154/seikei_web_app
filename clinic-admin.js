@@ -8,10 +8,15 @@ const {
   writeAutoPublishedClinics,
   MAX_AUTO_PUBLISH_PER_PREFECTURE
 } = require("./places-clinic-sync");
+const {
+  requestOfficialExtraction,
+  officialExtractionUpdate
+} = require("./clinic-official-sync");
 
 const ADMIN_LIMIT = 30;
 const ADMIN_MAX_LIMIT = 50;
 const ADMIN_MAX_PREFECTURES = 10;
+const ADMIN_MAX_OFFICIAL_SYNC = 10;
 const STATUSES = new Set(["draft", "published"]);
 const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified", "automated"]);
 const PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places";
@@ -191,6 +196,9 @@ function adminClinic(id, value) {
     verificationStatus: VERIFICATION_STATUSES.has(source.verificationStatus) ? source.verificationStatus : "unverified",
     reviewedAt: typeof source.reviewedAt === "string" ? source.reviewedAt : "",
     reviewedBy: typeof source.reviewedBy === "string" ? source.reviewedBy : "",
+    officialDataCheckedAt: typeof source.officialDataCheckedAt === "string" ? source.officialDataCheckedAt : "",
+    extractionStatus: typeof source.extractionStatus === "string" ? source.extractionStatus : "",
+    detectedData: source.detectedData && typeof source.detectedData === "object" ? source.detectedData : null,
     updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : ""
   };
 }
@@ -246,6 +254,34 @@ function createClinicAdminStore(db) {
     },
     async autoPublishCandidates(candidates, options) {
       return writeAutoPublishedClinics(db, candidates, options);
+    },
+    async listForOfficialSync({ prefectures, limit }) {
+      const snapshots = await Promise.all(prefectures.map((prefecture) => (
+        collection.where("prefecture", "==", prefecture).get()
+      )));
+      const clinicsById = new Map();
+      for (const snapshot of snapshots) {
+        for (const document of snapshot.docs) {
+          const clinic = adminClinic(document.id, document.data());
+          if (clinic.publicationStatus === "published" && clinic.officialUrl) {
+            clinicsById.set(document.id, clinic);
+          }
+        }
+      }
+      return [...clinicsById.values()]
+        .sort((left, right) => (
+          left.officialDataCheckedAt.localeCompare(right.officialDataCheckedAt)
+          || left.id.localeCompare(right.id)
+        ))
+        .slice(0, limit);
+    },
+    async saveOfficialExtraction(id, extraction, options) {
+      const reference = collection.doc(validAdminClinicId(id));
+      const snapshot = await reference.get();
+      if (!snapshot.exists) return null;
+      const result = officialExtractionUpdate(snapshot.data(), extraction, options);
+      await reference.set(result.update, { merge: true });
+      return result;
     }
   };
 }
@@ -325,10 +361,14 @@ function createClinicAdminHandler({
   parseBody = readJsonBody,
   getPlacePreview = requestPlacePreview,
   discoverCandidates = discoverClinicCandidates,
-  placesApiKey = process.env.GOOGLE_PLACES_API_KEY
+  extractOfficial = requestOfficialExtraction,
+  placesApiKey = process.env.GOOGLE_PLACES_API_KEY,
+  geminiApiKey = process.env.GEMINI_API_KEY,
+  geminiTextModel = process.env.GEMINI_TEXT_MODEL
 } = {}) {
   if (typeof getStore !== "function") throw new TypeError("getStore is required");
   let discoveryRunning = false;
+  let officialSyncRunning = false;
   return async (request) => {
     try {
       const identity = await requireAdmin(request, authenticate);
@@ -336,6 +376,74 @@ function createClinicAdminHandler({
       const previewMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/place-preview$/.exec(requestUrl.pathname);
       const detailMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})$/.exec(requestUrl.pathname);
       const store = getStore();
+      if (requestUrl.pathname === "/api/admin/clinics/extract-official") {
+        if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
+        if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
+          throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
+        }
+        if (!geminiApiKey) throw new ClinicAdminError("GEMINI_API_KEYが設定されていません。", 503);
+        if (officialSyncRunning) throw new ClinicAdminError("公式情報の抽出はすでに実行中です。", 409);
+        if (typeof store.listForOfficialSync !== "function" || typeof store.saveOfficialExtraction !== "function") {
+          throw new ClinicAdminError("公式情報を保存できません。", 503);
+        }
+        const body = await parseBody(request);
+        if (body?.confirmed !== true) throw new ClinicAdminError("公式情報抽出の確認が必要です。", 400);
+        if (body.autoApply !== undefined && typeof body.autoApply !== "boolean") {
+          throw new ClinicAdminError("自動反映の指定を確認してください。", 400);
+        }
+        const requested = Array.isArray(body.prefectures) ? body.prefectures : [];
+        const prefectures = [...new Set(requested.map((value) => text(value, 10, "都道府県")))];
+        if (!prefectures.length
+          || prefectures.length > ADMIN_MAX_PREFECTURES
+          || prefectures.some((value) => !PREFECTURES.includes(value))) {
+          throw new ClinicAdminError(`都道府県は${ADMIN_MAX_PREFECTURES}件以内で選択してください。`, 400);
+        }
+        const limit = Number(body.limit ?? 5);
+        if (!Number.isInteger(limit) || limit < 1 || limit > ADMIN_MAX_OFFICIAL_SYNC) {
+          throw new ClinicAdminError(`抽出件数は1〜${ADMIN_MAX_OFFICIAL_SYNC}で指定してください。`, 400);
+        }
+        officialSyncRunning = true;
+        try {
+          const clinics = await store.listForOfficialSync({ prefectures, limit });
+          const results = [];
+          for (const clinic of clinics) {
+            try {
+              const extracted = await extractOfficial({
+                apiKey: geminiApiKey,
+                clinicName: clinic.name,
+                sourceOfficialUrl: clinic.officialUrl,
+                model: geminiTextModel
+              });
+              const saved = await store.saveOfficialExtraction(clinic.id, extracted.extraction, {
+                model: extracted.model,
+                autoApply: body.autoApply === true
+              });
+              results.push({
+                id: clinic.id,
+                name: clinic.name,
+                ok: Boolean(saved),
+                changed: Boolean(saved?.changed),
+                autoApplied: Boolean(saved?.autoApplied)
+              });
+            } catch (error) {
+              results.push({ id: clinic.id, name: clinic.name, ok: false, error: error.message });
+            }
+          }
+          return {
+            status: 200,
+            data: {
+              requested: clinics.length,
+              succeeded: results.filter((result) => result.ok).length,
+              failed: results.filter((result) => !result.ok).length,
+              changed: results.filter((result) => result.changed).length,
+              autoApplied: results.filter((result) => result.autoApplied).length,
+              results
+            }
+          };
+        } finally {
+          officialSyncRunning = false;
+        }
+      }
       if (requestUrl.pathname === "/api/admin/clinics/auto-publish") {
         if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
         if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
@@ -475,6 +583,7 @@ module.exports = {
   ADMIN_LIMIT,
   ADMIN_MAX_LIMIT,
   ADMIN_MAX_PREFECTURES,
+  ADMIN_MAX_OFFICIAL_SYNC,
   ClinicAdminError,
   createClinicAdminStore,
   createClinicAdminHandler,
