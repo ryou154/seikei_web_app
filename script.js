@@ -63,6 +63,8 @@ const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const comparisonPanel = document.querySelector(".comparison");
+const comparisonSliderView = document.getElementById("comparison-slider-view");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
@@ -820,6 +822,19 @@ function setSelectedImage(imageData) {
   latestFaceAnalysis = null;
   simulateButton.disabled = false;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
+  updateComparisonAspectRatio(selectedImageData);
+}
+
+function updateComparisonAspectRatio(imageData) {
+  if (!imageData) return;
+  const image = new Image();
+  image.onload = () => {
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const ratio = `${image.naturalWidth} / ${image.naturalHeight}`;
+    comparisonPanel?.style.setProperty("--comparison-aspect-ratio", ratio);
+    comparisonSliderView?.style.setProperty("--comparison-aspect-ratio", ratio);
+  };
+  image.src = imageData;
 }
 
 openCropButton.addEventListener("click", () => {

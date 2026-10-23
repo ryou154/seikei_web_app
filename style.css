@@ -625,7 +625,7 @@ button:disabled {
 .comparison-slider-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .comparison-slider-heading h3 { margin: 0; font-size: 16px; }
 .comparison-slider-heading output { color: var(--primary-dark); font-weight: 800; }
-.comparison-slider-view { position: relative; overflow: hidden; min-height: 220px; aspect-ratio: 4 / 3; border-radius: 8px; background: var(--soft); }
+.comparison-slider-view { position: relative; overflow: hidden; min-height: 0; aspect-ratio: var(--comparison-aspect-ratio, 4 / 3); border-radius: 8px; background: var(--soft); }
 .comparison-slider-view img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .comparison-slider-after, .comparison-slider-before { position: absolute; inset: 0; }
 .comparison-slider-before { width: 50%; overflow: hidden; border-right: 3px solid #fff; z-index: 2; }
@@ -1515,6 +1515,12 @@ button:hover:not(:disabled) {
 .app-page .comparison .after-preview img {
   max-height: none;
   object-fit: contain;
+}
+
+.app-page .comparison .image-placeholder,
+.app-page .comparison .after-preview,
+.app-page .comparison-slider-view {
+  min-height: 0;
 }
 
 .app-page .layout > section[aria-labelledby="clinic-title"] {
