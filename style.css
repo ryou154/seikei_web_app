@@ -615,24 +615,6 @@ button:disabled {
 }
 .safety-notice strong { display: block; margin-bottom: 5px; }
 .safety-notice p { margin: 0; line-height: 1.7; font-size: 13px; }
-.comparison-slider-panel {
-  margin: 0 0 20px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel);
-}
-.comparison-slider-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.comparison-slider-heading h3 { margin: 0; font-size: 16px; }
-.comparison-slider-heading output { color: var(--primary-dark); font-weight: 800; }
-.comparison-slider-view { position: relative; overflow: hidden; min-height: 220px; aspect-ratio: 4 / 3; border-radius: 8px; background: var(--soft); }
-.comparison-slider-view img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.comparison-slider-after, .comparison-slider-before { position: absolute; inset: 0; }
-.comparison-slider-before { width: 50%; overflow: hidden; border-right: 3px solid #fff; z-index: 2; }
-.comparison-slider-before img { width: 100%; max-width: none; }
-.comparison-slider-empty { display: grid; place-items: center; height: 100%; min-height: 220px; color: var(--muted); }
-.comparison-slider-control { display: grid; gap: 6px; margin-top: 12px; color: var(--muted); font-size: 12px; font-weight: 700; }
-.comparison-slider-control input { width: 100%; }
 @media (max-width: 640px) {
   .step-navigation { align-items: stretch; flex-direction: column; }
   .step-navigation button { width: 100%; }
@@ -1516,6 +1498,9 @@ button:hover:not(:disabled) {
   max-height: none;
   object-fit: contain;
 }
+
+.app-page .comparison .image-placeholder,
+.app-page .comparison .after-preview,
 
 .app-page .layout > section[aria-labelledby="clinic-title"] {
   grid-column: 1;

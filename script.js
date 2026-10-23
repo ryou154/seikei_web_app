@@ -61,8 +61,10 @@ const saveButton = document.getElementById("save-button");
 const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
+const resultPanel = document.getElementById("result-panel");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const comparisonPanel = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
@@ -86,6 +88,11 @@ let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
 let cropperInstance = null;
+
+function scrollToSimulationResult(target = resultPanel, block = "start") {
+  if (!target) return;
+  window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block }));
+}
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -793,6 +800,9 @@ simulateButton.addEventListener("click", async () => {
     }
 
     latestResult = createSimulationResult(requestText);
+    // Move to the result area immediately so progress is visible whether the
+    // user started from above or below it.
+    scrollToSimulationResult(resultPanel);
     await renderResult(latestResult);
   } catch (error) {
     console.error("Simulation failed", error);
@@ -819,6 +829,22 @@ function setSelectedImage(imageData) {
   latestFaceAnalysis = null;
   simulateButton.disabled = false;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
+  updateComparisonAspectRatio(selectedImageData);
+}
+
+function updateComparisonAspectRatio(imageData) {
+  if (!imageData) return;
+  const image = new Image();
+  image.onload = () => {
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const ratio = `${image.naturalWidth} / ${image.naturalHeight}`;
+    // Set the ratio on each media frame directly so later layout rules cannot
+    // fall back to the comparison panel's default ratio.
+    beforeImage?.style.setProperty("aspect-ratio", ratio);
+    afterImage?.style.setProperty("aspect-ratio", ratio);
+    comparisonPanel?.style.setProperty("--comparison-aspect-ratio", ratio);
+  };
+  image.src = imageData;
 }
 
 openCropButton.addEventListener("click", () => {
@@ -1189,6 +1215,8 @@ async function renderResult(result) {
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
   saveButton.disabled = false;
+  // After generation, show the actual Before / After image comparison.
+  scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
 }
 
 async function analyzeSelectedFace() {
