@@ -13,6 +13,16 @@
     return [...new Set(matches)].join("、");
   }
 
+  function validateAestheticRequest(value) {
+    const original = String(value || "").replace(/[\u0000-\u001f<>]/g, " ").trim();
+    if (!original) return { ok: true, sanitized: "" };
+    const sanitized = sanitizeAestheticRequest(original);
+    if (!sanitized) {
+      return { ok: false, message: "整形・美容に関係する希望を入力してください。関係のない言葉はシミュレーションに使用できません。" };
+    }
+    return { ok: true, sanitized };
+  }
+
   function validateFaceInput(analysis) {
     if (!analysis?.ok) return { ok: false, message: analysis?.message || "顔を確認できませんでした。正面の顔写真を使用してください。" };
     const metrics = analysis.metrics || {};
@@ -25,5 +35,5 @@
     return { ok: true };
   }
 
-  window.InputGuard = { sanitizeAestheticRequest, validateFaceInput };
+  window.InputGuard = { sanitizeAestheticRequest, validateAestheticRequest, validateFaceInput };
 })();
