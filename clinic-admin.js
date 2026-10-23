@@ -284,6 +284,17 @@ function createClinicAdminStore(db) {
       const result = officialExtractionUpdate(snapshot.data(), extraction, options);
       await reference.set(result.update, { merge: true });
       return result;
+    },
+    async markOfficialSyncFailed(id, now = new Date().toISOString()) {
+      const reference = collection.doc(validAdminClinicId(id));
+      const snapshot = await reference.get();
+      if (!snapshot.exists) return false;
+      await reference.set({
+        officialDataCheckedAt: now,
+        extractionStatus: "failed",
+        updatedAt: now
+      }, { merge: true });
+      return true;
     }
   };
 }
@@ -432,6 +443,9 @@ function createClinicAdminHandler({
                 autoApplied: Boolean(saved?.autoApplied)
               });
             } catch (error) {
+              if (typeof store.markOfficialSyncFailed === "function") {
+                await store.markOfficialSyncFailed(clinic.id);
+              }
               results.push({ id: clinic.id, name: clinic.name, ok: false, error: error.message });
             }
           }

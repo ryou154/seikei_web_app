@@ -261,6 +261,27 @@ test("official extraction requires confirmation and a configured Gemini key", as
   assert.equal(invalidBefore.status, 400);
 });
 
+test("failed official extraction is marked so the nationwide loop can advance", async () => {
+  const failed = [];
+  const handler = setup({
+    store: {
+      async listForOfficialSync() {
+        return [{ id: "candidate-1", name: "候補名", officialUrl: "https://example.com" }];
+      },
+      async saveOfficialExtraction() { throw new Error("unexpected save"); },
+      async markOfficialSyncFailed(id) { failed.push(id); }
+    },
+    extractOfficial: async () => { throw new Error("Gemini unavailable"); }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 10, autoApply: true,
+    before: "2026-10-23T00:00:00.000Z", confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.failed, 1);
+  assert.deepEqual(failed, ["candidate-1"]);
+});
+
 test("non-admins, bad media types and unsupported routes fail closed", async () => {
   assert.equal((await setup({ email: "outsider@example.com" })(request("GET", "/api/admin/clinics"))).status, 403);
   assert.equal((await setup()(request("PUT", "/api/admin/clinics/candidate-1", validBody(), "text/plain"))).status, 415);

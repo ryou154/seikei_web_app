@@ -240,8 +240,12 @@
 
       const groups = prefectureGroups();
       let processed = 0;
+      const maximumClinics = PREFECTURES.length * 10;
       for (const [groupIndex, prefectures] of groups.entries()) {
         while (true) {
+          if (processed >= maximumClinics) {
+            throw new Error(`安全上限の${maximumClinics}院に達したため停止しました。`);
+          }
           setStatus(
             status,
             `2/2 公式情報を更新しています… ${processed}院完了（地域グループ${groupIndex + 1}/${groups.length}）`
