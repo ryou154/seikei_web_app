@@ -12,7 +12,8 @@
     "clinics:import": "node --env-file-if-exists=.env scripts/import-clinics.js --write",
     "clinics:places:plan": "node --env-file-if-exists=.env scripts/sync-google-places.js",
     "clinics:places:check": "node --env-file-if-exists=.env scripts/sync-google-places.js --execute",
-    "clinics:places:sync": "node --env-file-if-exists=.env scripts/sync-google-places.js --write"
+    "clinics:places:sync": "node --env-file-if-exists=.env scripts/sync-google-places.js --write",
+    "clinics:places:auto-publish": "node --env-file-if-exists=.env scripts/sync-google-places.js --all --auto-publish --limit-per-prefecture 10"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.2.0",

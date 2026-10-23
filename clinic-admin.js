@@ -4,14 +4,16 @@ const { PREFECTURES } = require("./account-store");
 const {
   DEFAULT_KEYWORDS,
   discoverClinicCandidates,
-  writeClinicCandidates
+  writeClinicCandidates,
+  writeAutoPublishedClinics,
+  MAX_AUTO_PUBLISH_PER_PREFECTURE
 } = require("./places-clinic-sync");
 
 const ADMIN_LIMIT = 30;
 const ADMIN_MAX_LIMIT = 50;
 const ADMIN_MAX_PREFECTURES = 10;
 const STATUSES = new Set(["draft", "published"]);
-const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified"]);
+const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified", "automated"]);
 const PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places";
 const PLACE_DETAILS_FIELD_MASK = [
   "id",
@@ -241,6 +243,9 @@ function createClinicAdminStore(db) {
     },
     async importCandidates(candidates) {
       return writeClinicCandidates(db, candidates);
+    },
+    async autoPublishCandidates(candidates, options) {
+      return writeAutoPublishedClinics(db, candidates, options);
     }
   };
 }
@@ -331,6 +336,60 @@ function createClinicAdminHandler({
       const previewMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/place-preview$/.exec(requestUrl.pathname);
       const detailMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})$/.exec(requestUrl.pathname);
       const store = getStore();
+      if (requestUrl.pathname === "/api/admin/clinics/auto-publish") {
+        if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
+        if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
+          throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
+        }
+        if (!placesApiKey) throw new ClinicAdminError("GOOGLE_PLACES_API_KEYが設定されていません。", 503);
+        if (discoveryRunning) throw new ClinicAdminError("候補収集はすでに実行中です。", 409);
+        const body = await parseBody(request);
+        if (body?.confirmed !== true) throw new ClinicAdminError("自動公開の確認が必要です。", 400);
+        const requested = Array.isArray(body.prefectures) ? body.prefectures : [];
+        const prefectures = [...new Set(requested.map((value) => text(value, 10, "都道府県")))];
+        if (!prefectures.length || prefectures.some((value) => !PREFECTURES.includes(value))) {
+          throw new ClinicAdminError("対象都道府県を確認してください。", 400);
+        }
+        const limitPerPrefecture = Number(body.limitPerPrefecture ?? MAX_AUTO_PUBLISH_PER_PREFECTURE);
+        if (!Number.isInteger(limitPerPrefecture)
+          || limitPerPrefecture < 1
+          || limitPerPrefecture > MAX_AUTO_PUBLISH_PER_PREFECTURE) {
+          throw new ClinicAdminError(`都道府県ごとの公開件数は1〜${MAX_AUTO_PUBLISH_PER_PREFECTURE}で指定してください。`, 400);
+        }
+        const maxPages = Number(body.maxPages ?? 1);
+        if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 3) {
+          throw new ClinicAdminError("ページ数は1〜3で指定してください。", 400);
+        }
+        if (typeof store.autoPublishCandidates !== "function") {
+          throw new ClinicAdminError("候補を自動公開できません。", 503);
+        }
+        discoveryRunning = true;
+        try {
+          const result = await discoverCandidates({
+            apiKey: placesApiKey,
+            prefectures,
+            keywords: DEFAULT_KEYWORDS,
+            maxPages
+          });
+          const firestore = await store.autoPublishCandidates(result.candidates, {
+            prefectures,
+            limitPerPrefecture
+          });
+          return {
+            status: 200,
+            data: {
+              prefectures,
+              limitPerPrefecture,
+              requests: result.stats.requests,
+              rawResults: result.stats.rawResults,
+              uniqueCandidates: result.stats.uniqueCandidates,
+              ...firestore
+            }
+          };
+        } finally {
+          discoveryRunning = false;
+        }
+      }
       if (requestUrl.pathname === "/api/admin/clinics/discover") {
         if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
         if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {

@@ -4,10 +4,18 @@ const PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchTe
 const PLACES_FIELD_MASK = [
   "places.id",
   "places.displayName",
+  "places.formattedAddress",
+  "places.addressComponents",
+  "places.nationalPhoneNumber",
+  "places.regularOpeningHours",
+  "places.businessStatus",
+  "places.websiteUri",
+  "places.googleMapsUri",
   "nextPageToken"
 ].join(",");
 const DEFAULT_KEYWORDS = ["美容外科", "美容クリニック"];
 const MAX_PAGES = 3;
+const MAX_AUTO_PUBLISH_PER_PREFECTURE = 10;
 const BATCH_SIZE = 400;
 
 class PlacesSyncError extends Error {
@@ -50,19 +58,78 @@ function normalizeOptions({ prefectures, keywords = DEFAULT_KEYWORDS, maxPages =
   };
 }
 
+function addressComponent(place, type) {
+  const components = Array.isArray(place?.addressComponents) ? place.addressComponents : [];
+  const match = components.find((item) => Array.isArray(item.types) && item.types.includes(type));
+  return typeof match?.longText === "string" ? match.longText.trim() : "";
+}
+
+function httpsUrl(value) {
+  if (typeof value !== "string") return "";
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
 function toCandidate(place, prefecture, keyword, fetchedAt) {
   const placeId = typeof place?.id === "string" ? place.id : "";
   const name = typeof place?.displayName?.text === "string" ? place.displayName.text.trim() : "";
   if (!/^[a-zA-Z0-9_-]{10,200}$/.test(placeId) || !name) return null;
+  const actualPrefecture = addressComponent(place, "administrative_area_level_1");
   return {
     id: placeId,
     placeId,
-    // The name is for this command's preview only. It is not persisted.
     name,
+    prefecture: actualPrefecture,
+    city: addressComponent(place, "locality") || addressComponent(place, "administrative_area_level_2"),
+    area: addressComponent(place, "sublocality_level_1") || addressComponent(place, "sublocality_level_2"),
+    address: typeof place?.formattedAddress === "string" ? place.formattedAddress.trim() : "",
+    phone: typeof place?.nationalPhoneNumber === "string" ? place.nationalPhoneNumber.trim() : "",
+    openingHours: Array.isArray(place?.regularOpeningHours?.weekdayDescriptions)
+      ? place.regularOpeningHours.weekdayDescriptions.join("\n")
+      : "",
+    businessStatus: typeof place?.businessStatus === "string" ? place.businessStatus : "",
+    officialUrl: httpsUrl(place?.websiteUri),
+    googleMapsUrl: httpsUrl(place?.googleMapsUri),
     discoveryPrefectures: [prefecture],
     discoveryQueries: [`${keyword} ${prefecture}`],
     placesFetchedAt: fetchedAt
   };
+}
+
+function isAutoPublishEligible(candidate, requestedPrefectures) {
+  return candidate
+    && requestedPrefectures.includes(candidate.prefecture)
+    && candidate.discoveryPrefectures.includes(candidate.prefecture)
+    && candidate.businessStatus === "OPERATIONAL"
+    && Boolean(candidate.name && candidate.address && candidate.officialUrl);
+}
+
+function selectAutoPublishCandidates(candidates, {
+  prefectures,
+  limitPerPrefecture = MAX_AUTO_PUBLISH_PER_PREFECTURE,
+  existingPublishedCounts = new Map()
+} = {}) {
+  const options = normalizeOptions({ prefectures, keywords: DEFAULT_KEYWORDS, maxPages: 1 });
+  if (!Number.isInteger(limitPerPrefecture) || limitPerPrefecture < 1 || limitPerPrefecture > MAX_AUTO_PUBLISH_PER_PREFECTURE) {
+    throw new PlacesSyncError(`都道府県ごとの公開件数は1〜${MAX_AUTO_PUBLISH_PER_PREFECTURE}で指定してください。`, 400);
+  }
+  const counts = new Map(options.prefectures.map((prefecture) => [
+    prefecture,
+    Math.max(0, Number(existingPublishedCounts.get(prefecture)) || 0)
+  ]));
+  const selected = [];
+  for (const candidate of candidates) {
+    if (!isAutoPublishEligible(candidate, options.prefectures)) continue;
+    const count = counts.get(candidate.prefecture) || 0;
+    if (count >= limitPerPrefecture) continue;
+    selected.push(candidate);
+    counts.set(candidate.prefecture, count + 1);
+  }
+  return selected;
 }
 
 async function requestTextSearch({
@@ -219,6 +286,89 @@ function refreshedPlaceFields(candidate, now) {
   };
 }
 
+function autoPublishedClinicDocument(candidate, now, existing = {}) {
+  const officialSource = { url: candidate.officialUrl, type: "official", checkedAt: now };
+  const mapsSource = candidate.googleMapsUrl
+    ? [{ url: candidate.googleMapsUrl, type: "google_places", checkedAt: now }]
+    : [];
+  return {
+    schemaVersion: 1,
+    dataSource: "google_places",
+    placeId: candidate.placeId,
+    discoveryPrefectures: candidate.discoveryPrefectures,
+    discoveryQueries: candidate.discoveryQueries,
+    name: candidate.name,
+    prefecture: candidate.prefecture,
+    city: candidate.city,
+    area: candidate.area,
+    address: candidate.address,
+    phone: candidate.phone,
+    openingHours: candidate.openingHours,
+    businessStatus: candidate.businessStatus,
+    officialUrl: candidate.officialUrl,
+    treatments: Array.isArray(existing.treatments) ? existing.treatments : [],
+    tags: Array.isArray(existing.tags) ? existing.tags : [],
+    pricing: Array.isArray(existing.pricing) ? existing.pricing : [],
+    doctors: Array.isArray(existing.doctors) ? existing.doctors : [],
+    caseInformation: existing.caseInformation || null,
+    downtimeAndRisks: Array.isArray(existing.downtimeAndRisks) ? existing.downtimeAndRisks : [],
+    warrantyAndAftercare: Array.isArray(existing.warrantyAndAftercare) ? existing.warrantyAndAftercare : [],
+    sources: [officialSource, ...mapsSource],
+    hasPricing: Array.isArray(existing.pricing) && existing.pricing.length > 0,
+    verificationStatus: "automated",
+    publicationStatus: "published",
+    placesCheckedAt: candidate.placesFetchedAt,
+    autoPublishedAt: now,
+    updatedAt: now,
+    createdAt: existing.createdAt || now
+  };
+}
+
+async function writeAutoPublishedClinics(db, candidates, {
+  prefectures,
+  limitPerPrefecture = MAX_AUTO_PUBLISH_PER_PREFECTURE,
+  now = new Date().toISOString()
+} = {}) {
+  if (!db || !Array.isArray(candidates)) throw new PlacesSyncError("保存データを確認してください。", 400);
+  const normalizedPrefectures = normalizeOptions({ prefectures, keywords: DEFAULT_KEYWORDS, maxPages: 1 }).prefectures;
+  const collection = db.collection("clinics");
+  const publishedIds = new Set();
+  const publishedCounts = new Map();
+  for (const prefecture of normalizedPrefectures) {
+    const snapshot = await collection.where("prefecture", "==", prefecture).get();
+    const published = snapshot.docs.filter((document) => document.data()?.publicationStatus === "published");
+    publishedCounts.set(prefecture, published.length);
+    for (const document of published) publishedIds.add(document.id);
+  }
+  const eligible = selectAutoPublishCandidates(
+    candidates.filter((candidate) => !publishedIds.has(candidate.placeId)),
+    { prefectures: normalizedPrefectures, limitPerPrefecture, existingPublishedCounts: publishedCounts }
+  );
+  let published = 0;
+  let skippedReviewed = 0;
+  let skippedExisting = publishedIds.size;
+  for (let start = 0; start < eligible.length; start += BATCH_SIZE) {
+    const chunk = eligible.slice(start, start + BATCH_SIZE);
+    const references = chunk.map((candidate) => collection.doc(candidate.placeId));
+    const existing = await db.getAll(...references);
+    const batch = db.batch();
+    for (const [index, candidate] of chunk.entries()) {
+      const previous = existing[index].exists ? existing[index].data() : {};
+      const manuallyReviewed = previous.verificationStatus === "verified"
+        || previous.verificationStatus === "needs_review"
+        || Boolean(previous.reviewedAt || previous.reviewedBy);
+      if (manuallyReviewed) {
+        skippedReviewed += 1;
+        continue;
+      }
+      batch.set(references[index], autoPublishedClinicDocument(candidate, now, previous), { merge: true });
+      published += 1;
+    }
+    await batch.commit();
+  }
+  return { published, skippedReviewed, skippedExisting, eligible: eligible.length };
+}
+
 async function writeClinicCandidates(db, candidates, { now = new Date().toISOString() } = {}) {
   if (!db || !Array.isArray(candidates)) throw new PlacesSyncError("保存データを確認してください。", 400);
   let inserted = 0;
@@ -247,12 +397,17 @@ module.exports = {
   PLACES_FIELD_MASK,
   DEFAULT_KEYWORDS,
   MAX_PAGES,
+  MAX_AUTO_PUBLISH_PER_PREFECTURE,
   PlacesSyncError,
   normalizeOptions,
   toCandidate,
   requestTextSearch,
   discoverClinicCandidates,
+  isAutoPublishEligible,
+  selectAutoPublishCandidates,
   newClinicDocument,
   refreshedPlaceFields,
-  writeClinicCandidates
+  writeClinicCandidates,
+  autoPublishedClinicDocument,
+  writeAutoPublishedClinics
 };

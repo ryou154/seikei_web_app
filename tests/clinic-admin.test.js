@@ -109,7 +109,8 @@ function setup({ email = "admin@example.com", store, discoverCandidates } = {}) 
     async list() { return { clinics: [{ id: "candidate-1", publicationStatus: "draft" }], nextCursor: "next" }; },
     async get(id) { return id === "candidate-1" ? { id, publicationStatus: "draft" } : null; },
     async update(id, data) { return id === "candidate-1" ? { id, ...data } : null; },
-    async importCandidates(candidates) { return { inserted: candidates.length, updated: 0 }; }
+    async importCandidates(candidates) { return { inserted: candidates.length, updated: 0 }; },
+    async autoPublishCandidates(candidates) { return { published: candidates.length, skippedReviewed: 0, skippedExisting: 0 }; }
   };
   return createClinicAdminHandler({
     authenticate: async () => ({ uid: "user", email }),
@@ -173,6 +174,36 @@ test("admin can collect one prefecture into private draft candidates", async () 
   assert.equal(result.data.requests, 2);
   assert.deepEqual(options.prefectures, ["大阪府"]);
   assert.equal(options.apiKey, "test-key");
+});
+
+test("admin can automatically publish a guarded number for selected prefectures", async () => {
+  let discoveryOptions;
+  let publishOptions;
+  const handler = setup({
+    discoverCandidates: async (options) => {
+      discoveryOptions = options;
+      return {
+        candidates: [{ placeId: "candidate-2" }, { placeId: "candidate-3" }],
+        stats: { requests: 4, rawResults: 20, uniqueCandidates: 2 }
+      };
+    },
+    store: {
+      async autoPublishCandidates(candidates, options) {
+        publishOptions = options;
+        return { published: candidates.length, skippedReviewed: 0, skippedExisting: 0 };
+      }
+    }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/auto-publish", {
+    prefectures: ["大阪府", "京都府"],
+    limitPerPrefecture: 10,
+    maxPages: 1,
+    confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.published, 2);
+  assert.deepEqual(discoveryOptions.prefectures, ["大阪府", "京都府"]);
+  assert.deepEqual(publishOptions, { prefectures: ["大阪府", "京都府"], limitPerPrefecture: 10 });
 });
 
 test("non-admins, bad media types and unsupported routes fail closed", async () => {
