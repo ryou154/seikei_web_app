@@ -233,10 +233,13 @@ test("admin extracts official information for a guarded published-clinic batch",
     }
   });
   const result = await handler(request("POST", "/api/admin/clinics/extract-official", {
-    prefectures: ["大阪府"], limit: 5, autoApply: true, confirmed: true
+    prefectures: ["大阪府"], limit: 5, autoApply: true,
+    before: "2026-10-23T00:00:00.000Z", confirmed: true
   }));
   assert.equal(result.status, 200);
-  assert.deepEqual(listed, { prefectures: ["大阪府"], limit: 5 });
+  assert.deepEqual(listed, {
+    prefectures: ["大阪府"], limit: 5, before: "2026-10-23T00:00:00.000Z"
+  });
   assert.equal(extracted.sourceOfficialUrl, "https://example.com");
   assert.equal(saved.id, "candidate-1");
   assert.equal(saved.options.autoApply, true);
@@ -252,6 +255,10 @@ test("official extraction requires confirmation and a configured Gemini key", as
     prefectures: ["大阪府"], limit: 1, confirmed: true
   }));
   assert.equal(missingKey.status, 503);
+  const invalidBefore = await setup()(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 1, before: "not-a-date", confirmed: true
+  }));
+  assert.equal(invalidBefore.status, 400);
 });
 
 test("non-admins, bad media types and unsupported routes fail closed", async () => {

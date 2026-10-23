@@ -22,6 +22,18 @@
   </header>
   <div id="page-transition-content">
     <main id="app-content" class="admin-layout" hidden>
+      <section class="panel nationwide-update-panel" aria-labelledby="nationwide-update-heading">
+        <div>
+          <p class="eyebrow">Nationwide update</p>
+          <h2 id="nationwide-update-heading">全国のクリニックデータを自動更新</h2>
+          <p>47都道府県それぞれ最大10院をGoogleから登録・更新し、続けて公式サイトの施術・料金・医師・症例・リスク・保証情報を更新します。</p>
+          <p class="format-note">定期実行はしません。このボタンを押した時だけGoogle Places APIとGemini APIを使用します。完了まで時間がかかるため、処理中はこの画面を閉じないでください。</p>
+        </div>
+        <div class="nationwide-update-action">
+          <button id="update-nationwide-clinics" type="button" class="main-button">全国データを更新</button>
+          <p id="nationwide-update-status" class="admin-status" role="status" aria-live="polite"></p>
+        </div>
+      </section>
       <aside class="panel candidate-panel" aria-labelledby="candidate-heading">
         <div class="candidate-heading-row">
           <div>

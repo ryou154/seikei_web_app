@@ -82,6 +82,7 @@
     byId("admin-reload").disabled = busy;
     byId("discover-clinics").disabled = busy;
     byId("extract-official").disabled = busy;
+    byId("update-nationwide-clinics").disabled = busy;
     byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
@@ -198,6 +199,80 @@
       );
     } catch (error) {
       setStatus(byId("official-sync-status"), error.message, true);
+    } finally {
+      busy = false;
+      renderCandidates();
+    }
+  }
+
+  function prefectureGroups(size = 10) {
+    const groups = [];
+    for (let index = 0; index < PREFECTURES.length; index += size) {
+      groups.push(PREFECTURES.slice(index, index + size));
+    }
+    return groups;
+  }
+
+  async function updateNationwideClinics() {
+    if (busy) return;
+    const confirmed = confirm(
+      "全国47都道府県を対象に、各都道府県最大10院の登録・更新と、公開済みクリニックの公式情報更新を実行します。Google Places APIとGemini APIを使用し、完了まで長時間かかる場合があります。実行しますか？"
+    );
+    if (!confirmed) return;
+
+    busy = true;
+    renderCandidates();
+    const status = byId("nationwide-update-status");
+    const startedAt = new Date().toISOString();
+    const totals = { published: 0, succeeded: 0, failed: 0, changed: 0, autoApplied: 0 };
+    try {
+      setStatus(status, "1/2 全国のクリニックをGoogleから登録・更新しています…");
+      const places = await api("/api/admin/clinics/auto-publish", {
+        method: "POST",
+        body: JSON.stringify({
+          prefectures: PREFECTURES,
+          limitPerPrefecture: 10,
+          maxPages: 1,
+          confirmed: true
+        })
+      });
+      totals.published = Number(places.published || 0);
+
+      const groups = prefectureGroups();
+      let processed = 0;
+      for (const [groupIndex, prefectures] of groups.entries()) {
+        while (true) {
+          setStatus(
+            status,
+            `2/2 公式情報を更新しています… ${processed}院完了（地域グループ${groupIndex + 1}/${groups.length}）`
+          );
+          const data = await api("/api/admin/clinics/extract-official", {
+            method: "POST",
+            body: JSON.stringify({
+              prefectures,
+              limit: 10,
+              autoApply: true,
+              before: startedAt,
+              confirmed: true
+            })
+          });
+          if (!data.requested) break;
+          processed += Number(data.requested || 0);
+          for (const key of ["succeeded", "failed", "changed", "autoApplied"]) {
+            totals[key] += Number(data[key] || 0);
+          }
+        }
+      }
+
+      setStatus(
+        status,
+        `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。`,
+        totals.failed > 0
+      );
+      busy = false;
+      await loadCandidates({ reset: true });
+    } catch (error) {
+      setStatus(status, `更新を中断しました：${error.message}`, true);
     } finally {
       busy = false;
       renderCandidates();
@@ -464,6 +539,7 @@
     byId("admin-reload").addEventListener("click", () => void loadCandidates({ reset: true }));
     byId("discover-clinics").addEventListener("click", () => void discoverClinics());
     byId("extract-official").addEventListener("click", () => void extractOfficialInformation());
+    byId("update-nationwide-clinics").addEventListener("click", () => void updateNationwideClinics());
     byId("admin-status-filter").addEventListener("change", () => void loadCandidates({ reset: true }));
     byId("candidate-next").addEventListener("click", () => {
       if (!nextCursor) return;

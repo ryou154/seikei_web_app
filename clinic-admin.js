@@ -255,7 +255,7 @@ function createClinicAdminStore(db) {
     async autoPublishCandidates(candidates, options) {
       return writeAutoPublishedClinics(db, candidates, options);
     },
-    async listForOfficialSync({ prefectures, limit }) {
+    async listForOfficialSync({ prefectures, limit, before = "" }) {
       const snapshots = await Promise.all(prefectures.map((prefecture) => (
         collection.where("prefecture", "==", prefecture).get()
       )));
@@ -263,7 +263,9 @@ function createClinicAdminStore(db) {
       for (const snapshot of snapshots) {
         for (const document of snapshot.docs) {
           const clinic = adminClinic(document.id, document.data());
-          if (clinic.publicationStatus === "published" && clinic.officialUrl) {
+          if (clinic.publicationStatus === "published"
+            && clinic.officialUrl
+            && (!before || !clinic.officialDataCheckedAt || clinic.officialDataCheckedAt < before)) {
             clinicsById.set(document.id, clinic);
           }
         }
@@ -391,6 +393,10 @@ function createClinicAdminHandler({
         if (body.autoApply !== undefined && typeof body.autoApply !== "boolean") {
           throw new ClinicAdminError("自動反映の指定を確認してください。", 400);
         }
+        const before = body.before === undefined ? "" : text(body.before, 40, "更新開始日時");
+        if (before && (!Number.isFinite(Date.parse(before)) || new Date(before).toISOString() !== before)) {
+          throw new ClinicAdminError("更新開始日時を確認してください。", 400);
+        }
         const requested = Array.isArray(body.prefectures) ? body.prefectures : [];
         const prefectures = [...new Set(requested.map((value) => text(value, 10, "都道府県")))];
         if (!prefectures.length
@@ -404,7 +410,7 @@ function createClinicAdminHandler({
         }
         officialSyncRunning = true;
         try {
-          const clinics = await store.listForOfficialSync({ prefectures, limit });
+          const clinics = await store.listForOfficialSync({ prefectures, limit, before });
           const results = [];
           for (const clinic of clinics) {
             try {

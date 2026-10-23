@@ -6,6 +6,11 @@
   gap: 18px;
   align-items: start;
 }
+.nationwide-update-panel { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); gap: 24px; align-items: center; }
+.nationwide-update-panel h2 { margin: 0 0 8px; }
+.nationwide-update-panel p { margin: 6px 0; }
+.nationwide-update-action .main-button { width: 100%; min-height: 48px; }
+.nationwide-update-action .admin-status { margin-bottom: 0; }
 .candidate-panel { position: sticky; top: 88px; max-height: calc(100vh - 110px); overflow: auto; }
 .candidate-heading-row, .editor-heading-row, .candidate-pagination, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .candidate-heading-row h2, .editor-heading-row h2 { margin-bottom: 0; }
@@ -53,6 +58,7 @@
 .editor-actions button { min-width: 150px; min-height: 46px; }
 @media (max-width: 900px) {
   .admin-layout { grid-template-columns: minmax(0, 1fr); width: min(100% - 20px, 760px); }
+  .nationwide-update-panel { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
   .candidate-panel { position: static; max-height: none; }
 }
 @media (max-width: 600px) {
