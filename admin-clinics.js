@@ -13,12 +13,8 @@
   let currentClinicId = "";
   let currentDetectedData = null;
   let currentCandidates = [];
-  let nextCursor = "";
-  let cursor = "";
-  const cursorHistory = [];
   let busy = false;
   let initialized = false;
-  let filterTimer = null;
 
   function lines(value) {
     return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
@@ -77,135 +73,25 @@
       button.addEventListener("click", () => void selectClinic(clinic.id));
       list.append(button);
     }
-    byId("candidate-previous").disabled = busy || !cursorHistory.length;
-    byId("candidate-next").disabled = busy || !nextCursor;
-    byId("admin-reload").disabled = busy;
-    byId("discover-clinics").disabled = busy;
-    byId("extract-official").disabled = busy;
     byId("update-nationwide-clinics").disabled = busy;
     byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
   function populatePrefectures() {
-    const container = byId("discovery-prefectures");
-    container.replaceChildren();
+    const select = byId("published-prefecture");
+    select.replaceChildren();
     for (const prefecture of PREFECTURES) {
-      const label = document.createElement("label");
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.name = "discovery-prefecture";
-      checkbox.value = prefecture;
-      checkbox.checked = prefecture === "大阪府";
-      label.append(checkbox, document.createTextNode(prefecture));
-      container.append(label);
+      const option = document.createElement("option");
+      option.value = prefecture;
+      option.textContent = prefecture;
+      option.selected = prefecture === "大阪府";
+      select.append(option);
     }
-    updatePrefectureSummary();
   }
 
   function selectedPrefectures() {
-    return [...document.querySelectorAll('input[name="discovery-prefecture"]:checked')]
-      .map((input) => input.value);
-  }
-
-  function updatePrefectureSummary() {
-    const selected = selectedPrefectures();
-    byId("prefecture-summary").textContent = selected.length
-      ? `${selected.join("、")}（${selected.length}件選択）`
-      : "都道府県を選択してください";
-  }
-
-  function scheduleFilteredReload() {
-    updatePrefectureSummary();
-    clearTimeout(filterTimer);
-    filterTimer = setTimeout(() => void loadCandidates({ reset: true }), 250);
-  }
-
-  function handlePrefectureChange(event) {
-    if (selectedPrefectures().length > 10) {
-      event.target.checked = false;
-      setStatus(byId("discovery-status"), "都道府県は10件以内で選択してください。", true);
-    } else {
-      setStatus(byId("discovery-status"), "");
-    }
-    scheduleFilteredReload();
-  }
-
-  async function discoverClinics() {
-    if (busy) return;
-    const prefectures = selectedPrefectures();
-    if (!prefectures.length) {
-      setStatus(byId("discovery-status"), "都道府県を1件以上選択してください。", true);
-      return;
-    }
-    if (prefectures.length > 10) {
-      setStatus(byId("discovery-status"), "都道府県は10件以内で選択してください。", true);
-      return;
-    }
-    const maxPages = Number(byId("discovery-pages").value);
-    const maximumRequests = maxPages * 2 * prefectures.length;
-    if (!confirm(`${prefectures.join("、")}の候補収集を実行します。Google Places APIを最大${maximumRequests}回呼び出します。よろしいですか？`)) return;
-    busy = true;
-    renderCandidates();
-    const totals = { requests: 0, uniqueCandidates: 0, inserted: 0, updated: 0 };
-    try {
-      for (const [index, prefecture] of prefectures.entries()) {
-        setStatus(byId("discovery-status"), `${prefecture}の候補を収集中です…（${index + 1}/${prefectures.length}）`);
-        const data = await api("/api/admin/clinics/discover", {
-          method: "POST",
-          body: JSON.stringify({ prefecture, maxPages, confirmed: true })
-        });
-        for (const key of Object.keys(totals)) totals[key] += Number(data[key] || 0);
-      }
-      setStatus(
-        byId("discovery-status"),
-        `${prefectures.length}都道府県・${totals.requests}回のAPI呼び出しで${totals.uniqueCandidates}件を確認し、新規${totals.inserted}件・既存更新${totals.updated}件を下書きへ反映しました。`
-      );
-      busy = false;
-      await loadCandidates({ reset: true });
-    } catch (error) {
-      setStatus(byId("discovery-status"), error.message, true);
-    } finally {
-      busy = false;
-      renderCandidates();
-    }
-  }
-
-  async function extractOfficialInformation() {
-    if (busy) return;
-    const prefectures = selectedPrefectures();
-    if (!prefectures.length) {
-      setStatus(byId("official-sync-status"), "都道府県を1件以上選択してください。", true);
-      return;
-    }
-    const limit = Number(byId("official-sync-limit").value);
-    const autoApply = byId("official-sync-auto-apply").checked;
-    const message = autoApply
-      ? `選択地域の公開済みクリニック最大${limit}件を解析し、自動登録データへ高信頼情報を反映します。実行しますか？`
-      : `選択地域の公開済みクリニック最大${limit}件を解析し、確認用データとして保存します。実行しますか？`;
-    if (!confirm(message)) return;
-    busy = true;
-    renderCandidates();
-    setStatus(byId("official-sync-status"), "Geminiで公式情報を更新しています…。1件ずつ処理するため時間がかかる場合があります。");
-    try {
-      const data = await api("/api/admin/clinics/extract-official", {
-        method: "POST",
-        body: JSON.stringify({ prefectures, limit, autoApply, confirmed: true })
-      });
-      const failures = (data.results || [])
-        .filter((result) => !result.ok && result.error)
-        .slice(0, 3)
-        .map((result) => `${result.name || result.id}: ${result.error}`);
-      setStatus(
-        byId("official-sync-status"),
-        `${data.requested}件を処理し、成功${data.succeeded}件・失敗${data.failed}件・変更検出${data.changed}件・自動反映${data.autoApplied}件でした。${failures.length ? ` 失敗理由: ${failures.join(" / ")}` : ""}`,
-        data.failed > 0
-      );
-    } catch (error) {
-      setStatus(byId("official-sync-status"), error.message, true);
-    } finally {
-      busy = false;
-      renderCandidates();
-    }
+    const prefecture = byId("published-prefecture").value;
+    return prefecture ? [prefecture] : [];
   }
 
   function prefectureGroups(size = 10) {
@@ -293,9 +179,6 @@
     if (busy) return;
     busy = true;
     if (reset) {
-      cursor = "";
-      nextCursor = "";
-      cursorHistory.length = 0;
       currentClinicId = "";
       currentDetectedData = null;
     }
@@ -308,18 +191,15 @@
       return;
     }
     renderCandidates();
-    setStatus(byId("candidate-status"), "候補を読み込んでいます…");
+    setStatus(byId("candidate-status"), "保存済みの公開クリニックを読み込んでいます…");
     try {
       const params = new URLSearchParams({ status: "published", limit: String(PAGE_SIZE) });
       for (const prefecture of prefectures) params.append("prefecture", prefecture);
-      if (cursor) params.set("cursor", cursor);
       const data = await api(`/api/admin/clinics?${params}`);
       currentCandidates = data.clinics || [];
-      nextCursor = data.nextCursor || "";
-      setStatus(byId("candidate-status"), `${currentCandidates.length}件を表示しています。`);
+      setStatus(byId("candidate-status"), `${prefectures[0]}の公開済みクリニックを${currentCandidates.length}件表示しています。`);
     } catch (error) {
       currentCandidates = [];
-      nextCursor = "";
       setStatus(byId("candidate-status"), error.message, true);
     } finally {
       busy = false;
@@ -545,26 +425,8 @@
     initialized = true;
     content.hidden = false;
     populatePrefectures();
-    byId("discovery-prefectures").addEventListener("change", handlePrefectureChange);
-    byId("clear-prefectures").addEventListener("click", () => {
-      for (const input of document.querySelectorAll('input[name="discovery-prefecture"]')) input.checked = false;
-      scheduleFilteredReload();
-    });
-    byId("admin-reload").addEventListener("click", () => void loadCandidates({ reset: true }));
-    byId("discover-clinics").addEventListener("click", () => void discoverClinics());
-    byId("extract-official").addEventListener("click", () => void extractOfficialInformation());
+    byId("published-prefecture").addEventListener("change", () => void loadCandidates({ reset: true }));
     byId("update-nationwide-clinics").addEventListener("click", () => void updateNationwideClinics());
-    byId("candidate-next").addEventListener("click", () => {
-      if (!nextCursor) return;
-      cursorHistory.push(cursor);
-      cursor = nextCursor;
-      void loadCandidates();
-    });
-    byId("candidate-previous").addEventListener("click", () => {
-      if (!cursorHistory.length) return;
-      cursor = cursorHistory.pop();
-      void loadCandidates();
-    });
     byId("save-draft").addEventListener("click", () => void save("draft"));
     byId("publish-clinic").addEventListener("click", () => void save("published"));
     byId("apply-detected-data").addEventListener("click", applyDetectedData);

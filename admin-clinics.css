@@ -2,41 +2,25 @@
   width: min(1440px, calc(100% - 32px));
   margin: 22px auto 48px;
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
-.nationwide-update-panel { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); gap: 24px; align-items: center; }
+.nationwide-update-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); gap: 24px; align-items: center; }
 .nationwide-update-panel h2 { margin: 0 0 8px; }
 .nationwide-update-panel p { margin: 6px 0; }
 .nationwide-update-action .main-button { width: 100%; min-height: 48px; }
 .nationwide-update-action .admin-status { margin-bottom: 0; }
-.candidate-panel { position: sticky; top: 88px; max-height: calc(100vh - 110px); overflow: auto; }
-.candidate-heading-row, .editor-heading-row, .candidate-pagination, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.candidate-heading-row h2, .editor-heading-row h2 { margin-bottom: 0; }
-.discovery-controls { margin: 18px 0 22px; padding: 16px 0 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.discovery-controls h3 { margin: 0 0 12px; font-size: 16px; }
-.discovery-controls label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
-.discovery-controls select, .discovery-controls button { width: 100%; min-height: 44px; }
-.discovery-controls .check-row { display: flex; align-items: flex-start; gap: 8px; color: var(--text); line-height: 1.5; }
-.discovery-controls .check-row input { width: auto; margin: 2px 0 0; flex: 0 0 auto; }
-.picker-label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
-.prefecture-picker { border: 1px solid var(--line); border-radius: 8px; background: #fff; }
-.prefecture-picker summary { padding: 11px 12px; cursor: pointer; font-weight: 800; }
-.prefecture-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; max-height: 240px; padding: 8px 10px 12px; overflow-y: auto; border-top: 1px solid var(--line); }
-.discovery-controls .prefecture-options label { display: flex; align-items: center; gap: 7px; margin: 0; padding: 6px 4px; color: var(--text); font-size: 13px; cursor: pointer; }
-.prefecture-options input { width: auto; margin: 0; accent-color: var(--primary); }
-.discovery-controls .compact-button { width: auto; min-height: 34px; margin-top: 8px; padding: 6px 10px; font-size: 12px; }
-.discovery-controls button { margin-top: 12px; }
-.discovery-controls .format-note { margin-top: 10px; }
-.candidate-panel > label, .field-label { display: block; margin: 18px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
-.candidate-panel select { width: 100%; min-height: 44px; }
-.candidate-list { display: grid; gap: 8px; margin: 14px 0; }
+.published-heading-row, .editor-heading-row, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.published-heading-row h2, .editor-heading-row h2 { margin-bottom: 6px; }
+.published-prefecture-filter { display: grid; gap: 6px; min-width: 240px; color: var(--muted); font-size: 12px; font-weight: 800; }
+.published-prefecture-filter select { min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text); font: inherit; }
+.field-label { display: block; margin: 18px 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
+.candidate-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 14px 0 0; }
 .candidate-item { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); text-align: left; cursor: pointer; }
 .candidate-item:hover, .candidate-item[aria-current="true"] { border-color: var(--primary); background: var(--blue-soft); }
 .candidate-item strong, .candidate-item span { display: block; overflow-wrap: anywhere; }
 .candidate-item span { margin-top: 5px; color: var(--muted); font-size: 12px; }
-.candidate-pagination button { flex: 1; }
 .admin-status { min-height: 1.5em; color: var(--muted); font-size: 13px; }
 .admin-status[data-error="true"] { color: #b42318; }
 .status-badge { padding: 7px 10px; border-radius: 999px; background: var(--blue-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
@@ -57,11 +41,12 @@
 .editor-actions { justify-content: flex-end; margin-top: 16px; }
 .editor-actions button { min-width: 150px; min-height: 46px; }
 @media (max-width: 900px) {
-  .admin-layout { grid-template-columns: minmax(0, 1fr); width: min(100% - 20px, 760px); }
-  .nationwide-update-panel { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
-  .candidate-panel { position: static; max-height: none; }
+  .admin-layout { width: min(100% - 20px, 760px); }
+  .nationwide-update-panel { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
+  .published-heading-row { align-items: stretch; flex-direction: column; }
+  .published-prefecture-filter { min-width: 0; }
   .form-grid, .place-preview { grid-template-columns: minmax(0, 1fr); }
   .form-grid .wide, .place-attribution { grid-column: auto; }
   .editor-actions { align-items: stretch; flex-direction: column; }
