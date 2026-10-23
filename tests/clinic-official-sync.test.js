@@ -74,6 +74,18 @@ test("automatic records apply only high-confidence official information", () => 
   assert.equal(result.autoApplied, true);
   assert.deepEqual(result.update.treatments, ["二重埋没法"]);
   assert.equal(result.update.extractionStatus, "applied");
+  assert.equal(result.update.verificationStatus, "automated");
+});
+
+test("untouched legacy records can be upgraded automatically", () => {
+  const extraction = normalizeOfficialExtraction(extracted(), "https://example.com");
+  const result = officialExtractionUpdate(
+    { verificationStatus: "needs_review", reviewedBy: "" }, extraction,
+    { model: "gemini-test", autoApply: true, now: "now" }
+  );
+  assert.equal(result.autoApplied, true);
+  assert.deepEqual(result.update.treatments, ["二重埋没法"]);
+  assert.equal(result.update.verificationStatus, "automated");
 });
 
 test("human-reviewed records keep public fields and become review candidates", () => {
@@ -85,4 +97,14 @@ test("human-reviewed records keep public fields and become review candidates", (
   assert.equal(result.autoApplied, false);
   assert.equal(result.update.treatments, undefined);
   assert.equal(result.update.extractionStatus, "needs_review");
+});
+
+test("records edited by a reviewer are protected even before final verification", () => {
+  const extraction = normalizeOfficialExtraction(extracted(), "https://example.com");
+  const result = officialExtractionUpdate(
+    { verificationStatus: "needs_review", reviewedBy: "admin@example.com", treatments: ["手動入力"] }, extraction,
+    { model: "gemini-test", autoApply: true, now: "now" }
+  );
+  assert.equal(result.autoApplied, false);
+  assert.equal(result.update.treatments, undefined);
 });

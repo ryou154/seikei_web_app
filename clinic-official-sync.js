@@ -348,7 +348,9 @@ function officialExtractionUpdate(existing, extraction, {
   const nextHash = extractionHash(extraction);
   const previousHash = typeof existing.officialExtractionHash === "string" ? existing.officialExtractionHash : "";
   const changed = previousHash !== nextHash;
-  const canAutoApply = autoApply && existing.verificationStatus === "automated";
+  const manuallyReviewed = existing.verificationStatus === "verified"
+    || (typeof existing.reviewedBy === "string" && existing.reviewedBy.trim() !== "");
+  const canAutoApply = autoApply && !manuallyReviewed;
   const history = Array.isArray(existing.changeHistory) ? existing.changeHistory.slice(-19) : [];
   if (changed && previousHash) {
     history.push({ detectedAt: now, previousHash, nextHash, autoApplied: canAutoApply });
@@ -362,7 +364,12 @@ function officialExtractionUpdate(existing, extraction, {
     changeHistory: history,
     updatedAt: now
   };
-  if (canAutoApply) Object.assign(update, publicFieldsFromExtraction(extraction, now));
+  if (canAutoApply) {
+    Object.assign(update, publicFieldsFromExtraction(extraction, now), {
+      verificationStatus: "automated",
+      verifiedAt: now
+    });
+  }
   return { update, changed, autoApplied: canAutoApply };
 }
 
