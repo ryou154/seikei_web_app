@@ -2,7 +2,7 @@ const { Firestore } = require("@google-cloud/firestore");
 const firebaseConfig = require("../firebase-config");
 const { PREFECTURES } = require("../account-store");
 const { createClinicAdminStore } = require("../clinic-admin");
-const { requestOfficialExtraction } = require("../clinic-official-sync");
+const { EXTRACTION_GROUPS, requestOfficialExtraction } = require("../clinic-official-sync");
 
 function readValue(args, index, name) {
   const inline = args[index].startsWith(`--${name}=`) ? args[index].slice(name.length + 3) : "";
@@ -45,7 +45,7 @@ function plan(options) {
     mode: options.execute ? "execute" : "plan",
     prefectures: options.prefectures,
     limit: options.limit,
-    maximumGeminiRequests: options.limit,
+    maximumGeminiRequests: options.limit * EXTRACTION_GROUPS.length,
     autoApply: options.autoApply
   };
 }

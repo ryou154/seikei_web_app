@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   GEMINI_INTERACTIONS_URL,
+  EXTRACTION_GROUPS,
   normalizeOfficialExtraction,
   officialExtractionUpdate,
   requestOfficialExtraction,
@@ -43,21 +44,50 @@ test("normalization removes unsupported and cross-domain evidence", () => {
 });
 
 test("Gemini request uses URL context, search and structured JSON", async () => {
-  let captured;
+  const captured = [];
   const result = await requestOfficialExtraction({
     apiKey: "test-key", clinicName: "テスト美容外科", sourceOfficialUrl: "https://example.com",
     model: "gemini-test", now: () => "2026-10-23T00:00:00.000Z",
     fetchImpl: async (url, options) => {
-      captured = { url, options, body: JSON.parse(options.body) };
-      return { ok: true, async json() { return { output_text: JSON.stringify(extracted()), usage: { total_tokens: 10 } }; } };
+      const body = JSON.parse(options.body);
+      captured.push({ url, options, body });
+      const value = extracted();
+      const groupResult = Object.fromEntries(
+        Object.keys(body.response_format.schema.properties).map((field) => [field, value[field]])
+      );
+      return { ok: true, async json() { return { output_text: JSON.stringify(groupResult), usage: { total_tokens: 10 } }; } };
     }
   });
-  assert.equal(captured.url, GEMINI_INTERACTIONS_URL);
-  assert.equal(captured.options.headers["x-goog-api-key"], "test-key");
-  assert.deepEqual(captured.body.tools, [{ type: "google_search" }, { type: "url_context" }]);
-  assert.equal(captured.body.response_format.mime_type, "application/json");
+  assert.equal(captured.length, EXTRACTION_GROUPS.length);
+  assert.ok(captured.every((request) => request.url === GEMINI_INTERACTIONS_URL));
+  assert.ok(captured.every((request) => request.options.headers["x-goog-api-key"] === "test-key"));
+  assert.ok(captured.every((request) => JSON.stringify(request.body.tools) === JSON.stringify([{ type: "google_search" }, { type: "url_context" }])));
+  assert.ok(captured.every((request) => request.body.response_format.mime_type === "application/json"));
+  assert.deepEqual(captured.map((request) => Object.keys(request.body.response_format.schema.properties)), EXTRACTION_GROUPS.map((group) => group.fields));
   assert.equal(result.extraction.treatments[0].name, "二重埋没法");
   assert.equal(result.model, "gemini-test");
+  assert.equal(result.usage.length, EXTRACTION_GROUPS.length);
+});
+
+test("split extraction identifies the failed information group", async () => {
+  await assert.rejects(
+    requestOfficialExtraction({
+      apiKey: "test-key", clinicName: "テスト美容外科", sourceOfficialUrl: "https://example.com",
+      model: "gemini-test",
+      fetchImpl: async (_url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.response_format.schema.properties.doctors) {
+          return { ok: false, status: 429, async json() { return { error: { message: "quota exceeded" } }; } };
+        }
+        const value = extracted();
+        const groupResult = Object.fromEntries(
+          Object.keys(body.response_format.schema.properties).map((field) => [field, value[field]])
+        );
+        return { ok: true, async json() { return { output_text: JSON.stringify(groupResult) }; } };
+      }
+    }),
+    /医師・症例の抽出に失敗しました: quota exceeded/
+  );
 });
 
 test("automatic records apply only high-confidence official information", () => {

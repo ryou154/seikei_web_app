@@ -5,6 +5,7 @@ const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1/in
 const DEFAULT_GEMINI_TEXT_MODEL = "gemini-3.8-flash";
 const MAX_EXTRACTED_ITEMS = 50;
 const AUTO_APPLY_CONFIDENCE = 0.9;
+const EXTRACTION_TIMEOUT_MS = 120_000;
 
 class ClinicOfficialSyncError extends Error {
   constructor(message, status = 400) {
@@ -107,6 +108,24 @@ const OFFICIAL_EXTRACTION_SCHEMA = {
   },
   required: ["treatments", "pricing", "doctors", "caseInformation", "downtimeAndRisks", "warrantyAndAftercare"]
 };
+
+const EXTRACTION_GROUPS = [
+  {
+    label: "施術・料金",
+    fields: ["treatments", "pricing"],
+    instruction: "Extract treatments and displayed prices, including stated conditions and additional costs."
+  },
+  {
+    label: "医師・症例",
+    fields: ["doctors", "caseInformation"],
+    instruction: "Extract doctors, explicitly stated qualifications and specialties, and case counts with period and scope."
+  },
+  {
+    label: "リスク・保証",
+    fields: ["downtimeAndRisks", "warrantyAndAftercare"],
+    instruction: "Extract downtime, risks, warranties, and aftercare for the relevant treatments."
+  }
+];
 
 function officialUrl(value) {
   try {
@@ -219,12 +238,21 @@ function normalizeOfficialExtraction(value, sourceOfficialUrl, now = new Date().
   };
 }
 
-function extractionPrompt(clinicName, sourceOfficialUrl) {
+function extractionSchema(fields) {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: Object.fromEntries(fields.map((field) => [field, OFFICIAL_EXTRACTION_SCHEMA.properties[field]])),
+    required: fields
+  };
+}
+
+function extractionPrompt(clinicName, sourceOfficialUrl, instruction) {
   const baseUrl = officialUrl(sourceOfficialUrl);
   return [
     `Extract factual cosmetic clinic information for ${clinicName || "the clinic"}.`,
     `Start from ${baseUrl.href} and use Google Search only to locate pages on the same official domain ${rootHost(baseUrl.hostname)}.`,
-    "Extract treatments, displayed prices and conditions, doctors and explicitly stated qualifications, case counts with period and scope, downtime and risks, and warranty or aftercare.",
+    instruction,
     "Every item must include an exact supporting URL on the official domain, a short exact Japanese evidence excerpt, and a confidence from 0 to 1.",
     "Do not infer, calculate, summarize missing claims, or use portals, social media, aggregators, reviews, advertisements, or other domains.",
     "Return empty arrays when the official pages do not explicitly state the information."
@@ -242,6 +270,47 @@ function outputText(data) {
   return "";
 }
 
+async function requestExtractionGroup({
+  apiKey,
+  clinicName,
+  sourceOfficialUrl,
+  model,
+  group,
+  fetchImpl
+}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);
+  try {
+    const response = await fetchImpl(GEMINI_INTERACTIONS_URL, {
+      method: "POST",
+      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        input: extractionPrompt(cleanText(clinicName, 200), sourceOfficialUrl, group.instruction),
+        tools: [{ type: "google_search" }, { type: "url_context" }],
+        response_format: { type: "text", mime_type: "application/json", schema: extractionSchema(group.fields) }
+      }),
+      signal: controller.signal
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ClinicOfficialSyncError(data.error?.message || `Gemini API error (${response.status})`, response.status);
+    }
+    try {
+      return { data: JSON.parse(outputText(data)), usage: data.usage || null };
+    } catch {
+      throw new ClinicOfficialSyncError("GeminiのJSONを解析できませんでした。", 502);
+    }
+  } catch (error) {
+    const message = error.name === "AbortError"
+      ? `${group.label}の抽出がタイムアウトしました。`
+      : `${group.label}の抽出に失敗しました: ${error.message}`;
+    throw new ClinicOfficialSyncError(message, error.name === "AbortError" ? 504 : (error.status || 502));
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function requestOfficialExtraction({
   apiKey,
   clinicName,
@@ -251,34 +320,22 @@ async function requestOfficialExtraction({
   now = () => new Date().toISOString()
 } = {}) {
   if (typeof apiKey !== "string" || !apiKey.trim()) throw new ClinicOfficialSyncError("GEMINI_API_KEYが設定されていません。", 503);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
-  try {
-    const response = await fetchImpl(GEMINI_INTERACTIONS_URL, {
-      method: "POST",
-      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        input: extractionPrompt(cleanText(clinicName, 200), sourceOfficialUrl),
-        tools: [{ type: "google_search" }, { type: "url_context" }],
-        response_format: { type: "text", mime_type: "application/json", schema: OFFICIAL_EXTRACTION_SCHEMA }
-      }),
-      signal: controller.signal
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new ClinicOfficialSyncError(data.error?.message || `Gemini API error (${response.status})`, response.status);
-    }
-    let parsed;
-    try { parsed = JSON.parse(outputText(data)); }
-    catch { throw new ClinicOfficialSyncError("GeminiのJSONを解析できませんでした。", 502); }
-    return { extraction: normalizeOfficialExtraction(parsed, sourceOfficialUrl, now()), model, usage: data.usage || null };
-  } catch (error) {
-    if (error.name === "AbortError") throw new ClinicOfficialSyncError("公式サイト解析がタイムアウトしました。", 504);
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  officialUrl(sourceOfficialUrl);
+  const results = await Promise.all(EXTRACTION_GROUPS.map((group) => requestExtractionGroup({
+    apiKey,
+    clinicName,
+    sourceOfficialUrl,
+    model,
+    group,
+    fetchImpl
+  })));
+  const combined = Object.fromEntries(Object.keys(OFFICIAL_EXTRACTION_SCHEMA.properties).map((field) => [field, []]));
+  for (const result of results) Object.assign(combined, result.data);
+  return {
+    extraction: normalizeOfficialExtraction(combined, sourceOfficialUrl, now()),
+    model,
+    usage: results.map((result, index) => ({ group: EXTRACTION_GROUPS[index].label, usage: result.usage }))
+  };
 }
 
 function extractionHash(extraction) {
@@ -379,6 +436,8 @@ module.exports = {
   DEFAULT_GEMINI_TEXT_MODEL,
   MAX_EXTRACTED_ITEMS,
   AUTO_APPLY_CONFIDENCE,
+  EXTRACTION_GROUPS,
+  EXTRACTION_TIMEOUT_MS,
   OFFICIAL_EXTRACTION_SCHEMA,
   ClinicOfficialSyncError,
   officialUrl,
