@@ -40,18 +40,8 @@
           <a id="profile-edit-button" class="sub-button" href="profile-edit.html">プロフィールを編集</a>
         </div>
         <p class="section-description">表示名はホーム画面の挨拶にも使用されます。</p>
-        <p id="profile-edit-hint" class="profile-edit-hint" hidden>編集モード：表示名・電話番号・アイコンを変更できます。メールアドレスとユーザーIDは変更できません。</p>
+        <p id="profile-edit-hint" class="profile-edit-hint" hidden>編集モード：表示名・電話番号を変更できます。メールアドレスとユーザーIDは変更できません。</p>
         <form id="profile-form" class="mypage-form">
-          <div class="profile-icon-editor">
-            <div class="profile-icon-preview" id="profile-icon-preview" aria-label="プロフィールアイコンのプレビュー">M</div>
-            <div class="profile-icon-controls">
-              <label class="icon-upload-button" for="profile-icon-input">アイコン画像を選ぶ</label>
-              <input id="profile-icon-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
-              <button id="profile-icon-remove" class="sub-button" type="button">アイコンを削除</button>
-              <p class="small">PNG・JPEG・WebP、2MB以内。画像はこのブラウザーに保存されます。</p>
-              <p id="profile-icon-status" class="inline-status" role="status" aria-live="polite"></p>
-            </div>
-          </div>
           <label class="field" for="display-name"><span>表示名</span>
             <input id="display-name" name="displayName" type="text" autocomplete="name" maxlength="50" required>
           </label>

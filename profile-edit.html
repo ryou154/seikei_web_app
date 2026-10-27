@@ -8,12 +8,11 @@
 </head>
 <body class="mypage-page">
   <div id="common-navigation"></div>
-  <header class="app-header mypage-header"><p class="eyebrow">PROFILE EDIT</p><h1>プロフィール編集</h1><p class="lead">表示名、電話番号、プロフィールアイコンを編集できます。</p></header>
+  <header class="app-header mypage-header"><p class="eyebrow">PROFILE EDIT</p><h1>プロフィール編集</h1><p class="lead">表示名と電話番号を編集できます。</p></header>
   <main id="app-content" class="mypage-content profile-edit-page" hidden>
     <section class="panel mypage-section">
       <p id="profile-edit-status" class="inline-status" role="status" aria-live="polite"></p>
       <form id="profile-edit-form" class="mypage-form">
-        <div class="profile-icon-editor"><div class="profile-icon-preview" id="profile-icon-preview">M</div><div class="profile-icon-controls"><label class="icon-upload-button" for="profile-icon-input">アイコン画像を選ぶ</label><input id="profile-icon-input" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="profile-icon-remove" class="sub-button" type="button">アイコンを削除</button><p class="small">PNG・JPEG・WebP、2MB以内。</p></div></div>
         <label class="field">表示名<input id="display-name" type="text" maxlength="50" required></label>
         <label class="field">電話番号（任意）<input id="phone-number" type="tel" inputmode="tel" maxlength="20" placeholder="例：090-1234-5678"></label>
         <label class="field">メールアドレス（変更不可）<input id="account-email" type="email" readonly></label>
