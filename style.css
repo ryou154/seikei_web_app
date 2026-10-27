@@ -1799,3 +1799,5 @@ body[data-auth-page="register"] .auth-buttons { align-items: center; }
 .terms-page .terms-content h3 { margin: 0 0 8px; color: #15556a; }
 .terms-page .terms-content p, .terms-page .terms-content li { line-height: 1.85; }
 .terms-page .terms-content ul { padding-left: 1.4rem; }
+
+#manual-capture-button { display: none; }

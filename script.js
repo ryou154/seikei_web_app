@@ -549,7 +549,7 @@ startCameraButton.addEventListener("click", async () => {
     document.body.classList.add("camera-open");
     resetGuidedScan();
     captureButton.disabled = false;
-    manualCaptureButton.disabled = false;
+    manualCaptureButton.disabled = true;
     stopCameraButton.disabled = false;
     startCameraButton.disabled = true;
     captureButton.textContent = "顔スキャンを開始";
@@ -560,7 +560,6 @@ startCameraButton.addEventListener("click", async () => {
 });
 
 captureButton.addEventListener("click", startGuidedScan);
-manualCaptureButton.addEventListener("click", captureWithoutScan);
 
 function captureCameraFrame(maxCaptureSize = 720, quality = 0.82) {
   const videoWidth = cameraPreview.videoWidth;
