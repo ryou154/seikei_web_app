@@ -108,8 +108,12 @@
     return groups;
   }
 
-  function isServiceLimitError(error) {
-    return /429|resource.exhausted|quota|rate.?limit|credit|billing|api key|http 50[234]/i.test(error?.message || "");
+  function isBillingError(error) {
+    return /\b402\b|payment required|insufficient (?:credit|balance)|no (?:credit|balance)/i.test(error?.message || "");
+  }
+
+  function isRetryableServiceError(error) {
+    return /429|resource.exhausted|quota|rate.?limit|http 50[234]/i.test(error?.message || "");
   }
 
   async function publishedClinicIds(status) {
@@ -138,7 +142,7 @@
         });
       } catch (error) {
         lastError = error;
-        if (!isServiceLimitError(error) || attempt === 3) throw error;
+        if (!isRetryableServiceError(error) || attempt === 3) throw error;
         await wait(EXTRACTION_RETRY_MS * attempt);
       }
     }
@@ -218,7 +222,9 @@
           } catch (error) {
             totals.failed += 1;
             if (failureSamples.length < 3) failureSamples.push(error.message);
-            if (isServiceLimitError(error)) {
+            if (isBillingError(error)) {
+              abortReason = `Gemini APIの支払いエラー（HTTP 402）のため自動停止しました: ${error.message}`;
+            } else if (isRetryableServiceError(error)) {
               serviceFailures += 1;
               if (serviceFailures >= NATIONWIDE_CONCURRENCY) {
                 abortReason = `Gemini APIの利用制限が続いたため自動停止しました: ${error.message}`;

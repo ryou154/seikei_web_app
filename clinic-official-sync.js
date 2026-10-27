@@ -386,15 +386,18 @@ async function checkOfficialExtraction({ apiKey, job, fetchImpl = fetch, now = (
     return { group, interaction };
   }));
   const completed = results.filter(({ interaction }) => interaction.status === "completed").length;
-  if (completed < results.length && results.every(({ interaction }) => ["queued", "in_progress", "completed"].includes(interaction.status))) {
-    return { status: "running", completed, total: results.length };
-  }
-  const failed = results.find(({ interaction }) => interaction.status !== "completed");
+  const activeStatuses = new Set(["queued", "in_progress"]);
+  const failed = results.find(({ interaction }) => (
+    interaction.status !== "completed" && !activeStatuses.has(interaction.status)
+  ));
   if (failed) {
-    const detail = Array.isArray(failed.interaction.errors)
+    const detail = failed.interaction.error?.message || (Array.isArray(failed.interaction.errors)
       ? failed.interaction.errors.map((error) => error?.message).filter(Boolean).join(" / ")
-      : "";
+      : "");
     throw new ClinicOfficialSyncError(detail || `${failed.group.label}の処理が${failed.interaction.status || "不明"}で終了しました。`, 502);
+  }
+  if (completed < results.length) {
+    return { status: "running", completed, total: results.length };
   }
   const combined = Object.fromEntries(Object.keys(OFFICIAL_EXTRACTION_SCHEMA.properties).map((field) => [field, []]));
   for (const { group, interaction } of results) {

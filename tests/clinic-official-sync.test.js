@@ -141,6 +141,35 @@ test("split extraction identifies the failed information group", async () => {
   );
 });
 
+test("progress checks report a terminal failure instead of an earlier running group", async () => {
+  const groups = EXTRACTION_GROUPS.map((group, index) => ({
+    ...group,
+    interactionId: `interaction-${index + 1}`
+  }));
+  await assert.rejects(
+    checkOfficialExtraction({
+      apiKey: "test-key",
+      job: {
+        version: 1, status: "running", model: "gemini-test",
+        sourceOfficialUrl: "https://example.com", startedAt: "now", groups
+      },
+      fetchImpl: async (url) => {
+        const index = groups.findIndex((group) => url.endsWith(group.interactionId));
+        if (index === 1) {
+          return {
+            ok: true,
+            async json() {
+              return { status: "failed", errors: [{ message: "Gemini API error (402)" }] };
+            }
+          };
+        }
+        return { ok: true, async json() { return { status: "in_progress" }; } };
+      }
+    }),
+    /Gemini API error \(402\)/
+  );
+});
+
 test("automatic records apply only high-confidence official information", () => {
   const extraction = normalizeOfficialExtraction(extracted({
     treatments: [
