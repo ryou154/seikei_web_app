@@ -1544,6 +1544,7 @@ button:hover:not(:disabled) {
   display: grid;
   place-items: center;
   transform-style: preserve-3d;
+  transform-origin: center center;
   transition: transform 120ms ease-out;
   will-change: transform;
 }
@@ -1573,6 +1574,11 @@ button:hover:not(:disabled) {
   background: rgb(69 26 53 / 72%);
   font-size: 0.75rem;
   pointer-events: none;
+}
+
+.face-3d-angle {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .face-3d-viewer:focus-visible {
