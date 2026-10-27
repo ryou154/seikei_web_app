@@ -96,6 +96,12 @@
     const leftEyeInner = point(133);
     const rightEyeInner = point(362);
     const rightEyeOuter = point(263);
+    const eyeOpening = (outer, inner, upperA, lowerA, upperB, lowerB) => {
+      const horizontal = distance(outer, inner);
+      return (distance(upperA, lowerA) + distance(upperB, lowerB)) / Math.max(1, 2 * horizontal);
+    };
+    const leftEyeOpenRatio = eyeOpening(leftEyeOuter, leftEyeInner, point(159), point(145), point(158), point(153));
+    const rightEyeOpenRatio = eyeOpening(rightEyeOuter, rightEyeInner, point(386), point(374), point(385), point(380));
     const noseLeft = point(98);
     const noseRight = point(327);
     const noseTip = point(1);
@@ -121,6 +127,7 @@
       landmarkCount: landmarks.length,
       faceAspect: round(faceHeight / faceWidth, 2),
       eyeWidthRatio: round(((leftEyeWidth + rightEyeWidth) / 2) / faceWidth * 100),
+      eyeOpenRatio: round((leftEyeOpenRatio + rightEyeOpenRatio) / 2, 3),
       noseWidthRatio: round(distance(noseLeft, noseRight) / faceWidth * 100),
       mouthWidthRatio: round(distance(mouthLeft, mouthRight) / faceWidth * 100),
       eyeTiltDegrees: round(eyeTilt),

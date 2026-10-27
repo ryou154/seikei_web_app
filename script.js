@@ -61,8 +61,10 @@ const saveButton = document.getElementById("save-button");
 const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
 const resultContent = document.getElementById("result-content");
+const resultPanel = document.getElementById("result-panel");
 const beforeImage = document.getElementById("before-image");
 const afterImage = document.getElementById("after-image");
+const comparisonPanel = document.querySelector(".comparison");
 const scanPanel = document.getElementById("scan-panel");
 const scanSteps = document.getElementById("scan-steps");
 const analysisText = document.getElementById("analysis-text");
@@ -85,6 +87,23 @@ let guidedScan = null;
 let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
+let cropperInstance = null;
+
+function escapeText(value) {
+  const text = String(value ?? "");
+  return text.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+
+function scrollToSimulationResult(target = resultPanel, block = "start") {
+  if (!target) return;
+  window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block }));
+}
 
 changeStrengthInput.addEventListener("input", updateStrengthValue);
 updateStrengthValue();
@@ -178,23 +197,24 @@ faceImageInput.addEventListener("change", () => {
 
 function openImageCrop(imageData, imageGeneration) {
   cropError.classList.add("hidden");
-  cropZoomInput.value = "1";
-  cropZoomValue.value = "100%";
+  if (imageGeneration !== privacyGeneration || typeof Cropper !== "function") return;
+  if (cropperInstance) cropperInstance.destroy();
+  cropImage.src = imageData;
   cropImage.onload = () => {
     if (imageGeneration !== privacyGeneration) return;
-    cropAspectLockInput.checked = false;
-    cropRatioStatus.textContent = "自由比率";
     imageCropDialog.showModal();
-    requestAnimationFrame(() => {
-      fitCropViewportToImage(true);
-      const bounds = getCropViewportSize();
-      const coverScale = Math.max(
-        bounds.width / cropImage.naturalWidth,
-        bounds.height / cropImage.naturalHeight
-      );
-      cropOffsetX = 0;
-      cropOffsetY = Math.max(0, cropImage.naturalHeight * coverScale - bounds.height) * 0.14;
-      updateCropImagePosition();
+    cropperInstance = new Cropper(cropImage, {
+      viewMode: 1,
+      dragMode: "move",
+      autoCropArea: 0.82,
+      responsive: true,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: true,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false
     });
   };
   cropImage.onerror = () => {
@@ -202,7 +222,6 @@ function openImageCrop(imageData, imageGeneration) {
     faceImageInput.value = "";
     alert("この画像を開けませんでした。別の画像を選択してください。");
   };
-  cropImage.src = imageData;
 }
 
 function fitCropViewportToImage(reset = false) {
@@ -329,6 +348,17 @@ function updateCropImagePosition() {
 }
 
 function createCroppedImageData() {
+  if (cropperInstance) {
+    const canvas = cropperInstance.getCroppedCanvas({
+      maxWidth: 1200,
+      maxHeight: 1200,
+      fillColor: "#ffffff",
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: "high"
+    });
+    if (!canvas) throw new Error("切り抜き画像を作成できませんでした。");
+    return canvas.toDataURL("image/jpeg", 0.9);
+  }
   const bounds = getCropViewportSize();
   const scale = Number.parseFloat(cropImage.style.width) / cropImage.naturalWidth;
   const left = Number.parseFloat(cropImage.style.left);
@@ -366,6 +396,10 @@ function createCroppedImageData() {
 
 function cancelImageCrop() {
   faceImageInput.value = "";
+  if (cropperInstance) {
+    cropperInstance.destroy();
+    cropperInstance = null;
+  }
   if (imageCropDialog.open) imageCropDialog.close();
 }
 
@@ -461,6 +495,10 @@ imageCropDialog.addEventListener("cancel", (event) => {
   cancelImageCrop();
 });
 imageCropDialog.addEventListener("close", () => {
+  if (cropperInstance) {
+    cropperInstance.destroy();
+    cropperInstance = null;
+  }
   cropImage.removeAttribute("src");
   cropImage.style.removeProperty("width");
   cropImage.style.removeProperty("height");
@@ -511,7 +549,7 @@ startCameraButton.addEventListener("click", async () => {
     document.body.classList.add("camera-open");
     resetGuidedScan();
     captureButton.disabled = false;
-    manualCaptureButton.disabled = false;
+    manualCaptureButton.disabled = true;
     stopCameraButton.disabled = false;
     startCameraButton.disabled = true;
     captureButton.textContent = "顔スキャンを開始";
@@ -522,7 +560,6 @@ startCameraButton.addEventListener("click", async () => {
 });
 
 captureButton.addEventListener("click", startGuidedScan);
-manualCaptureButton.addEventListener("click", captureWithoutScan);
 
 function captureCameraFrame(maxCaptureSize = 720, quality = 0.82) {
   const videoWidth = cameraPreview.videoWidth;
@@ -759,7 +796,12 @@ simulateButton.addEventListener("click", async () => {
   const originalLabel = simulateButton.textContent;
   simulateButton.textContent = "シミュレーション準備中…";
   try {
-    const requestText = requestTextInput.value.trim();
+    const requestValidation = window.InputGuard?.validateAestheticRequest(requestTextInput.value)
+      || { ok: true, sanitized: requestTextInput.value.trim() };
+    if (!requestValidation.ok) {
+      throw new Error(requestValidation.message);
+    }
+    const requestText = requestValidation.sanitized;
 
     if (!selectedImageData) {
       alert("顔画像を選択してください。");
@@ -773,9 +815,16 @@ simulateButton.addEventListener("click", async () => {
     }
 
     latestResult = createSimulationResult(requestText);
+    // Move to the result area immediately so progress is visible whether the
+    // user started from above or below it.
+    scrollToSimulationResult(resultPanel);
     await renderResult(latestResult);
   } catch (error) {
-    console.error("Simulation failed", error);
+    console.error("Simulation failed", error, {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack
+    });
     alert(`シミュレーションを開始できませんでした。${error?.message ? `\\n${error.message}` : ""}`);
   } finally {
     simulateButton.disabled = false;
@@ -799,6 +848,22 @@ function setSelectedImage(imageData) {
   latestFaceAnalysis = null;
   simulateButton.disabled = false;
   imagePreview.innerHTML = `<img src="${selectedImageData}" alt="選択した顔画像">`;
+  updateComparisonAspectRatio(selectedImageData);
+}
+
+function updateComparisonAspectRatio(imageData) {
+  if (!imageData) return;
+  const image = new Image();
+  image.onload = () => {
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const ratio = `${image.naturalWidth} / ${image.naturalHeight}`;
+    // Set the ratio on each media frame directly so later layout rules cannot
+    // fall back to the comparison panel's default ratio.
+    beforeImage?.style.setProperty("aspect-ratio", ratio);
+    afterImage?.style.setProperty("aspect-ratio", ratio);
+    comparisonPanel?.style.setProperty("--comparison-aspect-ratio", ratio);
+  };
+  image.src = imageData;
 }
 
 openCropButton.addEventListener("click", () => {
@@ -1080,6 +1145,8 @@ async function renderResult(result) {
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
+  const inputValidation = window.InputGuard?.validateFaceInput(result.faceAnalysis);
+  if (inputValidation && !inputValidation.ok) throw new Error(inputValidation.message);
   if (!stillCurrent()) return;
   analysisText.textContent = appendFaceAnalysis(result.analysis, result.faceAnalysis);
   renderFaceScoreComparison(result.faceAnalysis, null);
@@ -1169,6 +1236,8 @@ async function renderResult(result) {
     : `<div class="clinic-empty">入力した地域に登録済みのクリニックがありません。現在は東京・大阪・神奈川・愛知・福岡・北海道・宮城の公式情報に対応しています。</div>`;
   document.getElementById("clinic-summary").textContent = createClinicSummary(result.profile);
   saveButton.disabled = false;
+  // After generation, show the actual Before / After image comparison.
+  scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
 }
 
 async function analyzeSelectedFace() {
@@ -1379,6 +1448,10 @@ async function createGeminiAfterImage(result) {
 
   if (!response.ok) {
     throw new Error(data.detail || data.error || "Gemini生成に失敗しました。");
+  }
+
+  if (typeof data.image !== "string" || !data.image.startsWith("data:image/")) {
+    throw new Error("Gemini APIから画像が返されませんでした。");
   }
 
   return {

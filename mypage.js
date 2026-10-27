@@ -44,6 +44,43 @@ function setBusy(button, value) {
   button.disabled = value;
 }
 
+function iconStorageKey(uid) { return `meylon-profile-icon:${uid}`; }
+
+function renderProfileIcon(dataUrl, displayName = "") {
+  const preview = byId("profile-icon-preview");
+  preview.replaceChildren();
+  if (dataUrl) {
+    const image = document.createElement("img");
+    image.src = dataUrl;
+    image.alt = "プロフィールアイコン";
+    preview.append(image);
+  } else preview.textContent = (displayName.trim()[0] || "M").toUpperCase();
+  byId("profile-icon-remove").disabled = !dataUrl;
+}
+
+function resizeIcon(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("画像を読み込めませんでした。"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("対応していない画像形式です。"));
+      image.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const context = canvas.getContext("2d");
+        const scale = Math.max(size / image.width, size / image.height);
+        const width = image.width * scale, height = image.height * scale;
+        context.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.86));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function loadSavedData() {
   setStatus("data-status", "保存データを読み込んでいます…");
   try {
@@ -87,6 +124,9 @@ async function showUser(user) {
   const isGoogle = providers.has("google.com");
     const hasPassword = window.MypageModel.usesPassword(user.providerData);
   byId("display-name").value = user.displayName || "";
+  let savedIcon = null;
+  try { savedIcon = localStorage.getItem(iconStorageKey(user.uid)); } catch { /* storage may be unavailable */ }
+  renderProfileIcon(savedIcon, user.displayName || "");
   byId("account-email").value = user.email || "";
   byId("login-method").textContent = [
     isGoogle ? "Google" : null,
@@ -128,11 +168,36 @@ async function initialize() {
       try {
         await sdk.updateProfile(auth.currentUser, { displayName: name });
         byId("display-name").value = name;
+        let savedIcon = null;
+        try { savedIcon = localStorage.getItem(iconStorageKey(auth.currentUser.uid)); } catch { /* storage may be unavailable */ }
+        renderProfileIcon(savedIcon, name);
         window.dispatchEvent(new Event("profile-updated"));
         setStatus("profile-status", "表示名を更新しました。");
       } catch (error) {
         setStatus("profile-status", safeAuthMessage(error), true);
       } finally { setBusy(button, false); }
+    });
+
+    byId("profile-icon-input").addEventListener("change", async (event) => {
+      const file = event.currentTarget.files?.[0];
+      event.currentTarget.value = "";
+      if (!file) return;
+      if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 2 * 1024 * 1024) {
+        setStatus("profile-icon-status", "PNG・JPEG・WebPの2MB以内の画像を選択してください。", true);
+        return;
+      }
+      try {
+        const icon = await resizeIcon(file);
+        try { localStorage.setItem(iconStorageKey(auth.currentUser.uid), icon); }
+        catch { throw new Error("アイコンを保存できませんでした。ブラウザーの保存容量を確認してください。"); }
+        renderProfileIcon(icon, byId("display-name").value);
+        setStatus("profile-icon-status", "アイコンを更新しました。");
+      } catch (error) { setStatus("profile-icon-status", error.message, true); }
+    });
+    byId("profile-icon-remove").addEventListener("click", () => {
+      try { localStorage.removeItem(iconStorageKey(auth.currentUser.uid)); } catch { /* storage may be unavailable */ }
+      renderProfileIcon(null, byId("display-name").value);
+      setStatus("profile-icon-status", "アイコンを削除しました。");
     });
 
     byId("password-form").addEventListener("submit", async (event) => {

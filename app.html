@@ -6,7 +6,9 @@
   <title>AI骨格フィット・整形シミュレーター</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
   <script src="navigation.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 </head>
 <body class="app-page">
   <div id="common-navigation"></div>
@@ -50,21 +52,11 @@
             </div>
             <span id="crop-ratio-status" class="crop-ratio-badge">自由比率</span>
           </div>
-          <p class="image-crop-help">画像をドラッグして位置を調整し、枠の丸いハンドルをドラッグして縦横の大きさを変えます。スライダーでも調整できます。</p>
-          <div id="crop-viewport" class="crop-viewport">
-            <div class="crop-image-window">
-              <img id="crop-image" class="crop-image" alt="切り抜き位置を調整する画像" draggable="false">
-            </div>
-            <button class="crop-resize-handle crop-handle-nw" type="button" data-crop-handle="nw" aria-label="左上をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-n" type="button" data-crop-handle="n" aria-label="上辺をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-ne" type="button" data-crop-handle="ne" aria-label="右上をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-e" type="button" data-crop-handle="e" aria-label="右辺をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-se" type="button" data-crop-handle="se" aria-label="右下をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-s" type="button" data-crop-handle="s" aria-label="下辺をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-sw" type="button" data-crop-handle="sw" aria-label="左下をドラッグして切り抜き範囲を変更"></button>
-            <button class="crop-resize-handle crop-handle-w" type="button" data-crop-handle="w" aria-label="左辺をドラッグして切り抜き範囲を変更"></button>
+          <p class="image-crop-help">画像をドラッグして位置を調整し、枠を動かして切り抜く範囲を選択できます。ピンチ操作やマウスホイールで拡大・縮小できます。</p>
+          <div id="crop-viewport" class="cropper-host">
+            <img id="crop-image" alt="切り抜き位置を調整する画像" draggable="false">
           </div>
-          <div class="crop-size-controls">
+          <div class="cropper-legacy-controls" aria-hidden="true">
             <label class="crop-size-control" for="crop-width">
               <span>切り抜き幅</span>
               <input id="crop-width" type="range" min="10" max="100" step="1" value="100">
@@ -75,7 +67,6 @@
               <input id="crop-height" type="range" min="10" max="100" step="1" value="100">
               <output id="crop-height-value" for="crop-height">100%</output>
             </label>
-          </div>
           <label class="crop-ratio-lock" for="crop-aspect-lock">
             <input id="crop-aspect-lock" type="checkbox">
             <span>縦横比を固定する</span>
@@ -85,6 +76,7 @@
             <input id="crop-zoom" type="range" min="1" max="3" step="0.01" value="1">
             <output id="crop-zoom-value" for="crop-zoom">100%</output>
           </label>
+          </div>
           <p id="crop-error" class="image-crop-error hidden" role="alert"></p>
           <div class="image-crop-actions">
             <button id="cancel-image-crop" type="button" class="sub-button">キャンセル</button>
@@ -421,19 +413,6 @@
             <div id="after-image" class="after-preview">予測イメージ</div>
           </div>
         </div>
-        <section class="comparison-slider-panel" aria-labelledby="comparison-slider-title">
-          <div class="comparison-slider-heading">
-            <h3 id="comparison-slider-title">Before / After を比較</h3>
-            <output id="comparison-slider-value" for="comparison-slider">50%</output>
-          </div>
-          <div id="comparison-slider-view" class="comparison-slider-view">
-            <div class="comparison-slider-empty">画像生成後に比較できます</div>
-          </div>
-          <label class="comparison-slider-control" for="comparison-slider">境界線を動かす
-            <input id="comparison-slider" type="range" min="0" max="100" value="50">
-          </label>
-        </section>
-
         <div class="analysis-box">
           <h3>AI分析コメント</h3>
           <p id="analysis-text"></p>
@@ -506,6 +485,7 @@
   <script src="data/clinics.js"></script>
   <script src="data/clinic-details.js"></script>
   <script src="face-analysis.js"></script>
+  <script src="input-guard.js"></script>
   <script src="simulation-adjustments.js"></script>
   <script src="account-data.js"></script>
   <script type="module" src="auth-core.js"></script>

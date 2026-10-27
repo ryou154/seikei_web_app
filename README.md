@@ -110,7 +110,7 @@ npm run clinics:import
 
 ### Google Placesから候補を収集する
 
-Places API（New）のText Searchを使い、都道府県ごとに「美容外科」「美容クリニック」を検索します。取得するのは候補発見に必要なPlace IDと名称だけです。名称は実行結果の確認用に一時表示し、Firestoreへは保存しません。写真・口コミ・住所・座標・電話番号・営業時間も候補収集では要求しません。
+Places API（New）のText Searchを使い、都道府県ごとに「美容外科」「美容クリニック」を検索します。候補確認と自動公開に必要な名称、住所、電話番号、営業時間、営業状態、ウェブサイト、GoogleマップURLを取得します。写真、口コミ、評価、座標は要求しません。
 
 まずAPIを呼ばず、最大リクエスト数だけを確認します。
 
@@ -138,9 +138,64 @@ $env:CONFIRM_CLINIC_IMPORT="yes"
 npm run clinics:places:sync -- --prefecture 大阪府 --max-pages 1
 ```
 
-新規候補はPlace ID、検索した都道府県・キーワード、確認日時だけを `draft / unverified` で保存し、利用者画面へ自動公開しません。Google Places由来の名称などは長期保存せず、公式サイトを確認した担当者がクリニック情報を登録します。既存Place IDを再取得した場合も、公式サイト、施術、料金、医師、確認状態などの人が確認した項目は上書きしません。全国実行の前に大阪府など1地域で結果と請求状況を確認してください。
+通常同期の新規候補はPlace ID、検索した都道府県・キーワード、確認日時だけを `draft / unverified` で保存し、利用者画面へ自動公開しません。既存Place IDを再取得した場合も、公式サイト、施術、料金、医師、確認状態などの人が確認した項目は上書きしません。全国実行の前に大阪府など1地域で結果と請求状況を確認してください。
+
+### 都道府県ごとに基本情報を自動公開する
+
+自動公開では、Google Places上で営業中、住所の都道府県が検索対象と一致、HTTPSのウェブサイトがある候補だけを公開します。各都道府県の既存公開件数を含めて最大10件です。人が確認済み、要再確認、または編集済みのデータは上書きしません。自動公開したデータは `published / automated` として、人が確認した情報と区別します。
+
+施術、料金、医師、症例、ダウンタイム・リスク、保証・アフターケアはGoogle Placesでは確認できないため、推測して保存しません。これらは管理画面で公式サイトを確認して追加します。
+
+最初に費用の発生しない実行計画を確認します。
+
+```powershell
+npm run clinics:places:plan -- --all --max-pages 1
+```
+
+全国を自動公開する場合は、3つの確認用環境変数が必要です。
+
+```powershell
+$env:GOOGLE_PLACES_API_KEY="Places API（New）専用キー"
+$env:CONFIRM_PLACES_REQUEST="yes"
+$env:CONFIRM_CLINIC_IMPORT="yes"
+$env:CONFIRM_CLINIC_AUTO_PUBLISH="yes"
+npm run clinics:places:auto-publish
+```
+
+件数を5件に減らす場合は、スクリプトを直接実行します。
+
+```powershell
+node --env-file-if-exists=.env scripts/sync-google-places.js --all --auto-publish --limit-per-prefecture 5
+```
+
+管理APIから実行する場合は、認証済み管理者が `POST /api/admin/clinics/auto-publish` に `prefectures`、`limitPerPrefecture`、`maxPages`、`confirmed: true` を送信します。
 
 APIキーはFirebase Web APIキーやGemini APIキーと共用せず、Places API（New）だけに制限したサーバー用キーを使用します。Text SearchではField Maskが必須で、不要な項目を要求しないことが処理量と課金の抑制につながります。
+
+### 公式サイトから詳細情報を抽出・更新する
+
+GeminiのURL ContextとGoogle Searchを使い、公開済みクリニックの公式サイトから施術、料金・追加費用、医師・資格、症例件数、ダウンタイム・リスク、保証・アフターケアを構造化して保存します。各項目には公式ドメイン上の根拠URL、根拠本文、信頼度を保持し、別ドメインの情報は破棄します。
+
+管理画面では都道府県と最大10件を選び、「公式情報を抽出」から個別実行もできます。定期ジョブの自動反映対象は、人が保存していない未確認・自動登録クリニックの信頼度0.9以上の項目だけです。`verified` または担当者名が記録された情報は上書きしません。
+
+コマンドでは、最終確認日時が古い公開クリニックから順に処理します。計画表示ではAPIもFirestoreも使用しません。
+
+```powershell
+npm run clinics:official:plan
+
+$env:CONFIRM_GEMINI_REQUEST="yes"
+$env:CONFIRM_CLINIC_OFFICIAL_WRITE="yes"
+npm run clinics:official:sync
+```
+
+高信頼項目を自動登録データへ反映する場合だけ、追加確認を設定します。
+
+```powershell
+$env:CONFIRM_CLINIC_OFFICIAL_AUTO_APPLY="yes"
+npm run clinics:official:auto-apply
+```
+
+このコマンドをCloud Run JobとCloud Schedulerから定期実行すれば更新確認を自動化できます。`clinics:official:auto-apply` は最終確認日時が古い順に1回最大50院を処理するため、初回登録後も実行を重ねると全院を巡回します。ジョブとスケジュール自体は別途Google Cloudへ作成する必要があります。閉業・移転などの基本情報はPlaces同期、公式サイトの詳細情報はこの公式情報同期で更新します。
 
 ### クリニック候補を確認・公開する
 
@@ -211,6 +266,7 @@ Cloud Runのサービス設定で次の環境変数を設定します。
 
 ```text
 GEMINI_API_KEY=Google AI Studioで取得したAPIキー
+GEMINI_TEXT_MODEL=gemini-3.6-flash
 FIREBASE_API_KEY=Firebase WebアプリのapiKey
 FIREBASE_AUTH_DOMAIN=Firebase WebアプリのauthDomain
 FIREBASE_PROJECT_ID=対象プロジェクトID
@@ -300,6 +356,7 @@ seikei_web_app/
 ├─ account-store.js  Firestore保存API
 ├─ clinic-store.js   クリニック検索・詳細API
 ├─ places-clinic-sync.js  Google Places候補収集・Firestore同期
+├─ clinic-official-sync.js  Geminiによる公式サイト情報の抽出・差分保存
 ├─ image-store.js    Cloud Storage画像保存API
 ├─ firestore.rules   ブラウザからの直接アクセスを拒否するルール
 ├─ server.js         Cloud Run用サーバー、認証・Firestore・Storage・Gemini API中継

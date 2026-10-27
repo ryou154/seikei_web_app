@@ -104,12 +104,17 @@ test("publishing requires verified status and essential official sources", () =>
   assert.equal(published.verifiedAt, "now");
 });
 
-function setup({ email = "admin@example.com", store, discoverCandidates } = {}) {
+function setup({ email = "admin@example.com", store, discoverCandidates, extractOfficial, geminiApiKey = "gemini-test-key" } = {}) {
   const database = store || {
     async list() { return { clinics: [{ id: "candidate-1", publicationStatus: "draft" }], nextCursor: "next" }; },
     async get(id) { return id === "candidate-1" ? { id, publicationStatus: "draft" } : null; },
     async update(id, data) { return id === "candidate-1" ? { id, ...data } : null; },
-    async importCandidates(candidates) { return { inserted: candidates.length, updated: 0 }; }
+    async importCandidates(candidates) { return { inserted: candidates.length, updated: 0 }; },
+    async autoPublishCandidates(candidates) { return { published: candidates.length, skippedReviewed: 0, skippedExisting: 0 }; },
+    async listForOfficialSync() {
+      return [{ id: "candidate-1", name: "候補名", officialUrl: "https://example.com" }];
+    },
+    async saveOfficialExtraction() { return { changed: true, autoApplied: false }; }
   };
   return createClinicAdminHandler({
     authenticate: async () => ({ uid: "user", email }),
@@ -120,7 +125,9 @@ function setup({ email = "admin@example.com", store, discoverCandidates } = {}) 
       candidates: [{ placeId: "candidate-2" }],
       stats: { requests: 2, rawResults: 3, uniqueCandidates: 1 }
     })),
-    placesApiKey: "test-key"
+    extractOfficial: extractOfficial || (async () => ({ extraction: { treatments: [] }, model: "gemini-test" })),
+    placesApiKey: "test-key",
+    geminiApiKey
   });
 }
 
@@ -173,6 +180,152 @@ test("admin can collect one prefecture into private draft candidates", async () 
   assert.equal(result.data.requests, 2);
   assert.deepEqual(options.prefectures, ["大阪府"]);
   assert.equal(options.apiKey, "test-key");
+});
+
+test("admin can automatically publish a guarded number for selected prefectures", async () => {
+  let discoveryOptions;
+  let publishOptions;
+  const handler = setup({
+    discoverCandidates: async (options) => {
+      discoveryOptions = options;
+      return {
+        candidates: [{ placeId: "candidate-2" }, { placeId: "candidate-3" }],
+        stats: { requests: 4, rawResults: 20, uniqueCandidates: 2 }
+      };
+    },
+    store: {
+      async autoPublishCandidates(candidates, options) {
+        publishOptions = options;
+        return { published: candidates.length, skippedReviewed: 0, skippedExisting: 0 };
+      }
+    }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/auto-publish", {
+    prefectures: ["大阪府", "京都府"],
+    limitPerPrefecture: 10,
+    maxPages: 1,
+    confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.published, 2);
+  assert.deepEqual(discoveryOptions.prefectures, ["大阪府", "京都府"]);
+  assert.deepEqual(publishOptions, { prefectures: ["大阪府", "京都府"], limitPerPrefecture: 10 });
+});
+
+test("admin extracts official information for a guarded published-clinic batch", async () => {
+  let listed;
+  let extracted;
+  let saved;
+  const handler = setup({
+    store: {
+      async listForOfficialSync(options) {
+        listed = options;
+        return [{ id: "candidate-1", name: "候補名", officialUrl: "https://example.com" }];
+      },
+      async saveOfficialExtraction(id, extraction, options) {
+        saved = { id, extraction, options };
+        return { changed: true, autoApplied: true };
+      }
+    },
+    extractOfficial: async (options) => {
+      extracted = options;
+      return { extraction: { treatments: [{ name: "二重" }] }, model: "gemini-test" };
+    }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 5, autoApply: true,
+    before: "2026-10-23T00:00:00.000Z", confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.deepEqual(listed, {
+    prefectures: ["大阪府"], limit: 5, before: "2026-10-23T00:00:00.000Z"
+  });
+  assert.equal(extracted.sourceOfficialUrl, "https://example.com");
+  assert.equal(saved.id, "candidate-1");
+  assert.equal(saved.options.autoApply, true);
+  assert.equal(result.data.autoApplied, 1);
+});
+
+test("official extraction requires confirmation and a configured Gemini key", async () => {
+  const unconfirmed = await setup()(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 1, confirmed: false
+  }));
+  assert.equal(unconfirmed.status, 400);
+  const missingKey = await setup({ geminiApiKey: "" })(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 1, confirmed: true
+  }));
+  assert.equal(missingKey.status, 503);
+  const invalidBefore = await setup()(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 1, before: "not-a-date", confirmed: true
+  }));
+  assert.equal(invalidBefore.status, 400);
+});
+
+test("admin can retry official extraction for one published clinic", async () => {
+  const saved = [];
+  const clinic = {
+    id: "candidate-1",
+    name: "候補名",
+    officialUrl: "https://example.com",
+    publicationStatus: "published"
+  };
+  const handler = setup({
+    store: {
+      async get(id) { return id === clinic.id ? { ...clinic, treatments: saved.length ? ["二重"] : [] } : null; },
+      async saveOfficialExtraction(id, extraction, options) {
+        saved.push({ id, extraction, options });
+        return { changed: true, autoApplied: true };
+      }
+    },
+    extractOfficial: async () => ({ extraction: { treatments: [{ name: "二重" }] }, model: "gemini-test" })
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
+    confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.autoApplied, true);
+  assert.deepEqual(result.data.clinic.treatments, ["二重"]);
+  assert.deepEqual(saved[0].options, { model: "gemini-test", autoApply: true });
+});
+
+test("single-clinic extraction records the concrete failure", async () => {
+  const failures = [];
+  const handler = setup({
+    store: {
+      async get() {
+        return { id: "candidate-1", name: "候補名", officialUrl: "https://example.com", publicationStatus: "published" };
+      },
+      async saveOfficialExtraction() { throw new Error("unexpected save"); },
+      async markOfficialSyncFailed(id, message) { failures.push({ id, message }); }
+    },
+    extractOfficial: async () => { throw Object.assign(new Error("API key not valid"), { status: 403 }); }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
+    confirmed: true
+  }));
+  assert.equal(result.status, 403);
+  assert.deepEqual(failures, [{ id: "candidate-1", message: "API key not valid" }]);
+});
+
+test("failed official extraction is marked so the nationwide loop can advance", async () => {
+  const failed = [];
+  const handler = setup({
+    store: {
+      async listForOfficialSync() {
+        return [{ id: "candidate-1", name: "候補名", officialUrl: "https://example.com" }];
+      },
+      async saveOfficialExtraction() { throw new Error("unexpected save"); },
+      async markOfficialSyncFailed(id, message) { failed.push({ id, message }); }
+    },
+    extractOfficial: async () => { throw new Error("Gemini unavailable"); }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/extract-official", {
+    prefectures: ["大阪府"], limit: 10, autoApply: true,
+    before: "2026-10-23T00:00:00.000Z", confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.failed, 1);
+  assert.deepEqual(failed, [{ id: "candidate-1", message: "Gemini unavailable" }]);
 });
 
 test("non-admins, bad media types and unsupported routes fail closed", async () => {

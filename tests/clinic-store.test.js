@@ -24,6 +24,7 @@ const clinics = [
     verificationStatus: "verified",
     officialUrl: "https://example.com/osaka",
     doctors: [{ name: "確認医師", internalReviewNotes: "nested secret" }],
+    detectedData: { treatments: [{ name: "自動抽出候補" }] },
     internalReviewNotes: "must not leak"
   },
   {
@@ -97,6 +98,7 @@ test("detail returns public detail fields without internal metadata", async () =
   assert.equal(result.data.clinic.doctors[0].name, "確認医師");
   assert.equal(result.data.clinic.doctors[0].internalReviewNotes, undefined);
   assert.equal(result.data.clinic.internalReviewNotes, undefined);
+  assert.equal(result.data.clinic.detectedData, undefined);
   assert.equal((await setup()(request("GET", "/api/clinics/clinic-draft"))).status, 404);
 });
 
@@ -112,6 +114,10 @@ test("route, method, input and authentication fail closed", async () => {
 test("public projection tolerates missing optional fields", () => {
   assert.deepEqual(publicClinic("empty", {}).treatments, []);
   assert.equal(publicClinic("empty", {}).verificationStatus, "unverified");
+});
+
+test("public projection preserves automated verification status", () => {
+  assert.equal(publicClinic("auto", { verificationStatus: "automated" }).verificationStatus, "automated");
 });
 
 test("Firestore query narrows by prefecture before scanning", async () => {

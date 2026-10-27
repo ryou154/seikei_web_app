@@ -17,50 +17,39 @@
     <div>
       <p class="eyebrow">Clinic administration</p>
       <h1>クリニック管理</h1>
-      <p class="lead">未確認候補を公式情報と照合し、内容を確認してから公開します。</p>
+      <p class="lead">Firestoreに保存された公開済みクリニックを、都道府県ごとに確認・編集します。</p>
     </div>
   </header>
   <div id="page-transition-content">
     <main id="app-content" class="admin-layout" hidden>
-      <aside class="panel candidate-panel" aria-labelledby="candidate-heading">
-        <div class="candidate-heading-row">
-          <div>
-            <p class="eyebrow">Candidates</p>
-            <h2 id="candidate-heading">確認候補</h2>
-          </div>
-          <button id="admin-reload" type="button" class="sub-button">再読込</button>
+      <section class="panel nationwide-update-panel" aria-labelledby="nationwide-update-heading">
+        <div>
+          <p class="eyebrow">Nationwide update</p>
+          <h2 id="nationwide-update-heading">全国のクリニックデータを自動更新</h2>
+          <p>47都道府県それぞれ最大10院をGoogleから登録・更新し、続けて公式サイトの情報を「施術・料金」「医師・症例」「リスク・保証」に分けて更新します。</p>
+          <p class="format-note">保存済みデータの閲覧には更新操作は不要です。Googleや公式サイトから最新情報を取り直したい時だけ、このボタンを使用します。</p>
+          <p class="format-note">公式情報は1院につきGemini APIを3回使用します。全国最大470院を更新する場合は最大1,410回です。</p>
         </div>
-        <section class="discovery-controls" aria-labelledby="discovery-heading">
-          <h3 id="discovery-heading">Googleから候補を収集</h3>
-          <span class="picker-label">対象都道府県（複数選択可・最大10件）</span>
-          <details class="prefecture-picker" open>
-            <summary id="prefecture-summary">大阪府（1件選択）</summary>
-            <div id="discovery-prefectures" class="prefecture-options" role="group" aria-label="対象都道府県"></div>
-          </details>
-          <button id="clear-prefectures" type="button" class="sub-button compact-button">選択を解除</button>
-          <label for="discovery-pages">取得ページ数</label>
-          <select id="discovery-pages">
-            <option value="1">1ページ（最大2リクエスト）</option>
-            <option value="2">2ページ（最大4リクエスト）</option>
-            <option value="3">3ページ（最大6リクエスト）</option>
-          </select>
-          <button id="discover-clinics" type="button" class="main-button">候補を収集</button>
-          <p class="format-note">選択地域ごとに「美容外科」「美容クリニック」の2検索を実行します。候補一覧も選択地域だけに絞られ、新規候補は自動公開されません。</p>
-          <p id="discovery-status" class="admin-status" role="status" aria-live="polite"></p>
-        </section>
-        <label for="admin-status-filter">表示する状態</label>
-        <select id="admin-status-filter">
-          <option value="draft">下書き</option>
-          <option value="published">公開済み</option>
-          <option value="all">すべて</option>
-        </select>
+        <div class="nationwide-update-action">
+          <button id="update-nationwide-clinics" type="button" class="main-button">全国データを更新</button>
+          <p id="nationwide-update-status" class="admin-status" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+      <section class="panel published-list-panel" aria-labelledby="candidate-heading">
+        <div class="published-heading-row">
+          <div>
+            <p class="eyebrow">Published clinics</p>
+            <h2 id="candidate-heading">公開済みクリニック</h2>
+            <p class="format-note">選択した都道府県の保存済みデータを最大10件、自動で読み込みます。</p>
+          </div>
+          <label class="published-prefecture-filter" for="published-prefecture">
+            都道府県
+            <select id="published-prefecture" aria-label="表示する都道府県"></select>
+          </label>
+        </div>
         <p id="candidate-status" class="admin-status" role="status" aria-live="polite"></p>
         <div id="candidate-list" class="candidate-list"></div>
-        <div class="candidate-pagination">
-          <button id="candidate-previous" type="button" class="sub-button" disabled>前へ</button>
-          <button id="candidate-next" type="button" class="sub-button" disabled>次へ</button>
-        </div>
-      </aside>
+      </section>
 
       <section class="panel editor-panel" aria-labelledby="editor-heading">
         <div class="editor-heading-row">
@@ -70,7 +59,7 @@
           </div>
           <span id="editor-badge" class="status-badge">未選択</span>
         </div>
-        <div id="editor-empty" class="editor-empty">左の一覧から候補を選択してください。</div>
+        <div id="editor-empty" class="editor-empty">上の一覧からクリニックを選択してください。</div>
         <form id="clinic-editor" hidden>
           <div class="place-preview">
             <div>
@@ -159,6 +148,7 @@
               <label>確認状態
                 <select id="clinic-verification-status">
                   <option value="unverified">未確認</option>
+                  <option value="automated">自動確認</option>
                   <option value="needs_review">要再確認</option>
                   <option value="verified">確認済み</option>
                 </select>
@@ -175,6 +165,8 @@
 
           <p id="editor-status" class="admin-status" role="status" aria-live="polite"></p>
           <div class="editor-actions">
+            <button id="extract-selected-clinic" type="button" class="sub-button">この院の公式情報を再抽出</button>
+            <button id="apply-detected-data" type="button" class="sub-button" disabled>抽出候補を入力欄へ反映</button>
             <button id="save-draft" type="button" class="sub-button">下書き保存</button>
             <button id="publish-clinic" type="button" class="main-button">確認して公開</button>
           </div>
