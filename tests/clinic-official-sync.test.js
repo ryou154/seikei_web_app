@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   GEMINI_INTERACTIONS_URL,
   EXTRACTION_GROUPS,
+  checkOfficialExtraction,
   normalizeOfficialExtraction,
   officialExtractionUpdate,
   publicFieldsFromExtraction,
@@ -92,6 +93,29 @@ test("Gemini request uses URL context, search and structured JSON", async () => 
   assert.equal(result.extraction.treatments[0].name, "二重埋没法");
   assert.equal(result.model, "gemini-test");
   assert.equal(result.usage.length, EXTRACTION_GROUPS.length);
+});
+
+test("progress checks remain compatible with jobs started by the previous three-group version", async () => {
+  const value = extracted();
+  const groups = [
+    { label: "施術・料金", fields: ["treatments", "pricing"], interactionId: "old-1" },
+    { label: "医師・症例", fields: ["doctors", "caseInformation"], interactionId: "old-2" },
+    { label: "リスク・保証", fields: ["downtimeAndRisks", "warrantyAndAftercare"], interactionId: "old-3" }
+  ];
+  const result = await checkOfficialExtraction({
+    apiKey: "test-key",
+    job: {
+      version: 1, status: "running", model: "gemini-test",
+      sourceOfficialUrl: "https://example.com", startedAt: "now", groups
+    },
+    fetchImpl: async (url) => {
+      const group = groups.find((item) => url.endsWith(item.interactionId));
+      const output = Object.fromEntries(group.fields.map((field) => [field, value[field]]));
+      return { ok: true, async json() { return { status: "completed", output_text: JSON.stringify(output) }; } };
+    }
+  });
+  assert.equal(result.status, "completed");
+  assert.equal(result.extraction.treatments[0].name, "二重埋没法");
 });
 
 test("split extraction identifies the failed information group", async () => {
