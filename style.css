@@ -1082,10 +1082,6 @@ body.camera-open {
     padding: 12px;
   }
 
-  .camera-stage {
-    max-height: 42vh;
-  }
-
   .camera-screen-actions {
     bottom: -12px;
     margin: 0 -12px -12px;
