@@ -1142,11 +1142,12 @@ function renderAfterImageViewer(container, imageData) {
       <div class="face-3d-stage">
         <img src="${imageData}" alt="シミュレーション後の予測イメージ">
       </div>
-      <p class="face-3d-help">左右にドラッグ／スワイプして180°回転</p>
+      <p class="face-3d-help">左右にドラッグ／スワイプして180°回転 <span class="face-3d-angle">0°</span></p>
     </div>`;
 
   const viewer = container.querySelector(".face-3d-viewer");
   const stage = viewer.querySelector(".face-3d-stage");
+  const angleLabel = viewer.querySelector(".face-3d-angle");
   let dragging = false;
   let startX = 0;
   let startRotation = 0;
@@ -1155,6 +1156,7 @@ function renderAfterImageViewer(container, imageData) {
     const normalized = Math.max(-180, Math.min(180, rotation));
     viewer.dataset.rotation = String(normalized);
     stage.style.transform = `rotateY(${normalized}deg)`;
+    if (angleLabel) angleLabel.textContent = `${Math.round(normalized)}°`;
   };
 
   viewer.addEventListener("pointerdown", (event) => {
@@ -1165,6 +1167,10 @@ function renderAfterImageViewer(container, imageData) {
     viewer.classList.add("is-dragging");
   });
   viewer.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    applyRotation(startRotation + (event.clientX - startX) * 0.8);
+  });
+  viewer.addEventListener("mousemove", (event) => {
     if (!dragging) return;
     applyRotation(startRotation + (event.clientX - startX) * 0.8);
   });
