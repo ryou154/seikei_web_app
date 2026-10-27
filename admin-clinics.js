@@ -1,5 +1,5 @@
 (() => {
-  const PAGE_SIZE = 30;
+  const PAGE_SIZE = 10;
   const PREFECTURES = [
     "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
     "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
@@ -11,13 +11,10 @@
   ];
   const byId = (id) => document.getElementById(id);
   let currentClinicId = "";
+  let currentDetectedData = null;
   let currentCandidates = [];
-  let nextCursor = "";
-  let cursor = "";
-  const cursorHistory = [];
   let busy = false;
   let initialized = false;
-  let filterTimer = null;
 
   function lines(value) {
     return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
@@ -59,7 +56,7 @@
     if (!currentCandidates.length) {
       const empty = document.createElement("p");
       empty.className = "editor-empty";
-      empty.textContent = "候補がありません。上の『候補を収集』から地域を指定してください。";
+      empty.textContent = "選択した都道府県に公開済みのクリニックがありません。";
       list.append(empty);
     }
     for (const clinic of currentCandidates) {
@@ -71,96 +68,107 @@
       const title = document.createElement("strong");
       title.textContent = candidateLabel(clinic);
       const meta = document.createElement("span");
-      meta.textContent = `${clinic.verificationStatus} / ${clinic.id}`;
+      meta.textContent = `${clinic.verificationStatus}${clinic.extractionStatus ? ` / 抽出: ${clinic.extractionStatus}` : ""}`;
       button.append(title, meta);
       button.addEventListener("click", () => void selectClinic(clinic.id));
       list.append(button);
     }
-    byId("candidate-previous").disabled = busy || !cursorHistory.length;
-    byId("candidate-next").disabled = busy || !nextCursor;
-    byId("admin-reload").disabled = busy;
-    byId("discover-clinics").disabled = busy;
+    byId("update-nationwide-clinics").disabled = busy;
+    byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
   function populatePrefectures() {
-    const container = byId("discovery-prefectures");
-    container.replaceChildren();
+    const select = byId("published-prefecture");
+    select.replaceChildren();
     for (const prefecture of PREFECTURES) {
-      const label = document.createElement("label");
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.name = "discovery-prefecture";
-      checkbox.value = prefecture;
-      checkbox.checked = prefecture === "大阪府";
-      label.append(checkbox, document.createTextNode(prefecture));
-      container.append(label);
+      const option = document.createElement("option");
+      option.value = prefecture;
+      option.textContent = prefecture;
+      option.selected = prefecture === "大阪府";
+      select.append(option);
     }
-    updatePrefectureSummary();
   }
 
   function selectedPrefectures() {
-    return [...document.querySelectorAll('input[name="discovery-prefecture"]:checked')]
-      .map((input) => input.value);
+    const prefecture = byId("published-prefecture").value;
+    return prefecture ? [prefecture] : [];
   }
 
-  function updatePrefectureSummary() {
-    const selected = selectedPrefectures();
-    byId("prefecture-summary").textContent = selected.length
-      ? `${selected.join("、")}（${selected.length}件選択）`
-      : "都道府県を選択してください";
-  }
-
-  function scheduleFilteredReload() {
-    updatePrefectureSummary();
-    clearTimeout(filterTimer);
-    filterTimer = setTimeout(() => void loadCandidates({ reset: true }), 250);
-  }
-
-  function handlePrefectureChange(event) {
-    if (selectedPrefectures().length > 10) {
-      event.target.checked = false;
-      setStatus(byId("discovery-status"), "都道府県は10件以内で選択してください。", true);
-    } else {
-      setStatus(byId("discovery-status"), "");
+  function prefectureGroups(size = 10) {
+    const groups = [];
+    for (let index = 0; index < PREFECTURES.length; index += size) {
+      groups.push(PREFECTURES.slice(index, index + size));
     }
-    scheduleFilteredReload();
+    return groups;
   }
 
-  async function discoverClinics() {
+  async function updateNationwideClinics() {
     if (busy) return;
-    const prefectures = selectedPrefectures();
-    if (!prefectures.length) {
-      setStatus(byId("discovery-status"), "都道府県を1件以上選択してください。", true);
-      return;
-    }
-    if (prefectures.length > 10) {
-      setStatus(byId("discovery-status"), "都道府県は10件以内で選択してください。", true);
-      return;
-    }
-    const maxPages = Number(byId("discovery-pages").value);
-    const maximumRequests = maxPages * 2 * prefectures.length;
-    if (!confirm(`${prefectures.join("、")}の候補収集を実行します。Google Places APIを最大${maximumRequests}回呼び出します。よろしいですか？`)) return;
+    const confirmed = confirm(
+      "全国47都道府県を対象に、各都道府県最大10院の登録・更新と、公開済みクリニックの公式情報更新を実行します。Google Places APIとGemini APIを使用し、完了まで長時間かかる場合があります。実行しますか？"
+    );
+    if (!confirmed) return;
+
     busy = true;
     renderCandidates();
-    const totals = { requests: 0, uniqueCandidates: 0, inserted: 0, updated: 0 };
+    const status = byId("nationwide-update-status");
+    const startedAt = new Date().toISOString();
+    const totals = { published: 0, succeeded: 0, failed: 0, changed: 0, autoApplied: 0 };
     try {
-      for (const [index, prefecture] of prefectures.entries()) {
-        setStatus(byId("discovery-status"), `${prefecture}の候補を収集中です…（${index + 1}/${prefectures.length}）`);
-        const data = await api("/api/admin/clinics/discover", {
-          method: "POST",
-          body: JSON.stringify({ prefecture, maxPages, confirmed: true })
-        });
-        for (const key of Object.keys(totals)) totals[key] += Number(data[key] || 0);
+      setStatus(status, "1/2 全国のクリニックをGoogleから登録・更新しています…");
+      const places = await api("/api/admin/clinics/auto-publish", {
+        method: "POST",
+        body: JSON.stringify({
+          prefectures: PREFECTURES,
+          limitPerPrefecture: 10,
+          maxPages: 1,
+          confirmed: true
+        })
+      });
+      totals.published = Number(places.published || 0);
+
+      const groups = prefectureGroups();
+      let processed = 0;
+      const maximumClinics = PREFECTURES.length * 10;
+      let reachedSafetyLimit = false;
+      for (const [groupIndex, prefectures] of groups.entries()) {
+        while (true) {
+          if (processed >= maximumClinics) {
+            reachedSafetyLimit = true;
+            break;
+          }
+          setStatus(
+            status,
+            `2/2 公式情報を更新しています… ${processed}院完了（地域グループ${groupIndex + 1}/${groups.length}）`
+          );
+          const data = await api("/api/admin/clinics/extract-official", {
+            method: "POST",
+            body: JSON.stringify({
+              prefectures,
+              limit: 10,
+              autoApply: true,
+              before: startedAt,
+              confirmed: true
+            })
+          });
+          if (!data.requested) break;
+          processed += Number(data.requested || 0);
+          for (const key of ["succeeded", "failed", "changed", "autoApplied"]) {
+            totals[key] += Number(data[key] || 0);
+          }
+        }
+        if (reachedSafetyLimit) break;
       }
+
       setStatus(
-        byId("discovery-status"),
-        `${prefectures.length}都道府県・${totals.requests}回のAPI呼び出しで${totals.uniqueCandidates}件を確認し、新規${totals.inserted}件・既存更新${totals.updated}件を下書きへ反映しました。`
+        status,
+        `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。${reachedSafetyLimit ? ` 安全上限の${maximumClinics}院まで処理しました。` : ""}`,
+        totals.failed > 0
       );
-      byId("admin-status-filter").value = "draft";
       busy = false;
       await loadCandidates({ reset: true });
     } catch (error) {
-      setStatus(byId("discovery-status"), error.message, true);
+      setStatus(status, `更新を中断しました：${error.message}`, true);
     } finally {
       busy = false;
       renderCandidates();
@@ -171,10 +179,8 @@
     if (busy) return;
     busy = true;
     if (reset) {
-      cursor = "";
-      nextCursor = "";
-      cursorHistory.length = 0;
       currentClinicId = "";
+      currentDetectedData = null;
     }
     const prefectures = selectedPrefectures();
     if (!prefectures.length) {
@@ -185,18 +191,15 @@
       return;
     }
     renderCandidates();
-    setStatus(byId("candidate-status"), "候補を読み込んでいます…");
+    setStatus(byId("candidate-status"), "保存済みの公開クリニックを読み込んでいます…");
     try {
-      const params = new URLSearchParams({ status: byId("admin-status-filter").value, limit: String(PAGE_SIZE) });
+      const params = new URLSearchParams({ status: "published", limit: String(PAGE_SIZE) });
       for (const prefecture of prefectures) params.append("prefecture", prefecture);
-      if (cursor) params.set("cursor", cursor);
       const data = await api(`/api/admin/clinics?${params}`);
       currentCandidates = data.clinics || [];
-      nextCursor = data.nextCursor || "";
-      setStatus(byId("candidate-status"), `${currentCandidates.length}件を表示しています。`);
+      setStatus(byId("candidate-status"), `${prefectures[0]}の公開済みクリニックを${currentCandidates.length}件表示しています。`);
     } catch (error) {
       currentCandidates = [];
-      nextCursor = "";
       setStatus(byId("candidate-status"), error.message, true);
     } finally {
       busy = false;
@@ -224,6 +227,7 @@
 
   function fillEditor(clinic) {
     currentClinicId = clinic.id;
+    currentDetectedData = clinic.detectedData || null;
     byId("editor-empty").hidden = true;
     byId("clinic-editor").hidden = false;
     byId("clinic-place-id").textContent = clinic.placeId || clinic.id;
@@ -250,7 +254,12 @@
     byId("clinic-verification-status").value = clinic.verificationStatus || "unverified";
     byId("clinic-publication-status").value = clinic.publicationStatus || "draft";
     byId("editor-badge").textContent = clinic.publicationStatus === "published" ? "公開済み" : "下書き";
-    setStatus(byId("editor-status"), "");
+    byId("apply-detected-data").disabled = !currentDetectedData;
+    setStatus(
+      byId("editor-status"),
+      clinic.extractionStatus === "failed" ? `公式情報の抽出に失敗しました: ${clinic.extractionError || "原因は記録されていません。再実行すると詳細を記録します。"}` : "",
+      clinic.extractionStatus === "failed"
+    );
     renderCandidates();
   }
 
@@ -274,6 +283,34 @@
     if (!byId("clinic-sources").value.trim() && place.officialUrl) {
       byId("clinic-sources").value = place.officialUrl;
     }
+  }
+
+  function applyDetectedData() {
+    if (!currentDetectedData) return;
+    fillEmptyField("clinic-treatments", (currentDetectedData.treatments || []).map((item) => item.name).filter(Boolean).join("\n"));
+    fillEmptyField("clinic-pricing", formatPricing(currentDetectedData.pricing));
+    fillEmptyField("clinic-doctors", formatDoctors(currentDetectedData.doctors));
+    const caseInformation = currentDetectedData.caseInformation?.[0];
+    if (caseInformation) {
+      fillEmptyField("clinic-case-summary", caseInformation.summary);
+      fillEmptyField("clinic-case-period", caseInformation.period);
+      fillEmptyField("clinic-case-scope", caseInformation.scope);
+      fillEmptyField("clinic-case-source", caseInformation.sourceUrl);
+    }
+    fillEmptyField("clinic-risks", formatInformation(currentDetectedData.downtimeAndRisks));
+    fillEmptyField("clinic-aftercare", formatInformation(currentDetectedData.warrantyAndAftercare));
+    if (!byId("clinic-sources").value.trim()) {
+      const sourceUrls = new Set([currentDetectedData.officialUrl]);
+      for (const group of [
+        currentDetectedData.treatments, currentDetectedData.pricing, currentDetectedData.doctors,
+        currentDetectedData.caseInformation, currentDetectedData.downtimeAndRisks,
+        currentDetectedData.warrantyAndAftercare
+      ]) {
+        for (const item of group || []) if (item.sourceUrl) sourceUrls.add(item.sourceUrl);
+      }
+      byId("clinic-sources").value = [...sourceUrls].filter(Boolean).join("\n");
+    }
+    setStatus(byId("editor-status"), "抽出候補を空欄へ入力しました。根拠URLと公式サイトの記載を確認してから保存してください。");
   }
 
   async function selectClinic(id) {
@@ -388,27 +425,11 @@
     initialized = true;
     content.hidden = false;
     populatePrefectures();
-    byId("discovery-prefectures").addEventListener("change", handlePrefectureChange);
-    byId("clear-prefectures").addEventListener("click", () => {
-      for (const input of document.querySelectorAll('input[name="discovery-prefecture"]')) input.checked = false;
-      scheduleFilteredReload();
-    });
-    byId("admin-reload").addEventListener("click", () => void loadCandidates({ reset: true }));
-    byId("discover-clinics").addEventListener("click", () => void discoverClinics());
-    byId("admin-status-filter").addEventListener("change", () => void loadCandidates({ reset: true }));
-    byId("candidate-next").addEventListener("click", () => {
-      if (!nextCursor) return;
-      cursorHistory.push(cursor);
-      cursor = nextCursor;
-      void loadCandidates();
-    });
-    byId("candidate-previous").addEventListener("click", () => {
-      if (!cursorHistory.length) return;
-      cursor = cursorHistory.pop();
-      void loadCandidates();
-    });
+    byId("published-prefecture").addEventListener("change", () => void loadCandidates({ reset: true }));
+    byId("update-nationwide-clinics").addEventListener("click", () => void updateNationwideClinics());
     byId("save-draft").addEventListener("click", () => void save("draft"));
     byId("publish-clinic").addEventListener("click", () => void save("published"));
+    byId("apply-detected-data").addEventListener("click", applyDetectedData);
     void loadCandidates({ reset: true });
   }
 

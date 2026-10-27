@@ -3,7 +3,7 @@ const { authorize } = require("./auth-server");
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const MAX_SCAN = 1000;
-const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified"]);
+const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified", "automated"]);
 
 class ClinicInputError extends Error {
   constructor(message, status = 400) {

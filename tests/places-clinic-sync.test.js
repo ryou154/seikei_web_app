@@ -6,6 +6,9 @@ const {
   toCandidate,
   requestTextSearch,
   discoverClinicCandidates,
+  selectAutoPublishCandidates,
+  autoPublishedClinicDocument,
+  writeAutoPublishedClinics,
   newClinicDocument,
   refreshedPlaceFields,
   writeClinicCandidates
@@ -16,6 +19,23 @@ function place(id, name, prefecture = "大阪府") {
   return {
     id,
     displayName: { text: name, languageCode: "ja" }
+  };
+}
+
+function publishablePlace(id, name, prefecture = "大阪府") {
+  return {
+    ...place(id, name),
+    formattedAddress: `${prefecture}大阪市北区梅田1-1-1`,
+    addressComponents: [
+      { longText: prefecture, types: ["administrative_area_level_1"] },
+      { longText: "大阪市", types: ["locality"] },
+      { longText: "北区", types: ["sublocality_level_1"] }
+    ],
+    nationalPhoneNumber: "06-0000-0000",
+    regularOpeningHours: { weekdayDescriptions: ["月曜日: 10:00～19:00"] },
+    businessStatus: "OPERATIONAL",
+    websiteUri: `https://example.com/${id}`,
+    googleMapsUri: `https://maps.google.com/?cid=${id}`
   };
 }
 
@@ -53,7 +73,116 @@ test("Text Search uses POST and a narrow field mask", async () => {
   assert.equal(captured.options.headers["X-Goog-FieldMask"], PLACES_FIELD_MASK);
   assert.equal(PLACES_FIELD_MASK.includes("photos"), false);
   assert.equal(PLACES_FIELD_MASK.includes("reviews"), false);
+  assert.equal(PLACES_FIELD_MASK.includes("websiteUri"), true);
   assert.equal(JSON.parse(captured.options.body).pageSize, 20);
+});
+
+test("automatic publication keeps only operational exact-prefecture clinics with official sites", () => {
+  const candidates = [
+    toCandidate(publishablePlace("ChIJpublishable001", "公開候補"), "大阪府", "美容外科", "now"),
+    toCandidate({ ...publishablePlace("ChIJclosedclinic1", "閉業院"), businessStatus: "CLOSED_PERMANENTLY" }, "大阪府", "美容外科", "now"),
+    toCandidate({ ...publishablePlace("ChIJwrongprefect1", "県外院", "京都府") }, "大阪府", "美容外科", "now"),
+    toCandidate({ ...publishablePlace("ChIJnositeclinic", "サイトなし"), websiteUri: "" }, "大阪府", "美容外科", "now")
+  ];
+  const selected = selectAutoPublishCandidates(candidates, { prefectures: ["大阪府"], limitPerPrefecture: 10 });
+  assert.deepEqual(selected.map((candidate) => candidate.name), ["公開候補"]);
+});
+
+test("automatic publication respects each prefecture limit including existing publications", () => {
+  const candidates = Array.from({ length: 5 }, (_, index) => toCandidate(
+    publishablePlace(`ChIJlimitclinic${index}`, `候補${index}`),
+    "大阪府",
+    "美容外科",
+    "now"
+  ));
+  const selected = selectAutoPublishCandidates(candidates, {
+    prefectures: ["大阪府"],
+    limitPerPrefecture: 3,
+    existingPublishedCounts: new Map([["大阪府", 2]])
+  });
+  assert.equal(selected.length, 1);
+});
+
+test("automatic publication documents are labelled automated and keep claims empty", () => {
+  const candidate = toCandidate(publishablePlace("ChIJdocument001", "自動公開院"), "大阪府", "美容外科", "fetched");
+  const document = autoPublishedClinicDocument(candidate, "now");
+  assert.equal(document.publicationStatus, "published");
+  assert.equal(document.verificationStatus, "automated");
+  assert.equal(document.prefecture, "大阪府");
+  assert.deepEqual(document.treatments, []);
+  assert.deepEqual(document.pricing, []);
+  assert.equal(document.sources[0].type, "official");
+});
+
+test("automatic publication writes at most the configured number", async () => {
+  const candidates = Array.from({ length: 3 }, (_, index) => toCandidate(
+    publishablePlace(`ChIJwriteclinic${index}`, `候補${index}`),
+    "大阪府",
+    "美容外科",
+    "fetched"
+  ));
+  const writes = [];
+  const collection = {
+    where() { return { async get() { return { docs: [] }; } }; },
+    doc(id) { return { id }; }
+  };
+  const db = {
+    collection() { return collection; },
+    async getAll(...references) {
+      return references.map(() => ({ exists: false, data: () => ({}) }));
+    },
+    batch() {
+      return {
+        set(reference, data, options) { writes.push({ reference, data, options }); },
+        async commit() {}
+      };
+    }
+  };
+  const result = await writeAutoPublishedClinics(db, candidates, {
+    prefectures: ["大阪府"],
+    limitPerPrefecture: 2,
+    now: "now"
+  });
+  assert.equal(result.published, 2);
+  assert.equal(writes.length, 2);
+  assert.equal(writes[0].data.verificationStatus, "automated");
+});
+
+test("automatic publication never overwrites manually reviewed candidates", async () => {
+  const candidate = toCandidate(
+    publishablePlace("ChIJreviewedclinic", "確認中の院"),
+    "大阪府",
+    "美容外科",
+    "fetched"
+  );
+  const writes = [];
+  const collection = {
+    where() { return { async get() { return { docs: [] }; } }; },
+    doc(id) { return { id }; }
+  };
+  const db = {
+    collection() { return collection; },
+    async getAll() {
+      return [{
+        exists: true,
+        data: () => ({ verificationStatus: "needs_review", reviewedBy: "admin@example.com" })
+      }];
+    },
+    batch() {
+      return {
+        set(...args) { writes.push(args); },
+        async commit() {}
+      };
+    }
+  };
+  const result = await writeAutoPublishedClinics(db, [candidate], {
+    prefectures: ["大阪府"],
+    limitPerPrefecture: 10,
+    now: "now"
+  });
+  assert.equal(result.published, 0);
+  assert.equal(result.skippedReviewed, 1);
+  assert.equal(writes.length, 0);
 });
 
 test("transient Places errors retry with bounded attempts", async () => {
@@ -153,4 +282,8 @@ test("CLI defaults to a zero-cost plan and reports maximum requests", () => {
   const nationwide = parseArguments(["--all"]);
   assert.equal(plan(nationwide).maximumRequests, 94);
   assert.throws(() => parseArguments(["--all", "--prefecture", "大阪府"]), /同時/);
+  const automatic = parseArguments(["--all", "--auto-publish", "--limit-per-prefecture", "5"]);
+  assert.equal(automatic.execute, true);
+  assert.equal(automatic.write, true);
+  assert.equal(automatic.limitPerPrefecture, 5);
 });
