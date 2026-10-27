@@ -146,6 +146,7 @@ async function showUser(user) {
   try { savedIcon = localStorage.getItem(iconStorageKey(user.uid)); } catch { /* storage may be unavailable */ }
   renderProfileIcon(savedIcon, user.displayName || "");
   byId("account-email").value = user.email || "";
+  byId("profile-user-id").value = user.uid || "";
   byId("account-phone").textContent = savedPhone || user.phoneNumber || "未登録";
   byId("account-id").textContent = user.uid || "確認できません";
   byId("identity-status").textContent = user.emailVerified ? "確認済み" : "未確認";
