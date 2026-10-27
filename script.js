@@ -1260,6 +1260,10 @@ async function renderResult(result) {
     result.afterImage = generatedImage;
     renderAfterImageViewer(afterImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
+    const threeViewer = afterImage.querySelector(".face-3d-viewer");
+    if (threeViewer && window.Face3DViewer) {
+      window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, result.afterFaceAnalysis);
+    }
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(

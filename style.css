@@ -1587,6 +1587,23 @@ button:hover:not(:disabled) {
   box-shadow: inset 0 0 0 3px #b45b87;
 }
 
+.three-face-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  overflow: hidden;
+  cursor: ew-resize;
+  touch-action: pan-y;
+  background: radial-gradient(circle at 50% 35%, #fff7fa, #f1dce6);
+}
+
+.three-face-viewer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .app-page .comparison .image-placeholder,
 .app-page .comparison .after-preview,
 
