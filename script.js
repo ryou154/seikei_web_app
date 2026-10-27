@@ -1140,46 +1140,14 @@ function renderAfterImageViewer(container, imageData) {
   container.innerHTML = `
     <div class="face-3d-viewer" data-rotation="0" tabindex="0" aria-label="After画像の3Dビュー。左右にドラッグまたはスワイプして回転できます。">
       <div class="face-3d-stage">
-        <canvas class="face-3d-canvas" aria-label="顔の近似3Dモデル"></canvas>
-        <img class="face-3d-source" src="${imageData}" alt="シミュレーション後の予測イメージ">
+        <img src="${imageData}" alt="シミュレーション後の予測イメージ">
       </div>
       <p class="face-3d-help">左右にドラッグ／スワイプして180°回転 <span class="face-3d-angle">0°</span></p>
     </div>`;
 
   const viewer = container.querySelector(".face-3d-viewer");
   const stage = viewer.querySelector(".face-3d-stage");
-  const canvas = viewer.querySelector(".face-3d-canvas");
-  const source = viewer.querySelector(".face-3d-source");
   const angleLabel = viewer.querySelector(".face-3d-angle");
-  const context = canvas.getContext("2d");
-  const draw = (rotation) => {
-    if (!source.complete || !source.naturalWidth) return;
-    const width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    const height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-    }
-    context.clearRect(0, 0, width, height);
-    const angle = rotation * Math.PI / 180;
-    const scale = Math.min(width / source.naturalWidth, height / source.naturalHeight);
-    const imageWidth = source.naturalWidth * scale;
-    const imageHeight = source.naturalHeight * scale;
-    const left = (width - imageWidth) / 2;
-    const top = (height - imageHeight) / 2;
-    const strips = 96;
-    for (let index = 0; index < strips; index += 1) {
-      const x = index / strips;
-      const nextX = (index + 1) / strips;
-      const depth = Math.sin(x * Math.PI) * imageWidth * 0.16;
-      const nextDepth = Math.sin(nextX * Math.PI) * imageWidth * 0.16;
-      const projectedX = left + (x - 0.5) * imageWidth * Math.cos(angle) + depth * Math.sin(angle) + width / 2 - width / 2;
-      const nextProjectedX = left + (nextX - 0.5) * imageWidth * Math.cos(angle) + nextDepth * Math.sin(angle) + width / 2 - width / 2;
-      const projectedWidth = Math.max(1, Math.abs(nextProjectedX - projectedX) + 1);
-      context.drawImage(source, x * source.naturalWidth, 0, source.naturalWidth / strips + 1, source.naturalHeight, projectedX, top, projectedWidth, imageHeight);
-    }
-  };
-  source.addEventListener("load", () => draw(0));
   let dragging = false;
   let startX = 0;
   let startRotation = 0;
@@ -1187,8 +1155,7 @@ function renderAfterImageViewer(container, imageData) {
   const applyRotation = (rotation) => {
     const normalized = Math.max(-180, Math.min(180, rotation));
     viewer.dataset.rotation = String(normalized);
-    stage.style.transform = "none";
-    draw(normalized);
+    stage.style.transform = `rotateY(${normalized}deg)`;
     if (angleLabel) angleLabel.textContent = `${Math.round(normalized)}°`;
   };
 
