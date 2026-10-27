@@ -358,6 +358,7 @@ function buildGeminiPrompt(body, options = {}) {
     genderGuide,
     "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
     "Preserve natural human anatomy and realistic skin texture.",
+    "Make the result look like a realistic three-dimensional facial render: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     detailGuide,
     `User request: ${requestText}. Additional free-form fine-detail request: ${body.profile?.detailFreeText || "none"}. Strength: ${strength}%.`,
