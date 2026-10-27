@@ -1,5 +1,8 @@
 (() => {
   const PAGE_SIZE = 10;
+  const NATIONWIDE_CONCURRENCY = 5;
+  const EXTRACTION_POLL_MS = 5000;
+  const EXTRACTION_RETRY_MS = 60000;
   const PREFECTURES = [
     "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
     "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
@@ -105,6 +108,54 @@
     return groups;
   }
 
+  function isServiceLimitError(error) {
+    return /429|resource.exhausted|quota|rate.?limit|credit|billing|api key|http 50[234]/i.test(error?.message || "");
+  }
+
+  async function publishedClinicIds(status) {
+    const ids = [];
+    const groups = prefectureGroups(5);
+    for (const [index, prefectures] of groups.entries()) {
+      setStatus(status, `2/3 公開済みクリニックを確認しています… 地域グループ${index + 1}/${groups.length}`);
+      const pages = await Promise.all(prefectures.map(async (prefecture) => {
+        const params = new URLSearchParams({ status: "published", limit: String(PAGE_SIZE), prefecture });
+        return api(`/api/admin/clinics?${params}`);
+      }));
+      for (const page of pages) {
+        for (const clinic of page.clinics || []) if (clinic.id) ids.push(clinic.id);
+      }
+    }
+    return [...new Set(ids)];
+  }
+
+  async function startClinicExtraction(id) {
+    let lastError;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        return await api(`/api/admin/clinics/${encodeURIComponent(id)}/extract-official`, {
+          method: "POST",
+          body: JSON.stringify({ confirmed: true })
+        });
+      } catch (error) {
+        lastError = error;
+        if (!isServiceLimitError(error) || attempt === 3) throw error;
+        await wait(EXTRACTION_RETRY_MS * attempt);
+      }
+    }
+    throw lastError;
+  }
+
+  async function updateOneClinic(id) {
+    await startClinicExtraction(id);
+    while (true) {
+      await wait(EXTRACTION_POLL_MS);
+      const data = await api(`/api/admin/clinics/${encodeURIComponent(id)}/extract-official`);
+      if (data.status === "running") continue;
+      if (data.status === "completed") return data;
+      throw new Error(data.clinic?.extractionError || "公式情報の抽出に失敗しました。");
+    }
+  }
+
   async function updateNationwideClinics() {
     if (busy) return;
     const confirmed = confirm(
@@ -115,7 +166,6 @@
     busy = true;
     renderCandidates();
     const status = byId("nationwide-update-status");
-    const startedAt = new Date().toISOString();
     const totals = { published: 0, succeeded: 0, failed: 0, changed: 0, autoApplied: 0 };
     try {
       const discoveryGroups = prefectureGroups(5);
@@ -140,43 +190,53 @@
         }
       }
 
-      const groups = prefectureGroups();
+      const clinicIds = await publishedClinicIds(status);
+      let cursor = 0;
       let processed = 0;
-      const maximumClinics = PREFECTURES.length * 10;
-      let reachedSafetyLimit = false;
-      for (const [groupIndex, prefectures] of groups.entries()) {
-        while (true) {
-          if (processed >= maximumClinics) {
-            reachedSafetyLimit = true;
-            break;
-          }
-          setStatus(
-            status,
-            `2/2 公式情報を更新しています… ${processed}院完了（地域グループ${groupIndex + 1}/${groups.length}）`
-          );
-          const data = await api("/api/admin/clinics/extract-official", {
-            method: "POST",
-            body: JSON.stringify({
-              prefectures,
-              limit: 1,
-              autoApply: true,
-              before: startedAt,
-              confirmed: true
-            })
-          });
-          if (!data.requested) break;
-          processed += Number(data.requested || 0);
-          for (const key of ["succeeded", "failed", "changed", "autoApplied"]) {
-            totals[key] += Number(data[key] || 0);
+      let running = 0;
+      let serviceFailures = 0;
+      let abortReason = "";
+      const failureSamples = [];
+      const updateProgress = () => setStatus(
+        status,
+        `3/3 公式情報を並列更新しています… ${processed}/${clinicIds.length}院完了（実行中${running}院・成功${totals.succeeded}院・失敗${totals.failed}院）`
+      );
+      const worker = async (workerIndex) => {
+        await wait(workerIndex * 3000);
+        while (!abortReason) {
+          const index = cursor;
+          cursor += 1;
+          if (index >= clinicIds.length) return;
+          running += 1;
+          updateProgress();
+          try {
+            const data = await updateOneClinic(clinicIds[index]);
+            totals.succeeded += 1;
+            if (data.changed) totals.changed += 1;
+            if (data.autoApplied) totals.autoApplied += 1;
+            serviceFailures = 0;
+          } catch (error) {
+            totals.failed += 1;
+            if (failureSamples.length < 3) failureSamples.push(error.message);
+            if (isServiceLimitError(error)) {
+              serviceFailures += 1;
+              if (serviceFailures >= NATIONWIDE_CONCURRENCY) {
+                abortReason = `Gemini APIの利用制限が続いたため自動停止しました: ${error.message}`;
+              }
+            }
+          } finally {
+            running -= 1;
+            processed += 1;
+            updateProgress();
           }
         }
-        if (reachedSafetyLimit) break;
-      }
+      };
+      await Promise.all(Array.from({ length: Math.min(NATIONWIDE_CONCURRENCY, clinicIds.length) }, (_, index) => worker(index)));
 
       setStatus(
         status,
-        `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。${reachedSafetyLimit ? ` 安全上限の${maximumClinics}院まで処理しました。` : ""}`,
-        totals.failed > 0
+        abortReason || `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。${failureSamples.length ? ` 主な失敗: ${failureSamples.join(" / ")}` : ""}`,
+        Boolean(abortReason) || totals.failed > 0
       );
       busy = false;
       await loadCandidates({ reset: true });
