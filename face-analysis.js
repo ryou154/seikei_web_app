@@ -4,10 +4,12 @@
   const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";
 
   let landmarkerPromise = null;
+  let meshConnections = [];
 
   function getLandmarker() {
     if (!landmarkerPromise) {
-      landmarkerPromise = import(PACKAGE_URL).then(async ({ FaceLandmarker, FilesetResolver }) => {
+      landmarkerPromise = import(PACKAGE_URL).then(async ({ FaceLandmarker, FilesetResolver, FaceLandmarksConnections }) => {
+        meshConnections = FaceLandmarksConnections?.FACE_LANDMARKS_TESSELATION || [];
         const vision = await FilesetResolver.forVisionTasks(WASM_URL);
         return FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
@@ -160,6 +162,8 @@
 
     return {
       ok: true,
+      landmarks: landmarks.map(({ x, y, z }) => ({ x, y, z })),
+      meshConnections,
       metrics: calculateMetrics(landmarks, image.naturalWidth, image.naturalHeight)
     };
   }
