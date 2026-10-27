@@ -975,7 +975,10 @@ body.camera-open {
 }
 
 .camera-scan-steps {
-  display: grid;
+  display: none;
+}
+
+.camera-scan-steps {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
 }
