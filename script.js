@@ -1140,6 +1140,52 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
   return `${requestPart} ${parts}をもとにしたAfter予測です。${regionPart}${priorityText[profile.priority]} ※この結果は学習用の参考表示であり、医療診断ではありません。`;
 }
 
+function renderAfterImageViewer(container, imageData) {
+  if (!container || !imageData) return;
+  container.innerHTML = `
+    <div class="face-3d-viewer" data-rotation="0" tabindex="0" aria-label="After画像の3Dビュー。左右にドラッグまたはスワイプして回転できます。">
+      <div class="face-3d-stage">
+        <img src="${imageData}" alt="シミュレーション後の予測イメージ">
+      </div>
+      <p class="face-3d-help">左右にドラッグ／スワイプして180°回転</p>
+    </div>`;
+
+  const viewer = container.querySelector(".face-3d-viewer");
+  const stage = viewer.querySelector(".face-3d-stage");
+  let dragging = false;
+  let startX = 0;
+  let startRotation = 0;
+
+  const applyRotation = (rotation) => {
+    const normalized = Math.max(-180, Math.min(180, rotation));
+    viewer.dataset.rotation = String(normalized);
+    stage.style.transform = `rotateY(${normalized}deg)`;
+  };
+
+  viewer.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    startX = event.clientX;
+    startRotation = Number(viewer.dataset.rotation) || 0;
+    viewer.setPointerCapture?.(event.pointerId);
+    viewer.classList.add("is-dragging");
+  });
+  viewer.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    applyRotation(startRotation + (event.clientX - startX) * 0.8);
+  });
+  const stopDragging = () => {
+    dragging = false;
+    viewer.classList.remove("is-dragging");
+  };
+  viewer.addEventListener("pointerup", stopDragging);
+  viewer.addEventListener("pointercancel", stopDragging);
+  viewer.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    applyRotation((Number(viewer.dataset.rotation) || 0) + (event.key === "ArrowLeft" ? -15 : 15));
+  });
+}
+
 async function renderResult(result) {
   const ownerUid = window.AppAuth?.uid;
   const stillCurrent = () => latestResult === result && (!ownerUid || window.AppAuth?.uid === ownerUid);
