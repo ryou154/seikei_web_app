@@ -90,6 +90,7 @@
 .profile-edit-page .mypage-actions { align-items: center; }
 .profile-edit-page .mypage-actions a.sub-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; color: inherit; font: inherit; text-decoration: none; }
 .profile-edit-page input, .profile-edit-page button, .profile-edit-page a { font-family: inherit; }
+.profile-edit-page input, .profile-edit-page button, .profile-edit-page a.sub-button, .profile-edit-page .icon-upload-button { font-size: 14px; }
 
 .account-summary-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
