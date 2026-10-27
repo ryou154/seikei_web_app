@@ -2,6 +2,7 @@ const status = document.getElementById("mypage-status");
 const content = document.getElementById("app-content");
 const byId = (id) => document.getElementById(id);
 let busy = false;
+let profileEditing = false;
 
 function setStatus(id, message, isError = false) {
   const target = byId(id);
@@ -42,6 +43,19 @@ async function request(path, options = {}) {
 function setBusy(button, value) {
   busy = value;
   button.disabled = value;
+}
+
+function setProfileEditing(value) {
+  profileEditing = value;
+  const form = byId("profile-form");
+  form?.classList.toggle("is-editing", value);
+  for (const field of form?.querySelectorAll("input") || []) {
+    field.disabled = !value;
+  }
+  const save = form?.querySelector('button[type="submit"]');
+  if (save) save.hidden = !value;
+  const edit = byId("profile-edit-button");
+  if (edit) edit.textContent = value ? "編集をキャンセル" : "プロフィールを編集";
 }
 
 function iconStorageKey(uid) { return `meylon-profile-icon:${uid}`; }
@@ -144,6 +158,7 @@ async function showUser(user) {
   byId("password-managed").hidden = hasPassword || !isGoogle;
   if (!hasPassword && !isGoogle) byId("password-managed").textContent = "このログイン方法ではパスワードを変更できません。";
   content.hidden = false;
+  setProfileEditing(false);
   status.textContent = "マイページを読み込みました。";
   // The account panel should not wait for profile/history network requests.
   await loadSavedData();
@@ -185,6 +200,7 @@ async function initialize() {
           else localStorage.removeItem(phoneStorageKey(auth.currentUser.uid));
         } catch { /* storage may be unavailable */ }
         byId("account-phone").textContent = phone || auth.currentUser.phoneNumber || "未登録";
+        setProfileEditing(false);
         let savedIcon = null;
         try { savedIcon = localStorage.getItem(iconStorageKey(auth.currentUser.uid)); } catch { /* storage may be unavailable */ }
         renderProfileIcon(savedIcon, name);
@@ -194,6 +210,7 @@ async function initialize() {
         setStatus("profile-status", safeAuthMessage(error), true);
       } finally { setBusy(button, false); }
     });
+    byId("profile-edit-button").addEventListener("click", () => setProfileEditing(!profileEditing));
 
     byId("profile-icon-input").addEventListener("change", async (event) => {
       const file = event.currentTarget.files?.[0];

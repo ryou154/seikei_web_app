@@ -76,6 +76,10 @@
   overflow-wrap: anywhere;
 }
 
+.mypage-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.mypage-section-heading h2 { margin-bottom: 0; }
+.profile-form:not(.is-editing) .profile-icon-controls { pointer-events: none; opacity: .7; }
+
 .account-summary-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0 18px;
