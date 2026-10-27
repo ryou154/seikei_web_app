@@ -1825,3 +1825,4 @@ body[data-auth-page="register"] .auth-buttons { align-items: center; }
 .terms-page .terms-content ul { padding-left: 1.4rem; }
 
 #manual-capture-button { display: none; }
+#open-crop:disabled { display: none; }

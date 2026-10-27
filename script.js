@@ -88,6 +88,7 @@ let guidedScanTimer = null;
 let guidedScanBusy = false;
 let privacyGeneration = 0;
 let cropperInstance = null;
+openCropButton.hidden = true;
 
 function escapeText(value) {
   const text = String(value ?? "");
@@ -181,6 +182,8 @@ faceImageInput.addEventListener("change", () => {
 
   if (!file) {
     selectedImageData = "";
+    openCropButton.hidden = true;
+    openCropButton.disabled = true;
     imagePreview.innerHTML = "<span>画像を選択するとプレビューが表示されます</span>";
     return;
   }
@@ -190,6 +193,7 @@ faceImageInput.addEventListener("change", () => {
   reader.addEventListener("load", () => {
     if (imageGeneration !== privacyGeneration) return;
     setSelectedImage(reader.result);
+    openCropButton.hidden = false;
     openCropButton.disabled = false;
   });
   reader.readAsDataURL(file);
@@ -396,6 +400,8 @@ function createCroppedImageData() {
 
 function cancelImageCrop() {
   faceImageInput.value = "";
+  openCropButton.hidden = true;
+  openCropButton.disabled = true;
   if (cropperInstance) {
     cropperInstance.destroy();
     cropperInstance = null;
@@ -1835,6 +1841,8 @@ window.addEventListener("app-locked", () => {
   latestFaceAnalysis = null;
   latestResult = null;
   faceImageInput.value = "";
+  openCropButton.hidden = true;
+  openCropButton.disabled = true;
   requestTextInput.value = "";
   imagePreview.replaceChildren();
   beforeImage.replaceChildren();
