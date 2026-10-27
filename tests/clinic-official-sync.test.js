@@ -45,22 +45,31 @@ test("normalization removes unsupported and cross-domain evidence", () => {
 
 test("Gemini request uses URL context, search and structured JSON", async () => {
   const captured = [];
+  const pending = new Map();
   const result = await requestOfficialExtraction({
     apiKey: "test-key", clinicName: "テスト美容外科", sourceOfficialUrl: "https://example.com",
     model: "gemini-test", now: () => "2026-10-23T00:00:00.000Z",
+    wait: async () => {},
     fetchImpl: async (url, options) => {
+      if (options.method === "GET") {
+        const id = decodeURIComponent(url.split("/").pop());
+        return { ok: true, async json() { return { status: "completed", output_text: JSON.stringify(pending.get(id)), usage: { total_tokens: 10 } }; } };
+      }
       const body = JSON.parse(options.body);
       captured.push({ url, options, body });
       const value = extracted();
       const groupResult = Object.fromEntries(
         Object.keys(body.response_format.schema.properties).map((field) => [field, value[field]])
       );
-      return { ok: true, async json() { return { output_text: JSON.stringify(groupResult), usage: { total_tokens: 10 } }; } };
+      const id = `interaction-${captured.length}`;
+      pending.set(id, groupResult);
+      return { ok: true, async json() { return { id, status: "in_progress" }; } };
     }
   });
   assert.equal(captured.length, EXTRACTION_GROUPS.length);
   assert.ok(captured.every((request) => request.url === GEMINI_INTERACTIONS_URL));
   assert.ok(captured.every((request) => request.options.headers["x-goog-api-key"] === "test-key"));
+  assert.ok(captured.every((request) => request.body.background === true));
   assert.ok(captured.every((request) => JSON.stringify(request.body.tools) === JSON.stringify([{ type: "google_search" }, { type: "url_context" }])));
   assert.ok(captured.every((request) => request.body.response_format.mime_type === "application/json"));
   assert.deepEqual(captured.map((request) => Object.keys(request.body.response_format.schema.properties)), EXTRACTION_GROUPS.map((group) => group.fields));
@@ -74,6 +83,7 @@ test("split extraction identifies the failed information group", async () => {
     requestOfficialExtraction({
       apiKey: "test-key", clinicName: "テスト美容外科", sourceOfficialUrl: "https://example.com",
       model: "gemini-test",
+      wait: async () => {},
       fetchImpl: async (_url, options) => {
         const body = JSON.parse(options.body);
         if (body.response_format.schema.properties.doctors) {

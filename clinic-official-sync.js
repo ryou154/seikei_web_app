@@ -5,7 +5,8 @@ const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1/in
 const DEFAULT_GEMINI_TEXT_MODEL = "gemini-3.8-flash";
 const MAX_EXTRACTED_ITEMS = 50;
 const AUTO_APPLY_CONFIDENCE = 0.9;
-const EXTRACTION_TIMEOUT_MS = 120_000;
+const EXTRACTION_TIMEOUT_MS = 240_000;
+const EXTRACTION_POLL_INTERVAL_MS = 3_000;
 
 class ClinicOfficialSyncError extends Error {
   constructor(message, status = 400) {
@@ -276,7 +277,8 @@ async function requestExtractionGroup({
   sourceOfficialUrl,
   model,
   group,
-  fetchImpl
+  fetchImpl,
+  wait
 }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);
@@ -286,6 +288,7 @@ async function requestExtractionGroup({
       headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
+        background: true,
         input: extractionPrompt(cleanText(clinicName, 200), sourceOfficialUrl, group.instruction),
         tools: [{ type: "google_search" }, { type: "url_context" }],
         response_format: { type: "text", mime_type: "application/json", schema: extractionSchema(group.fields) }
@@ -296,8 +299,36 @@ async function requestExtractionGroup({
     if (!response.ok) {
       throw new ClinicOfficialSyncError(data.error?.message || `Gemini API error (${response.status})`, response.status);
     }
+    let interaction = data;
+    while (interaction.status === "in_progress") {
+      if (!interaction.id || typeof interaction.id !== "string") {
+        throw new ClinicOfficialSyncError("Geminiの処理IDを確認できませんでした。", 502);
+      }
+      await wait(EXTRACTION_POLL_INTERVAL_MS);
+      const pollResponse = await fetchImpl(`${GEMINI_INTERACTIONS_URL}/${encodeURIComponent(interaction.id)}`, {
+        method: "GET",
+        headers: { "x-goog-api-key": apiKey },
+        signal: controller.signal
+      });
+      interaction = await pollResponse.json().catch(() => ({}));
+      if (!pollResponse.ok) {
+        throw new ClinicOfficialSyncError(
+          interaction.error?.message || `Gemini status API error (${pollResponse.status})`,
+          pollResponse.status
+        );
+      }
+    }
+    if (interaction.status && interaction.status !== "completed") {
+      const detail = Array.isArray(interaction.errors)
+        ? interaction.errors.map((error) => error?.message).filter(Boolean).join(" / ")
+        : "";
+      throw new ClinicOfficialSyncError(
+        detail || `Geminiの処理が${interaction.status}で終了しました。`,
+        502
+      );
+    }
     try {
-      return { data: JSON.parse(outputText(data)), usage: data.usage || null };
+      return { data: JSON.parse(outputText(interaction)), usage: interaction.usage || null };
     } catch {
       throw new ClinicOfficialSyncError("GeminiのJSONを解析できませんでした。", 502);
     }
@@ -317,18 +348,23 @@ async function requestOfficialExtraction({
   sourceOfficialUrl,
   model = process.env.GEMINI_TEXT_MODEL || DEFAULT_GEMINI_TEXT_MODEL,
   fetchImpl = fetch,
-  now = () => new Date().toISOString()
+  now = () => new Date().toISOString(),
+  wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 } = {}) {
   if (typeof apiKey !== "string" || !apiKey.trim()) throw new ClinicOfficialSyncError("GEMINI_API_KEYが設定されていません。", 503);
   officialUrl(sourceOfficialUrl);
-  const results = await Promise.all(EXTRACTION_GROUPS.map((group) => requestExtractionGroup({
+  const settled = await Promise.allSettled(EXTRACTION_GROUPS.map((group) => requestExtractionGroup({
     apiKey,
     clinicName,
     sourceOfficialUrl,
     model,
     group,
-    fetchImpl
+    fetchImpl,
+    wait
   })));
+  const failed = settled.find((result) => result.status === "rejected");
+  if (failed) throw failed.reason;
+  const results = settled.map((result) => result.value);
   const combined = Object.fromEntries(Object.keys(OFFICIAL_EXTRACTION_SCHEMA.properties).map((field) => [field, []]));
   for (const result of results) Object.assign(combined, result.data);
   return {
@@ -438,6 +474,7 @@ module.exports = {
   AUTO_APPLY_CONFIDENCE,
   EXTRACTION_GROUPS,
   EXTRACTION_TIMEOUT_MS,
+  EXTRACTION_POLL_INTERVAL_MS,
   OFFICIAL_EXTRACTION_SCHEMA,
   ClinicOfficialSyncError,
   officialUrl,
