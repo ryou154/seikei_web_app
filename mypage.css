@@ -81,6 +81,9 @@
 .profile-form:not(.is-editing) .profile-icon-controls { pointer-events: none; opacity: .7; }
 .profile-edit-hint { margin: -8px 0 16px; padding: 10px 12px; border: 1px solid #cfe3ea; border-radius: 8px; color: #285266; background: #eef7fb; font-size: 13px; line-height: 1.6; }
 .profile-form.is-editing input:not([readonly]) { border-color: #3e91ae; background: #fff; box-shadow: 0 0 0 3px rgba(62, 145, 174, .12); }
+.profile-edit-page .mypage-actions { align-items: center; }
+.profile-edit-page .mypage-actions a.sub-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; color: inherit; font: inherit; text-decoration: none; }
+.profile-edit-page input, .profile-edit-page button, .profile-edit-page a { font-family: inherit; }
 
 .account-summary-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
