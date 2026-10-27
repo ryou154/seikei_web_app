@@ -1260,10 +1260,16 @@ async function renderResult(result) {
     result.afterImage = generatedImage;
     renderAfterImageViewer(afterImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
-    const threeViewer = afterImage.querySelector(".face-3d-viewer");
-    if (threeViewer && window.Face3DViewer) {
-      window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, result.afterFaceAnalysis);
-    }
+    const mountThreeViewer = (attempt = 0) => {
+      const threeViewer = afterImage.querySelector(".face-3d-viewer");
+      if (!threeViewer) return;
+      if (window.Face3DViewer) {
+        window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, result.afterFaceAnalysis);
+        return;
+      }
+      if (attempt < 20) window.setTimeout(() => mountThreeViewer(attempt + 1), 100);
+    };
+    mountThreeViewer();
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(
