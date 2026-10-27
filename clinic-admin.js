@@ -389,8 +389,56 @@ function createClinicAdminHandler({
       const identity = await requireAdmin(request, authenticate);
       const requestUrl = new URL(request.url, "http://localhost");
       const previewMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/place-preview$/.exec(requestUrl.pathname);
+      const extractMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/extract-official$/.exec(requestUrl.pathname);
       const detailMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})$/.exec(requestUrl.pathname);
       const store = getStore();
+      if (extractMatch) {
+        if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
+        if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
+          throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
+        }
+        if (!geminiApiKey) throw new ClinicAdminError("GEMINI_API_KEYが設定されていません。", 503);
+        if (officialSyncRunning) throw new ClinicAdminError("公式情報の抽出はすでに実行中です。", 409);
+        if (typeof store.saveOfficialExtraction !== "function") {
+          throw new ClinicAdminError("公式情報を保存できません。", 503);
+        }
+        const body = await parseBody(request);
+        if (body?.confirmed !== true) throw new ClinicAdminError("公式情報抽出の確認が必要です。", 400);
+        const clinic = await store.get(extractMatch[1]);
+        if (!clinic) return { status: 404, data: { error: "候補が見つかりません。" } };
+        if (clinic.publicationStatus !== "published" || !clinic.officialUrl) {
+          throw new ClinicAdminError("公開済みクリニックの公式サイトURLを確認してください。", 400);
+        }
+        officialSyncRunning = true;
+        try {
+          const extracted = await extractOfficial({
+            apiKey: geminiApiKey,
+            clinicName: clinic.name,
+            sourceOfficialUrl: clinic.officialUrl,
+            model: geminiTextModel
+          });
+          const saved = await store.saveOfficialExtraction(clinic.id, extracted.extraction, {
+            model: extracted.model,
+            autoApply: true
+          });
+          return {
+            status: 200,
+            data: {
+              ok: Boolean(saved),
+              changed: Boolean(saved?.changed),
+              autoApplied: Boolean(saved?.autoApplied),
+              clinic: await store.get(clinic.id)
+            }
+          };
+        } catch (error) {
+          if (typeof store.markOfficialSyncFailed === "function") {
+            await store.markOfficialSyncFailed(clinic.id, error.message);
+          }
+          throw error;
+        } finally {
+          officialSyncRunning = false;
+        }
+      }
       if (requestUrl.pathname === "/api/admin/clinics/extract-official") {
         if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
         if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
