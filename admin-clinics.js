@@ -44,7 +44,7 @@
       headers: options.body ? { "Content-Type": "application/json", ...options.headers } : options.headers
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "処理に失敗しました。");
+    if (!response.ok) throw new Error(data.error || `処理に失敗しました（HTTP ${response.status}）。`);
     return data;
   }
 
@@ -118,17 +118,27 @@
     const startedAt = new Date().toISOString();
     const totals = { published: 0, succeeded: 0, failed: 0, changed: 0, autoApplied: 0 };
     try {
-      setStatus(status, "1/2 全国のクリニックをGoogleから登録・更新しています…");
-      const places = await api("/api/admin/clinics/auto-publish", {
-        method: "POST",
-        body: JSON.stringify({
-          prefectures: PREFECTURES,
-          limitPerPrefecture: 10,
-          maxPages: 1,
-          confirmed: true
-        })
-      });
-      totals.published = Number(places.published || 0);
+      const discoveryGroups = prefectureGroups(5);
+      for (const [index, prefectures] of discoveryGroups.entries()) {
+        setStatus(
+          status,
+          `1/2 Googleから登録・更新しています… 地域グループ${index + 1}/${discoveryGroups.length}（新規公開${totals.published}院）`
+        );
+        try {
+          const places = await api("/api/admin/clinics/auto-publish", {
+            method: "POST",
+            body: JSON.stringify({
+              prefectures,
+              limitPerPrefecture: 10,
+              maxPages: 1,
+              confirmed: true
+            })
+          });
+          totals.published += Number(places.published || 0);
+        } catch (error) {
+          throw new Error(`Google収集 地域グループ${index + 1}/${discoveryGroups.length}で失敗: ${error.message}`);
+        }
+      }
 
       const groups = prefectureGroups();
       let processed = 0;
@@ -148,7 +158,7 @@
             method: "POST",
             body: JSON.stringify({
               prefectures,
-              limit: 10,
+              limit: 1,
               autoApply: true,
               before: startedAt,
               confirmed: true

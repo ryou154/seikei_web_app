@@ -8,7 +8,7 @@ test("official sync CLI defaults to a zero-cost plan", () => {
     mode: "plan",
     prefectures: ["大阪府"],
     limit: 5,
-    maximumGeminiRequests: 15,
+    maximumGeminiRequests: 20,
     autoApply: false
   });
   assert.throws(() => parseArguments(["--all", "--prefecture", "大阪府"]), /同時/);

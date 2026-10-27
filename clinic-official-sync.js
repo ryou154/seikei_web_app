@@ -115,9 +115,14 @@ const OFFICIAL_EXTRACTION_SCHEMA = {
 
 const EXTRACTION_GROUPS = [
   {
-    label: "施術・料金",
-    fields: ["treatments", "pricing"],
-    instruction: "Extract only cosmetic surgery and aesthetic medical procedures performed at this clinic, with prices directly tied to a concrete procedure. Exclude staff or nurse nomination, VIP/customer services, rooms, booking, payment or financing services, transport, childcare, accommodation, amenities, recruitment, and other administrative services."
+    label: "施術",
+    fields: ["treatments"],
+    instruction: "Extract only cosmetic surgery and aesthetic medical procedures performed at this clinic. Search the official treatment menus and branch pages and collect the concrete procedure names across eye, nose, face contour, mouth, skin, injection, lift, fat reduction, breast, and hair removal categories when explicitly listed. Exclude staff or nurse nomination, VIP/customer services, rooms, booking, payment or financing services, transport, childcare, accommodation, amenities, recruitment, and other administrative services."
+  },
+  {
+    label: "料金",
+    fields: ["pricing"],
+    instruction: "Find the official fee schedule, price list, and individual treatment pages on the same official domain, then extract as many concrete cosmetic procedure prices as explicitly stated, up to the schema limit. Do not stop after the first price. Prioritize standard non-campaign prices that help a patient estimate treatment cost. If only a monitor, first-time, limited campaign, or member price is stated, include it only with that restriction in conditions. Tie every price to a specific procedure and record anesthesia, medicine, examination, material, or other additional fees when explicitly stated. Exclude staff nomination, VIP rooms, customer services, booking fees, payment services, accommodation, amenities, and unrelated administrative charges."
   },
   {
     label: "医師・症例",
@@ -348,12 +353,23 @@ function validExtractionJob(job) {
   if (!job || job.version !== 1 || job.status !== "running" || !Array.isArray(job.groups)) {
     throw new ClinicOfficialSyncError("保存された抽出処理を確認できませんでした。", 409);
   }
-  const expected = new Map(EXTRACTION_GROUPS.map((group) => [group.label, group.fields]));
-  if (job.groups.length !== expected.size || job.groups.some((group) => (
-    !expected.has(group?.label)
-    || !INTERACTION_ID_PATTERN.test(group?.interactionId || "")
-    || JSON.stringify(group.fields) !== JSON.stringify(expected.get(group.label))
-  ))) throw new ClinicOfficialSyncError("保存された抽出処理を確認できませんでした。", 409);
+  const allowedFields = new Set(Object.keys(OFFICIAL_EXTRACTION_SCHEMA.properties));
+  const fields = job.groups.flatMap((group) => Array.isArray(group?.fields) ? group.fields : []);
+  const validGroups = job.groups.every((group) => (
+    typeof group?.label === "string"
+    && group.label.length > 0
+    && group.label.length <= 50
+    && INTERACTION_ID_PATTERN.test(group.interactionId || "")
+    && Array.isArray(group.fields)
+    && group.fields.length > 0
+    && group.fields.every((field) => allowedFields.has(field))
+  ));
+  if (!validGroups
+    || fields.length !== allowedFields.size
+    || new Set(fields).size !== allowedFields.size
+    || [...allowedFields].some((field) => !fields.includes(field))) {
+    throw new ClinicOfficialSyncError("保存された抽出処理を確認できませんでした。", 409);
+  }
   return job;
 }
 
