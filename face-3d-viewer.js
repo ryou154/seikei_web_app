@@ -32,23 +32,9 @@ function mount(container, imageData, analysis) {
   light.position.set(0.4, 0.8, 2);
   group.add(light);
 
-  const points = analysis.landmarks;
-  const positions = new Float32Array(points.length * 3);
-  const uvs = new Float32Array(points.length * 2);
-  points.forEach((point, index) => {
-    positions[index * 3] = (point.x - 0.5) * 2;
-    positions[index * 3 + 1] = -(point.y - 0.5) * 2;
-    positions[index * 3 + 2] = -(point.z || 0) * 2;
-    uvs[index * 2] = point.x;
-    uvs[index * 2 + 1] = 1 - point.y;
-  });
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
-  const indices = [];
-  for (let i = 1; i < points.length - 1; i += 1) indices.push(0, i, i + 1);
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
+  const geometry = new THREE.SphereGeometry(1, 64, 40);
+  geometry.scale(0.78, 1.08, 0.58);
+  geometry.translate(0, 0.02, 0);
   const texture = new THREE.TextureLoader().load(imageData);
   const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide, roughness: 0.72, metalness: 0 }));
   group.add(mesh);
