@@ -55,7 +55,12 @@ function setProfileEditing(value) {
   const save = form?.querySelector('button[type="submit"]');
   if (save) save.hidden = !value;
   const edit = byId("profile-edit-button");
-  if (edit) edit.textContent = value ? "編集をキャンセル" : "プロフィールを編集";
+  if (edit) {
+    edit.textContent = value ? "編集を終了" : "プロフィールを編集";
+    edit.setAttribute("aria-pressed", String(value));
+  }
+  const hint = byId("profile-edit-hint");
+  if (hint) hint.hidden = !value;
 }
 
 function iconStorageKey(uid) { return `meylon-profile-icon:${uid}`; }

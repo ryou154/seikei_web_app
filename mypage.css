@@ -79,6 +79,8 @@
 .mypage-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .mypage-section-heading h2 { margin-bottom: 0; }
 .profile-form:not(.is-editing) .profile-icon-controls { pointer-events: none; opacity: .7; }
+.profile-edit-hint { margin: -8px 0 16px; padding: 10px 12px; border: 1px solid #cfe3ea; border-radius: 8px; color: #285266; background: #eef7fb; font-size: 13px; line-height: 1.6; }
+.profile-form.is-editing input:not([readonly]) { border-color: #3e91ae; background: #fff; box-shadow: 0 0 0 3px rgba(62, 145, 174, .12); }
 
 .account-summary-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
