@@ -66,6 +66,11 @@
   grid-column: 2;
 }
 
+.mypage-content > section[aria-labelledby="security-title"] {
+  align-self: start;
+  height: max-content;
+}
+
 .mypage-section h2 {
   margin: 0 0 18px;
   overflow-wrap: anywhere;
