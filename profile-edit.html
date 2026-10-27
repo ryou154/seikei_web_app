@@ -15,7 +15,7 @@
       <form id="profile-edit-form" class="mypage-form">
         <div class="profile-icon-display" aria-label="プロフィール画像">
           <div class="profile-icon-preview" id="profile-icon-preview">M</div>
-          <p class="small">プロフィール画像（変更不可）</p>
+          <div><p class="small">プロフィール画像</p><label class="icon-upload-button" for="profile-icon-input">画像を変更</label><input id="profile-icon-input" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="profile-icon-remove" class="sub-button" type="button">画像を削除</button><p class="small">PNG・JPEG・WebP、2MB以内。</p></div>
         </div>
         <label class="field">表示名<input id="display-name" type="text" maxlength="50" required></label>
         <label class="field">電話番号（任意）<input id="phone-number" type="tel" inputmode="tel" maxlength="20" placeholder="例：090-1234-5678"></label>

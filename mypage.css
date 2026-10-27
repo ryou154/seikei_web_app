@@ -27,6 +27,7 @@
 }
 .mypage-overview > h1 { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .mypage-avatar { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #83bfd5, #477f9d); font-size: 24px; font-weight: 800; }
+.mypage-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .mypage-overview h2 { margin: 2px 0 4px; font-size: 21px; }
 .mypage-overview p:not(.section-kicker) { margin: 0; color: var(--muted); font-size: 14px; }
 .mypage-overview-link { background: rgba(255,255,255,.72); white-space: nowrap; }
@@ -34,6 +35,9 @@
 .profile-icon-editor { display: flex; align-items: center; gap: 16px; margin: 2px 0 4px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--blue-soft, #eef7fb); }
 .profile-icon-display { display: flex; align-items: center; gap: 14px; margin: 2px 0 18px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--blue-soft, #eef7fb); }
 .profile-icon-display .small { margin: 0; color: var(--muted); }
+.profile-icon-display > div:last-child { display: grid; gap: 6px; }
+.profile-icon-display .icon-upload-button { width: fit-content; }
+.profile-icon-display .sub-button { width: fit-content; min-height: 34px; padding: 6px 10px; font-size: 12px; }
 .profile-icon-preview { display: grid; place-items: center; flex: 0 0 auto; width: 76px; height: 76px; overflow: hidden; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #83bfd5, #477f9d); font-size: 29px; font-weight: 800; }
 .profile-icon-preview img { width: 100%; height: 100%; object-fit: cover; }
 .profile-icon-controls { display: grid; gap: 6px; min-width: 0; }

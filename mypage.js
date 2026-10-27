@@ -68,14 +68,17 @@ function phoneStorageKey(uid) { return `meylon-profile-phone:${uid}`; }
 
 function renderProfileIcon(dataUrl, displayName = "") {
   const preview = byId("profile-icon-preview");
-  if (!preview) return;
-  preview.replaceChildren();
-  if (dataUrl) {
-    const image = document.createElement("img");
-    image.src = dataUrl;
-    image.alt = "プロフィールアイコン";
-    preview.append(image);
-  } else preview.textContent = (displayName.trim()[0] || "M").toUpperCase();
+  const avatar = byId("mypage-avatar");
+  for (const target of [preview, avatar]) {
+    if (!target) continue;
+    target.replaceChildren();
+    if (dataUrl) {
+      const image = document.createElement("img");
+      image.src = dataUrl;
+      image.alt = "プロフィールアイコン";
+      target.append(image);
+    } else target.textContent = (displayName.trim()[0] || "M").toUpperCase();
+  }
 }
 
 async function loadSavedData() {
