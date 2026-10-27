@@ -1,0 +1,12 @@
+const byId = (id) => document.getElementById(id);
+const phoneKey = (uid) => `meylon-profile-phone:${uid}`;
+const iconKey = (uid) => `meylon-profile-icon:${uid}`;
+let currentUser;
+function status(message, error = false) { const el = byId("profile-edit-status"); el.textContent = message; el.dataset.error = String(error); }
+function renderIcon(data, name = "") { const box = byId("profile-icon-preview"); box.replaceChildren(); if (data) { const img = document.createElement("img"); img.src = data; img.alt = "プロフィールアイコン"; box.append(img); } else box.textContent = (name[0] || "M").toUpperCase(); }
+function loadUser(user) { if (!user || !window.AppAuth?.uid) return; currentUser = user; byId("display-name").value = user.displayName || ""; byId("account-email").value = user.email || ""; byId("account-id").value = user.uid; byId("phone-number").value = localStorage.getItem(phoneKey(user.uid)) || ""; renderIcon(localStorage.getItem(iconKey(user.uid)), user.displayName || ""); byId("app-content").hidden = false; }
+window.addEventListener("app-authorized", () => loadUser(window.AppAuth.currentUser));
+window.addEventListener("auth-state-changed", () => { if (window.AppAuth?.uid) loadUser(window.AppAuth.currentUser); });
+byId("profile-icon-input").addEventListener("change", (event) => { const file = event.target.files[0]; if (!file || file.size > 2 * 1024 * 1024) return status("画像は2MB以内にしてください。", true); const reader = new FileReader(); reader.addEventListener("load", () => { renderIcon(reader.result, currentUser?.displayName); try { localStorage.setItem(iconKey(currentUser.uid), reader.result); } catch {} }); reader.readAsDataURL(file); });
+byId("profile-icon-remove").addEventListener("click", () => { try { localStorage.removeItem(iconKey(currentUser.uid)); } catch {} renderIcon("", currentUser?.displayName); });
+byId("profile-edit-form").addEventListener("submit", async (event) => { event.preventDefault(); const name = byId("display-name").value.trim(); const phone = byId("phone-number").value.trim(); if (!name || name.length > 50) return status("表示名を1〜50文字で入力してください。", true); if (phone && !/^[0-9+()\-\s]{7,20}$/.test(phone)) return status("電話番号の形式を確認してください。", true); try { await window.AppAuth.firebaseSdk.updateProfile(currentUser, { displayName: name }); if (phone) localStorage.setItem(phoneKey(currentUser.uid), phone); else localStorage.removeItem(phoneKey(currentUser.uid)); status("プロフィールを保存しました。"); } catch { status("保存できませんでした。もう一度お試しください。", true); } });

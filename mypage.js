@@ -216,7 +216,7 @@ async function initialize() {
         setStatus("profile-status", safeAuthMessage(error), true);
       } finally { setBusy(button, false); }
     });
-    byId("profile-edit-button").addEventListener("click", () => setProfileEditing(!profileEditing));
+    byId("profile-edit-button").addEventListener("click", () => { window.location.href = "profile-edit.html"; });
 
     byId("profile-icon-input").addEventListener("change", async (event) => {
       const file = event.currentTarget.files?.[0];
