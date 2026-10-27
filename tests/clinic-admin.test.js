@@ -104,7 +104,11 @@ test("publishing requires verified status and essential official sources", () =>
   assert.equal(published.verifiedAt, "now");
 });
 
-function setup({ email = "admin@example.com", store, discoverCandidates, extractOfficial, geminiApiKey = "gemini-test-key" } = {}) {
+function setup({
+  email = "admin@example.com", store, discoverCandidates, extractOfficial,
+  startOfficial, checkOfficial, geminiApiKey = "gemini-test-key"
+} = {}) {
+  let extractionJob = null;
   const database = store || {
     async list() { return { clinics: [{ id: "candidate-1", publicationStatus: "draft" }], nextCursor: "next" }; },
     async get(id) { return id === "candidate-1" ? { id, publicationStatus: "draft" } : null; },
@@ -114,7 +118,9 @@ function setup({ email = "admin@example.com", store, discoverCandidates, extract
     async listForOfficialSync() {
       return [{ id: "candidate-1", name: "候補名", officialUrl: "https://example.com" }];
     },
-    async saveOfficialExtraction() { return { changed: true, autoApplied: false }; }
+    async saveOfficialExtraction() { extractionJob = null; return { changed: true, autoApplied: false }; },
+    async saveOfficialExtractionJob(_id, job) { extractionJob = job; return { id: "candidate-1", officialExtractionJob: { status: "running" } }; },
+    async getOfficialExtractionJob() { return extractionJob; }
   };
   return createClinicAdminHandler({
     authenticate: async () => ({ uid: "user", email }),
@@ -126,6 +132,13 @@ function setup({ email = "admin@example.com", store, discoverCandidates, extract
       stats: { requests: 2, rawResults: 3, uniqueCandidates: 1 }
     })),
     extractOfficial: extractOfficial || (async () => ({ extraction: { treatments: [] }, model: "gemini-test" })),
+    startOfficial: startOfficial || (async () => ({
+      version: 1, status: "running", model: "gemini-test", sourceOfficialUrl: "https://example.com",
+      startedAt: "now", groups: [{ label: "施術・料金", fields: ["treatments", "pricing"], interactionId: "interaction-1" }]
+    })),
+    checkOfficial: checkOfficial || (async () => ({
+      status: "completed", extraction: { treatments: [{ name: "二重" }] }, model: "gemini-test"
+    })),
     placesApiKey: "test-key",
     geminiApiKey
   });
@@ -263,6 +276,7 @@ test("official extraction requires confirmation and a configured Gemini key", as
 
 test("admin can retry official extraction for one published clinic", async () => {
   const saved = [];
+  let job = null;
   const clinic = {
     id: "candidate-1",
     name: "候補名",
@@ -271,18 +285,31 @@ test("admin can retry official extraction for one published clinic", async () =>
   };
   const handler = setup({
     store: {
-      async get(id) { return id === clinic.id ? { ...clinic, treatments: saved.length ? ["二重"] : [] } : null; },
+      async get(id) {
+        return id === clinic.id ? {
+          ...clinic, treatments: saved.length ? ["二重"] : [],
+          officialExtractionJob: job ? { status: "running" } : null
+        } : null;
+      },
+      async saveOfficialExtractionJob(_id, value) { job = value; return { ...clinic, officialExtractionJob: { status: "running" } }; },
+      async getOfficialExtractionJob() { return job; },
       async saveOfficialExtraction(id, extraction, options) {
         saved.push({ id, extraction, options });
+        job = null;
         return { changed: true, autoApplied: true };
       }
     },
-    extractOfficial: async () => ({ extraction: { treatments: [{ name: "二重" }] }, model: "gemini-test" })
+    startOfficial: async () => ({ version: 1, status: "running", groups: [{ interactionId: "interaction-1" }] }),
+    checkOfficial: async () => ({ status: "completed", extraction: { treatments: [{ name: "二重" }] }, model: "gemini-test" })
   });
-  const result = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
+  const started = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
     confirmed: true
   }));
+  assert.equal(started.status, 202);
+  assert.equal(started.data.status, "running");
+  const result = await handler(request("GET", "/api/admin/clinics/candidate-1/extract-official"));
   assert.equal(result.status, 200);
+  assert.equal(result.data.status, "completed");
   assert.equal(result.data.autoApplied, true);
   assert.deepEqual(result.data.clinic.treatments, ["二重"]);
   assert.deepEqual(saved[0].options, { model: "gemini-test", autoApply: true });
@@ -295,10 +322,12 @@ test("single-clinic extraction records the concrete failure", async () => {
       async get() {
         return { id: "candidate-1", name: "候補名", officialUrl: "https://example.com", publicationStatus: "published" };
       },
+      async saveOfficialExtractionJob() { throw new Error("unexpected save"); },
+      async getOfficialExtractionJob() { return null; },
       async saveOfficialExtraction() { throw new Error("unexpected save"); },
       async markOfficialSyncFailed(id, message) { failures.push({ id, message }); }
     },
-    extractOfficial: async () => { throw Object.assign(new Error("API key not valid"), { status: 403 }); }
+    startOfficial: async () => { throw Object.assign(new Error("API key not valid"), { status: 403 }); }
   });
   const result = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
     confirmed: true

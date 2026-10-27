@@ -10,6 +10,8 @@ const {
 } = require("./places-clinic-sync");
 const {
   requestOfficialExtraction,
+  startOfficialExtraction,
+  checkOfficialExtraction,
   officialExtractionUpdate
 } = require("./clinic-official-sync");
 
@@ -170,6 +172,9 @@ function normalizeAdminClinicUpdate(body, identity, now = new Date().toISOString
 
 function adminClinic(id, value) {
   const source = value && typeof value === "object" ? value : {};
+  const extractionJob = source.officialExtractionJob && typeof source.officialExtractionJob === "object"
+    ? source.officialExtractionJob
+    : null;
   return {
     id,
     placeId: typeof source.placeId === "string" ? source.placeId : "",
@@ -199,6 +204,11 @@ function adminClinic(id, value) {
     officialDataCheckedAt: typeof source.officialDataCheckedAt === "string" ? source.officialDataCheckedAt : "",
     extractionStatus: typeof source.extractionStatus === "string" ? source.extractionStatus : "",
     extractionError: typeof source.extractionError === "string" ? source.extractionError : "",
+    officialExtractionJob: extractionJob ? {
+      status: extractionJob.status === "running" ? "running" : "",
+      startedAt: typeof extractionJob.startedAt === "string" ? extractionJob.startedAt : "",
+      total: Array.isArray(extractionJob.groups) ? extractionJob.groups.length : 0
+    } : null,
     detectedData: source.detectedData && typeof source.detectedData === "object" ? source.detectedData : null,
     updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : ""
   };
@@ -243,6 +253,10 @@ function createClinicAdminStore(db) {
       const snapshot = await collection.doc(validAdminClinicId(id)).get();
       return snapshot.exists ? adminClinic(snapshot.id, snapshot.data()) : null;
     },
+    async getOfficialExtractionJob(id) {
+      const snapshot = await collection.doc(validAdminClinicId(id)).get();
+      return snapshot.exists ? snapshot.data().officialExtractionJob || null : null;
+    },
     async update(id, data) {
       const reference = collection.doc(validAdminClinicId(id));
       const snapshot = await reference.get();
@@ -283,8 +297,22 @@ function createClinicAdminStore(db) {
       const snapshot = await reference.get();
       if (!snapshot.exists) return null;
       const result = officialExtractionUpdate(snapshot.data(), extraction, options);
+      result.update.officialExtractionJob = null;
       await reference.set(result.update, { merge: true });
       return result;
+    },
+    async saveOfficialExtractionJob(id, job, now = new Date().toISOString()) {
+      const reference = collection.doc(validAdminClinicId(id));
+      const snapshot = await reference.get();
+      if (!snapshot.exists) return null;
+      const update = {
+        officialExtractionJob: job,
+        extractionStatus: "running",
+        extractionError: "",
+        updatedAt: now
+      };
+      await reference.set(update, { merge: true });
+      return adminClinic(id, { ...snapshot.data(), ...update });
     },
     async markOfficialSyncFailed(id, errorMessage = "", now = new Date().toISOString()) {
       const reference = collection.doc(validAdminClinicId(id));
@@ -294,6 +322,7 @@ function createClinicAdminStore(db) {
         officialDataCheckedAt: now,
         extractionStatus: "failed",
         extractionError: String(errorMessage || "公式情報の抽出に失敗しました。").slice(0, 500),
+        officialExtractionJob: null,
         updatedAt: now
       }, { merge: true });
       return true;
@@ -377,6 +406,8 @@ function createClinicAdminHandler({
   getPlacePreview = requestPlacePreview,
   discoverCandidates = discoverClinicCandidates,
   extractOfficial = requestOfficialExtraction,
+  startOfficial = startOfficialExtraction,
+  checkOfficial = checkOfficialExtraction,
   placesApiKey = process.env.GOOGLE_PLACES_API_KEY,
   geminiApiKey = process.env.GEMINI_API_KEY,
   geminiTextModel = process.env.GEMINI_TEXT_MODEL
@@ -393,37 +424,64 @@ function createClinicAdminHandler({
       const detailMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})$/.exec(requestUrl.pathname);
       const store = getStore();
       if (extractMatch) {
-        if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
-        if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
-          throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
-        }
+        if (!(["GET", "POST"].includes(request.method)) || requestUrl.search) return { status: 404, data: { error: "Not found" } };
         if (!geminiApiKey) throw new ClinicAdminError("GEMINI_API_KEYが設定されていません。", 503);
-        if (officialSyncRunning) throw new ClinicAdminError("公式情報の抽出はすでに実行中です。", 409);
-        if (typeof store.saveOfficialExtraction !== "function") {
+        if (typeof store.saveOfficialExtraction !== "function"
+          || typeof store.saveOfficialExtractionJob !== "function"
+          || typeof store.getOfficialExtractionJob !== "function") {
           throw new ClinicAdminError("公式情報を保存できません。", 503);
         }
-        const body = await parseBody(request);
-        if (body?.confirmed !== true) throw new ClinicAdminError("公式情報抽出の確認が必要です。", 400);
         const clinic = await store.get(extractMatch[1]);
         if (!clinic) return { status: 404, data: { error: "候補が見つかりません。" } };
         if (clinic.publicationStatus !== "published" || !clinic.officialUrl) {
           throw new ClinicAdminError("公開済みクリニックの公式サイトURLを確認してください。", 400);
         }
-        officialSyncRunning = true;
+        if (request.method === "POST") {
+          if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) {
+            throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
+          }
+          const body = await parseBody(request);
+          if (body?.confirmed !== true) throw new ClinicAdminError("公式情報抽出の確認が必要です。", 400);
+          if (clinic.officialExtractionJob?.status === "running") {
+            return { status: 202, data: { status: "running", clinic } };
+          }
+          try {
+            const job = await startOfficial({
+              apiKey: geminiApiKey,
+              clinicName: clinic.name,
+              sourceOfficialUrl: clinic.officialUrl,
+              model: geminiTextModel
+            });
+            const savedClinic = await store.saveOfficialExtractionJob(clinic.id, job);
+            return {
+              status: 202,
+              data: { status: "running", progress: { completed: 0, total: job.groups.length }, clinic: savedClinic }
+            };
+          } catch (error) {
+            if (typeof store.markOfficialSyncFailed === "function") await store.markOfficialSyncFailed(clinic.id, error.message);
+            throw error;
+          }
+        }
+        if (clinic.officialExtractionJob?.status !== "running") {
+          return { status: 200, data: { status: clinic.extractionStatus === "failed" ? "failed" : "idle", clinic } };
+        }
         try {
-          const extracted = await extractOfficial({
+          const job = await store.getOfficialExtractionJob(clinic.id);
+          const checked = await checkOfficial({
             apiKey: geminiApiKey,
-            clinicName: clinic.name,
-            sourceOfficialUrl: clinic.officialUrl,
-            model: geminiTextModel
+            job
           });
-          const saved = await store.saveOfficialExtraction(clinic.id, extracted.extraction, {
-            model: extracted.model,
+          if (checked.status === "running") {
+            return { status: 200, data: { status: "running", progress: checked, clinic } };
+          }
+          const saved = await store.saveOfficialExtraction(clinic.id, checked.extraction, {
+            model: checked.model,
             autoApply: true
           });
           return {
             status: 200,
             data: {
+              status: "completed",
               ok: Boolean(saved),
               changed: Boolean(saved?.changed),
               autoApplied: Boolean(saved?.autoApplied),
@@ -435,8 +493,6 @@ function createClinicAdminHandler({
             await store.markOfficialSyncFailed(clinic.id, error.message);
           }
           throw error;
-        } finally {
-          officialSyncRunning = false;
         }
       }
       if (requestUrl.pathname === "/api/admin/clinics/extract-official") {
