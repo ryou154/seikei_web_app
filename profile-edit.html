@@ -13,6 +13,10 @@
     <section class="panel mypage-section">
       <p id="profile-edit-status" class="inline-status" role="status" aria-live="polite"></p>
       <form id="profile-edit-form" class="mypage-form">
+        <div class="profile-icon-display" aria-label="プロフィール画像">
+          <div class="profile-icon-preview" id="profile-icon-preview">M</div>
+          <p class="small">プロフィール画像（変更不可）</p>
+        </div>
         <label class="field">表示名<input id="display-name" type="text" maxlength="50" required></label>
         <label class="field">電話番号（任意）<input id="phone-number" type="tel" inputmode="tel" maxlength="20" placeholder="例：090-1234-5678"></label>
         <label class="field">メールアドレス（変更不可）<input id="account-email" type="email" readonly></label>

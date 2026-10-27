@@ -42,6 +42,10 @@
         <p class="section-description">表示名はホーム画面の挨拶にも使用されます。</p>
         <p id="profile-edit-hint" class="profile-edit-hint" hidden>編集モード：表示名・電話番号を変更できます。メールアドレスとユーザーIDは変更できません。</p>
         <form id="profile-form" class="mypage-form">
+          <div class="profile-icon-display" aria-label="プロフィール画像">
+            <div class="profile-icon-preview" id="profile-icon-preview">M</div>
+            <p class="small">プロフィール画像</p>
+          </div>
           <label class="field" for="display-name"><span>表示名</span>
             <input id="display-name" name="displayName" type="text" autocomplete="name" maxlength="50" required>
           </label>

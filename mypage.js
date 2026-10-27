@@ -63,7 +63,20 @@ function setProfileEditing(value) {
   if (hint) hint.hidden = !value;
 }
 
+function iconStorageKey(uid) { return `meylon-profile-icon:${uid}`; }
 function phoneStorageKey(uid) { return `meylon-profile-phone:${uid}`; }
+
+function renderProfileIcon(dataUrl, displayName = "") {
+  const preview = byId("profile-icon-preview");
+  if (!preview) return;
+  preview.replaceChildren();
+  if (dataUrl) {
+    const image = document.createElement("img");
+    image.src = dataUrl;
+    image.alt = "プロフィールアイコン";
+    preview.append(image);
+  } else preview.textContent = (displayName.trim()[0] || "M").toUpperCase();
+}
 
 async function loadSavedData() {
   setStatus("data-status", "保存データを読み込んでいます…");
@@ -111,6 +124,9 @@ async function showUser(user) {
   let savedPhone = "";
   try { savedPhone = localStorage.getItem(phoneStorageKey(user.uid)) || ""; } catch { /* storage may be unavailable */ }
   byId("phone-number").value = savedPhone;
+  let savedIcon = null;
+  try { savedIcon = localStorage.getItem(iconStorageKey(user.uid)); } catch { /* storage may be unavailable */ }
+  renderProfileIcon(savedIcon, user.displayName || "");
   byId("account-email").value = user.email || "";
   byId("profile-user-id").value = user.uid || "";
   byId("account-phone").textContent = savedPhone || user.phoneNumber || "未登録";

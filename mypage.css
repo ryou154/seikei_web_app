@@ -32,6 +32,8 @@
 .mypage-overview-link { background: rgba(255,255,255,.72); white-space: nowrap; }
 .section-description { margin: -10px 0 18px; color: var(--muted); font-size: 14px; line-height: 1.65; }
 .profile-icon-editor { display: flex; align-items: center; gap: 16px; margin: 2px 0 4px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--blue-soft, #eef7fb); }
+.profile-icon-display { display: flex; align-items: center; gap: 14px; margin: 2px 0 18px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--blue-soft, #eef7fb); }
+.profile-icon-display .small { margin: 0; color: var(--muted); }
 .profile-icon-preview { display: grid; place-items: center; flex: 0 0 auto; width: 76px; height: 76px; overflow: hidden; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #83bfd5, #477f9d); font-size: 29px; font-weight: 800; }
 .profile-icon-preview img { width: 100%; height: 100%; object-fit: cover; }
 .profile-icon-controls { display: grid; gap: 6px; min-width: 0; }
