@@ -1258,7 +1258,7 @@ async function renderResult(result) {
     }
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
-    afterImage.innerHTML = `<img src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
+    renderAfterImageViewer(afterImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
@@ -1282,8 +1282,9 @@ async function renderResult(result) {
         <span>${escapeText(error.message)}</span>
         <small>下には確認用としてローカル簡易生成の画像を表示しています。</small>
       </div>
-      <img src="${localImage}" alt="ローカル簡易生成の予測イメージ">
+      <div class="after-3d-fallback-image"></div>
     `;
+    renderAfterImageViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage);
   }
 
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
