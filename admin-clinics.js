@@ -74,6 +74,7 @@
       list.append(button);
     }
     byId("update-nationwide-clinics").disabled = busy;
+    byId("extract-selected-clinic").disabled = busy || !currentClinicId;
     byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
@@ -345,6 +346,34 @@
     }
   }
 
+  async function extractSelectedClinic() {
+    if (!currentClinicId || busy) return;
+    if (!confirm("このクリニックの公式サイトをGeminiで再解析し、根拠を確認できた情報を自動反映しますか？")) return;
+    busy = true;
+    renderCandidates();
+    setStatus(byId("editor-status"), "公式サイトから施術・料金・医師・症例・リスク・保証情報を抽出しています…");
+    try {
+      const data = await api(`/api/admin/clinics/${encodeURIComponent(currentClinicId)}/extract-official`, {
+        method: "POST",
+        body: JSON.stringify({ confirmed: true })
+      });
+      if (!data.clinic) throw new Error("更新後のクリニック情報を取得できませんでした。");
+      fillEditor(data.clinic);
+      setStatus(
+        byId("editor-status"),
+        data.autoApplied
+          ? "公式情報を抽出し、根拠を確認できた項目を自動反映しました。"
+          : "公式情報を抽出しました。抽出候補を確認してください。"
+      );
+      await loadCandidates();
+    } catch (error) {
+      setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${error.message}`, true);
+    } finally {
+      busy = false;
+      renderCandidates();
+    }
+  }
+
   function parsePricing() {
     return lines(byId("clinic-pricing").value).map((row) => {
       const [treatment, displayPrice, conditions, additionalCosts, sourceUrl] = rowParts(row, 5);
@@ -427,6 +456,7 @@
     populatePrefectures();
     byId("published-prefecture").addEventListener("change", () => void loadCandidates({ reset: true }));
     byId("update-nationwide-clinics").addEventListener("click", () => void updateNationwideClinics());
+    byId("extract-selected-clinic").addEventListener("click", () => void extractSelectedClinic());
     byId("save-draft").addEventListener("click", () => void save("draft"));
     byId("publish-clinic").addEventListener("click", () => void save("published"));
     byId("apply-detected-data").addEventListener("click", applyDetectedData);

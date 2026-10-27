@@ -261,6 +261,52 @@ test("official extraction requires confirmation and a configured Gemini key", as
   assert.equal(invalidBefore.status, 400);
 });
 
+test("admin can retry official extraction for one published clinic", async () => {
+  const saved = [];
+  const clinic = {
+    id: "candidate-1",
+    name: "候補名",
+    officialUrl: "https://example.com",
+    publicationStatus: "published"
+  };
+  const handler = setup({
+    store: {
+      async get(id) { return id === clinic.id ? { ...clinic, treatments: saved.length ? ["二重"] : [] } : null; },
+      async saveOfficialExtraction(id, extraction, options) {
+        saved.push({ id, extraction, options });
+        return { changed: true, autoApplied: true };
+      }
+    },
+    extractOfficial: async () => ({ extraction: { treatments: [{ name: "二重" }] }, model: "gemini-test" })
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
+    confirmed: true
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(result.data.autoApplied, true);
+  assert.deepEqual(result.data.clinic.treatments, ["二重"]);
+  assert.deepEqual(saved[0].options, { model: "gemini-test", autoApply: true });
+});
+
+test("single-clinic extraction records the concrete failure", async () => {
+  const failures = [];
+  const handler = setup({
+    store: {
+      async get() {
+        return { id: "candidate-1", name: "候補名", officialUrl: "https://example.com", publicationStatus: "published" };
+      },
+      async saveOfficialExtraction() { throw new Error("unexpected save"); },
+      async markOfficialSyncFailed(id, message) { failures.push({ id, message }); }
+    },
+    extractOfficial: async () => { throw Object.assign(new Error("API key not valid"), { status: 403 }); }
+  });
+  const result = await handler(request("POST", "/api/admin/clinics/candidate-1/extract-official", {
+    confirmed: true
+  }));
+  assert.equal(result.status, 403);
+  assert.deepEqual(failures, [{ id: "candidate-1", message: "API key not valid" }]);
+});
+
 test("failed official extraction is marked so the nationwide loop can advance", async () => {
   const failed = [];
   const handler = setup({
