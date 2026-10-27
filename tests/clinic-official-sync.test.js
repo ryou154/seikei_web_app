@@ -5,6 +5,7 @@ const {
   EXTRACTION_GROUPS,
   normalizeOfficialExtraction,
   officialExtractionUpdate,
+  publicFieldsFromExtraction,
   requestOfficialExtraction,
   sameOfficialDomain
 } = require("../clinic-official-sync");
@@ -41,6 +42,21 @@ test("normalization removes unsupported and cross-domain evidence", () => {
   }), "https://example.com", "2026-10-23T00:00:00.000Z");
   assert.deepEqual(normalized.treatments.map((item) => item.name), ["二重埋没法"]);
   assert.equal(normalized.extractedAt, "2026-10-23T00:00:00.000Z");
+});
+
+test("normalization removes non-procedure services and generates search tags", () => {
+  const normalized = normalizeOfficialExtraction(extracted({
+    treatments: [
+      extracted().treatments[0],
+      { name: "ナース指名制度", sourceUrl: "https://example.com/service", evidence: "指名できます", confidence: 1 }
+    ],
+    pricing: [
+      { treatment: "VIPルーム", displayPrice: "22,000円", conditions: [], additionalCosts: [], sourceUrl: "https://example.com/vip", evidence: "VIPルーム", confidence: 1 }
+    ]
+  }), "https://example.com");
+  assert.deepEqual(normalized.treatments.map((item) => item.name), ["二重埋没法"]);
+  assert.deepEqual(normalized.pricing, []);
+  assert.deepEqual(publicFieldsFromExtraction(normalized, "now").tags, ["目元"]);
 });
 
 test("Gemini request uses URL context, search and structured JSON", async () => {
@@ -85,6 +101,7 @@ test("split extraction identifies the failed information group", async () => {
       model: "gemini-test",
       wait: async () => {},
       fetchImpl: async (_url, options) => {
+        if (options.method === "GET") throw new Error("unexpected poll");
         const body = JSON.parse(options.body);
         if (body.response_format.schema.properties.doctors) {
           return { ok: false, status: 429, async json() { return { error: { message: "quota exceeded" } }; } };
@@ -93,10 +110,10 @@ test("split extraction identifies the failed information group", async () => {
         const groupResult = Object.fromEntries(
           Object.keys(body.response_format.schema.properties).map((field) => [field, value[field]])
         );
-        return { ok: true, async json() { return { output_text: JSON.stringify(groupResult) }; } };
+        return { ok: true, async json() { return { id: `interaction-${Object.keys(groupResult)[0]}`, status: "in_progress" }; } };
       }
     }),
-    /医師・症例の抽出に失敗しました: quota exceeded/
+    /医師・症例の抽出開始に失敗しました: quota exceeded/
   );
 });
 

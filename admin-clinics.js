@@ -15,6 +15,8 @@
   let currentCandidates = [];
   let busy = false;
   let initialized = false;
+  let activeExtractionClinicId = "";
+  const pollingClinicIds = new Set();
 
   function lines(value) {
     return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
@@ -74,7 +76,7 @@
       list.append(button);
     }
     byId("update-nationwide-clinics").disabled = busy;
-    byId("extract-selected-clinic").disabled = busy || !currentClinicId;
+    byId("extract-selected-clinic").disabled = busy || !currentClinicId || activeExtractionClinicId === currentClinicId;
     byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
@@ -229,6 +231,8 @@
   function fillEditor(clinic) {
     currentClinicId = clinic.id;
     currentDetectedData = clinic.detectedData || null;
+    if (clinic.officialExtractionJob?.status === "running") activeExtractionClinicId = clinic.id;
+    else if (activeExtractionClinicId === clinic.id) activeExtractionClinicId = "";
     byId("editor-empty").hidden = true;
     byId("clinic-editor").hidden = false;
     byId("clinic-place-id").textContent = clinic.placeId || clinic.id;
@@ -258,7 +262,9 @@
     byId("apply-detected-data").disabled = !currentDetectedData;
     setStatus(
       byId("editor-status"),
-      clinic.extractionStatus === "failed" ? `公式情報の抽出に失敗しました: ${clinic.extractionError || "原因は記録されていません。再実行すると詳細を記録します。"}` : "",
+      clinic.extractionStatus === "failed"
+        ? `公式情報の抽出に失敗しました: ${clinic.extractionError || "原因は記録されていません。再実行すると詳細を記録します。"}`
+        : clinic.officialExtractionJob?.status === "running" ? "公式情報の抽出をバックグラウンドで実行しています…" : "",
       clinic.extractionStatus === "failed"
     );
     renderCandidates();
@@ -343,6 +349,46 @@
     } finally {
       busy = false;
       renderCandidates();
+      if (activeExtractionClinicId === id) void pollClinicExtraction(id);
+    }
+  }
+
+  const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+  async function pollClinicExtraction(id) {
+    if (pollingClinicIds.has(id)) return;
+    pollingClinicIds.add(id);
+    try {
+      while (activeExtractionClinicId === id) {
+        await wait(3000);
+        const data = await api(`/api/admin/clinics/${encodeURIComponent(id)}/extract-official`);
+        if (data.status === "running") {
+          if (currentClinicId === id) {
+            const completed = data.progress?.completed ?? 0;
+            const total = data.progress?.total ?? 3;
+            setStatus(byId("editor-status"), `公式情報を抽出しています… ${completed}/${total}項目完了。画面を閉じても処理は継続します。`);
+          }
+          continue;
+        }
+        activeExtractionClinicId = "";
+        if (data.clinic && currentClinicId === id) fillEditor(data.clinic);
+        if (currentClinicId === id) {
+          if (data.status === "completed") {
+            setStatus(byId("editor-status"), data.autoApplied
+              ? "公式情報を抽出し、根拠を確認できた項目を自動反映しました。"
+              : "公式情報を抽出しました。抽出候補を確認してください。");
+          } else if (data.status === "failed") {
+            setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${data.clinic?.extractionError || "原因を確認できませんでした。"}`, true);
+          }
+        }
+        await loadCandidates();
+      }
+    } catch (error) {
+      activeExtractionClinicId = "";
+      if (currentClinicId === id) setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${error.message}`, true);
+    } finally {
+      pollingClinicIds.delete(id);
+      renderCandidates();
     }
   }
 
@@ -351,21 +397,17 @@
     if (!confirm("このクリニックの公式サイトをGeminiで再解析し、根拠を確認できた情報を自動反映しますか？")) return;
     busy = true;
     renderCandidates();
-    setStatus(byId("editor-status"), "公式サイトから施術・料金・医師・症例・リスク・保証情報を抽出しています…");
+    setStatus(byId("editor-status"), "公式サイト解析を開始しています…");
     try {
       const data = await api(`/api/admin/clinics/${encodeURIComponent(currentClinicId)}/extract-official`, {
         method: "POST",
         body: JSON.stringify({ confirmed: true })
       });
-      if (!data.clinic) throw new Error("更新後のクリニック情報を取得できませんでした。");
-      fillEditor(data.clinic);
-      setStatus(
-        byId("editor-status"),
-        data.autoApplied
-          ? "公式情報を抽出し、根拠を確認できた項目を自動反映しました。"
-          : "公式情報を抽出しました。抽出候補を確認してください。"
-      );
-      await loadCandidates();
+      const id = currentClinicId;
+      activeExtractionClinicId = id;
+      if (data.clinic) fillEditor(data.clinic);
+      setStatus(byId("editor-status"), "公式情報の抽出を開始しました。画面を閉じても処理は継続します。");
+      void pollClinicExtraction(id);
     } catch (error) {
       setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${error.message}`, true);
     } finally {

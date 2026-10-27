@@ -7,6 +7,9 @@ const MAX_EXTRACTED_ITEMS = 50;
 const AUTO_APPLY_CONFIDENCE = 0.9;
 const EXTRACTION_TIMEOUT_MS = 240_000;
 const EXTRACTION_POLL_INTERVAL_MS = 3_000;
+const INTERACTION_REQUEST_TIMEOUT_MS = 30_000;
+const INTERACTION_ID_PATTERN = /^[a-zA-Z0-9_-]{1,500}$/;
+const NON_PROCEDURE_PATTERN = /(指名制度|ナース指名|スタッフ指名|VIP|カスタマーサービス|ルーム|送迎|託児|ローン|支払方法|予約代行|会員制度|宿泊|アメニティ)/i;
 
 class ClinicOfficialSyncError extends Error {
   constructor(message, status = 400) {
@@ -114,17 +117,17 @@ const EXTRACTION_GROUPS = [
   {
     label: "施術・料金",
     fields: ["treatments", "pricing"],
-    instruction: "Extract treatments and displayed prices, including stated conditions and additional costs."
+    instruction: "Extract only cosmetic surgery and aesthetic medical procedures performed at this clinic, with prices directly tied to a concrete procedure. Exclude staff or nurse nomination, VIP/customer services, rooms, booking, payment or financing services, transport, childcare, accommodation, amenities, recruitment, and other administrative services."
   },
   {
     label: "医師・症例",
     fields: ["doctors", "caseInformation"],
-    instruction: "Extract doctors, explicitly stated qualifications and specialties, and case counts with period and scope."
+    instruction: "Extract only doctors explicitly assigned to this clinic branch, their explicitly stated qualifications and specialties, and case counts with period and scope. Do not treat staff, services, or doctors at other branches as this clinic's doctors."
   },
   {
     label: "リスク・保証",
     fields: ["downtimeAndRisks", "warrantyAndAftercare"],
-    instruction: "Extract downtime, risks, warranties, and aftercare for the relevant treatments."
+    instruction: "Extract concrete treatment-specific downtime, risks, warranties, and aftercare. Exclude generic marketing claims and administrative services."
   }
 ];
 
@@ -205,14 +208,17 @@ function normalizeOfficialExtraction(value, sourceOfficialUrl, now = new Date().
     throw new ClinicOfficialSyncError("Geminiの抽出結果を確認できませんでした。", 502);
   }
   const baseUrl = officialUrl(sourceOfficialUrl);
-  return {
-    treatments: normalizeItems(value.treatments, baseUrl, { name: { maxLength: 150 } }),
-    pricing: normalizeItems(value.pricing, baseUrl, {
+  const treatments = normalizeItems(value.treatments, baseUrl, { name: { maxLength: 150 } })
+    .filter((item) => !NON_PROCEDURE_PATTERN.test(item.name));
+  const pricing = normalizeItems(value.pricing, baseUrl, {
       treatment: { maxLength: 150 },
       displayPrice: { maxLength: 100 },
       conditions: { array: true, maxItems: 20, maxLength: 200 },
       additionalCosts: { array: true, maxItems: 20, maxLength: 200 }
-    }),
+    }).filter((item) => !NON_PROCEDURE_PATTERN.test(item.treatment));
+  return {
+    treatments,
+    pricing,
     doctors: normalizeItems(value.doctors, baseUrl, {
       name: { maxLength: 100 },
       title: { maxLength: 100 },
@@ -271,19 +277,29 @@ function outputText(data) {
   return "";
 }
 
-async function requestExtractionGroup({
+async function interactionRequest(url, options, fetchImpl, timeoutMessage) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), INTERACTION_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetchImpl(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error.name === "AbortError") throw new ClinicOfficialSyncError(timeoutMessage, 504);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function startExtractionGroup({
   apiKey,
   clinicName,
   sourceOfficialUrl,
   model,
   group,
-  fetchImpl,
-  wait
+  fetchImpl
 }) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);
   try {
-    const response = await fetchImpl(GEMINI_INTERACTIONS_URL, {
+    const response = await interactionRequest(GEMINI_INTERACTIONS_URL, {
       method: "POST",
       headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -292,86 +308,104 @@ async function requestExtractionGroup({
         input: extractionPrompt(cleanText(clinicName, 200), sourceOfficialUrl, group.instruction),
         tools: [{ type: "google_search" }, { type: "url_context" }],
         response_format: { type: "text", mime_type: "application/json", schema: extractionSchema(group.fields) }
-      }),
-      signal: controller.signal
-    });
+      })
+    }, fetchImpl, `${group.label}の開始がタイムアウトしました。`);
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new ClinicOfficialSyncError(data.error?.message || `Gemini API error (${response.status})`, response.status);
     }
-    let interaction = data;
-    while (interaction.status === "in_progress") {
-      if (!interaction.id || typeof interaction.id !== "string") {
-        throw new ClinicOfficialSyncError("Geminiの処理IDを確認できませんでした。", 502);
-      }
-      await wait(EXTRACTION_POLL_INTERVAL_MS);
-      const pollResponse = await fetchImpl(`${GEMINI_INTERACTIONS_URL}/${encodeURIComponent(interaction.id)}`, {
-        method: "GET",
-        headers: { "x-goog-api-key": apiKey },
-        signal: controller.signal
-      });
-      interaction = await pollResponse.json().catch(() => ({}));
-      if (!pollResponse.ok) {
-        throw new ClinicOfficialSyncError(
-          interaction.error?.message || `Gemini status API error (${pollResponse.status})`,
-          pollResponse.status
-        );
-      }
+    if (!INTERACTION_ID_PATTERN.test(data.id || "")) {
+      throw new ClinicOfficialSyncError("Geminiの処理IDを確認できませんでした。", 502);
     }
-    if (interaction.status && interaction.status !== "completed") {
-      const detail = Array.isArray(interaction.errors)
-        ? interaction.errors.map((error) => error?.message).filter(Boolean).join(" / ")
-        : "";
-      throw new ClinicOfficialSyncError(
-        detail || `Geminiの処理が${interaction.status}で終了しました。`,
-        502
-      );
-    }
-    try {
-      return { data: JSON.parse(outputText(interaction)), usage: interaction.usage || null };
-    } catch {
-      throw new ClinicOfficialSyncError("GeminiのJSONを解析できませんでした。", 502);
-    }
+    return { label: group.label, fields: group.fields, interactionId: data.id };
   } catch (error) {
-    const message = error.name === "AbortError"
-      ? `${group.label}の抽出がタイムアウトしました。`
-      : `${group.label}の抽出に失敗しました: ${error.message}`;
-    throw new ClinicOfficialSyncError(message, error.name === "AbortError" ? 504 : (error.status || 502));
-  } finally {
-    clearTimeout(timeout);
+    throw new ClinicOfficialSyncError(`${group.label}の抽出開始に失敗しました: ${error.message}`, error.status || 502);
   }
 }
 
-async function requestOfficialExtraction({
+async function startOfficialExtraction({
   apiKey,
   clinicName,
   sourceOfficialUrl,
   model = process.env.GEMINI_TEXT_MODEL || DEFAULT_GEMINI_TEXT_MODEL,
   fetchImpl = fetch,
-  now = () => new Date().toISOString(),
-  wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
+  now = () => new Date().toISOString()
 } = {}) {
   if (typeof apiKey !== "string" || !apiKey.trim()) throw new ClinicOfficialSyncError("GEMINI_API_KEYが設定されていません。", 503);
-  officialUrl(sourceOfficialUrl);
-  const settled = await Promise.allSettled(EXTRACTION_GROUPS.map((group) => requestExtractionGroup({
+  const canonicalUrl = officialUrl(sourceOfficialUrl).href;
+  const groups = await Promise.all(EXTRACTION_GROUPS.map((group) => startExtractionGroup({
     apiKey,
     clinicName,
-    sourceOfficialUrl,
+    sourceOfficialUrl: canonicalUrl,
     model,
     group,
-    fetchImpl,
-    wait
+    fetchImpl
   })));
-  const failed = settled.find((result) => result.status === "rejected");
-  if (failed) throw failed.reason;
-  const results = settled.map((result) => result.value);
+  return { version: 1, status: "running", model, sourceOfficialUrl: canonicalUrl, startedAt: now(), groups };
+}
+
+function validExtractionJob(job) {
+  if (!job || job.version !== 1 || job.status !== "running" || !Array.isArray(job.groups)) {
+    throw new ClinicOfficialSyncError("保存された抽出処理を確認できませんでした。", 409);
+  }
+  const expected = new Map(EXTRACTION_GROUPS.map((group) => [group.label, group.fields]));
+  if (job.groups.length !== expected.size || job.groups.some((group) => (
+    !expected.has(group?.label)
+    || !INTERACTION_ID_PATTERN.test(group?.interactionId || "")
+    || JSON.stringify(group.fields) !== JSON.stringify(expected.get(group.label))
+  ))) throw new ClinicOfficialSyncError("保存された抽出処理を確認できませんでした。", 409);
+  return job;
+}
+
+async function checkOfficialExtraction({ apiKey, job, fetchImpl = fetch, now = () => new Date().toISOString() } = {}) {
+  if (typeof apiKey !== "string" || !apiKey.trim()) throw new ClinicOfficialSyncError("GEMINI_API_KEYが設定されていません。", 503);
+  validExtractionJob(job);
+  const results = await Promise.all(job.groups.map(async (group) => {
+    const response = await interactionRequest(`${GEMINI_INTERACTIONS_URL}/${encodeURIComponent(group.interactionId)}`, {
+      method: "GET",
+      headers: { "x-goog-api-key": apiKey }
+    }, fetchImpl, `${group.label}の進捗確認がタイムアウトしました。`);
+    const interaction = await response.json().catch(() => ({}));
+    if (!response.ok) throw new ClinicOfficialSyncError(interaction.error?.message || `Gemini status API error (${response.status})`, response.status);
+    return { group, interaction };
+  }));
+  const completed = results.filter(({ interaction }) => interaction.status === "completed").length;
+  if (completed < results.length && results.every(({ interaction }) => ["queued", "in_progress", "completed"].includes(interaction.status))) {
+    return { status: "running", completed, total: results.length };
+  }
+  const failed = results.find(({ interaction }) => interaction.status !== "completed");
+  if (failed) {
+    const detail = Array.isArray(failed.interaction.errors)
+      ? failed.interaction.errors.map((error) => error?.message).filter(Boolean).join(" / ")
+      : "";
+    throw new ClinicOfficialSyncError(detail || `${failed.group.label}の処理が${failed.interaction.status || "不明"}で終了しました。`, 502);
+  }
   const combined = Object.fromEntries(Object.keys(OFFICIAL_EXTRACTION_SCHEMA.properties).map((field) => [field, []]));
-  for (const result of results) Object.assign(combined, result.data);
+  for (const { group, interaction } of results) {
+    try {
+      Object.assign(combined, JSON.parse(outputText(interaction)));
+    } catch {
+      throw new ClinicOfficialSyncError(`${group.label}のJSONを解析できませんでした。`, 502);
+    }
+  }
   return {
-    extraction: normalizeOfficialExtraction(combined, sourceOfficialUrl, now()),
-    model,
-    usage: results.map((result, index) => ({ group: EXTRACTION_GROUPS[index].label, usage: result.usage }))
+    status: "completed",
+    extraction: normalizeOfficialExtraction(combined, job.sourceOfficialUrl, now()),
+    model: cleanText(job.model, 100),
+    usage: results.map(({ group, interaction }) => ({ group: group.label, usage: interaction.usage || null }))
   };
+}
+
+async function requestOfficialExtraction(options = {}) {
+  const wait = options.wait || ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+  const job = await startOfficialExtraction(options);
+  const deadline = Date.now() + EXTRACTION_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const result = await checkOfficialExtraction({ ...options, job });
+    if (result.status === "completed") return result;
+    await wait(EXTRACTION_POLL_INTERVAL_MS);
+  }
+  throw new ClinicOfficialSyncError("公式サイト解析がタイムアウトしました。", 504);
 }
 
 function extractionHash(extraction) {
@@ -418,6 +452,7 @@ function publicFieldsFromExtraction(extraction, now) {
   const cases = confident(extraction.caseInformation);
   return {
     treatments: [...new Set(treatments.map((item) => item.name))],
+    tags: treatmentTags(treatments.map((item) => item.name)),
     pricing,
     doctors,
     caseInformation: cases[0] ? {
@@ -431,6 +466,18 @@ function publicFieldsFromExtraction(extraction, now) {
     warrantyAndAftercare: information(extraction.warrantyAndAftercare),
     hasPricing: pricing.length > 0
   };
+}
+
+function treatmentTags(treatments) {
+  const text = (treatments || []).join(" ");
+  const mappings = [
+    ["目元", /二重|目元|眼瞼|涙袋|目尻|目頭/], ["鼻", /鼻/],
+    ["輪郭・小顔", /輪郭|顎|あご|エラ|頬骨|小顔|フェイスライン/], ["口元", /唇|口元|人中/],
+    ["肌", /肌|しみ|シミ|しわ|ニキビ|毛穴|美肌/], ["脂肪・痩身", /脂肪|痩身/],
+    ["バスト", /豊胸|乳房|バスト/], ["脱毛", /脱毛/], ["注入治療", /ボトックス|ヒアルロン酸|注入/],
+    ["リフトアップ", /リフト|たるみ|ハイフ|HIFU/i]
+  ];
+  return mappings.filter(([, pattern]) => pattern.test(text)).map(([tag]) => tag);
 }
 
 function officialExtractionUpdate(existing, extraction, {
@@ -475,6 +522,7 @@ module.exports = {
   EXTRACTION_GROUPS,
   EXTRACTION_TIMEOUT_MS,
   EXTRACTION_POLL_INTERVAL_MS,
+  INTERACTION_REQUEST_TIMEOUT_MS,
   OFFICIAL_EXTRACTION_SCHEMA,
   ClinicOfficialSyncError,
   officialUrl,
@@ -482,8 +530,11 @@ module.exports = {
   normalizeOfficialExtraction,
   extractionPrompt,
   outputText,
+  startOfficialExtraction,
+  checkOfficialExtraction,
   requestOfficialExtraction,
   extractionHash,
   publicFieldsFromExtraction,
+  treatmentTags,
   officialExtractionUpdate
 };
