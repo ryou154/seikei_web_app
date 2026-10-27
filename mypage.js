@@ -45,6 +45,7 @@ function setBusy(button, value) {
 }
 
 function iconStorageKey(uid) { return `meylon-profile-icon:${uid}`; }
+function phoneStorageKey(uid) { return `meylon-profile-phone:${uid}`; }
 
 function renderProfileIcon(dataUrl, displayName = "") {
   const preview = byId("profile-icon-preview");
@@ -124,11 +125,14 @@ async function showUser(user) {
   const isGoogle = providers.has("google.com");
     const hasPassword = window.MypageModel.usesPassword(user.providerData);
   byId("display-name").value = user.displayName || "";
+  let savedPhone = "";
+  try { savedPhone = localStorage.getItem(phoneStorageKey(user.uid)) || ""; } catch { /* storage may be unavailable */ }
+  byId("phone-number").value = savedPhone;
   let savedIcon = null;
   try { savedIcon = localStorage.getItem(iconStorageKey(user.uid)); } catch { /* storage may be unavailable */ }
   renderProfileIcon(savedIcon, user.displayName || "");
   byId("account-email").value = user.email || "";
-  byId("account-phone").textContent = user.phoneNumber || "未登録";
+  byId("account-phone").textContent = savedPhone || user.phoneNumber || "未登録";
   byId("account-id").textContent = user.uid || "確認できません";
   byId("identity-status").textContent = user.emailVerified ? "確認済み" : "未確認";
   byId("login-method").textContent = [
@@ -167,10 +171,20 @@ async function initialize() {
         return;
       }
       setBusy(button, true);
-      setStatus("profile-status", "表示名を更新しています…");
+      setStatus("profile-status", "プロフィールを更新しています…");
       try {
         await sdk.updateProfile(auth.currentUser, { displayName: name });
         byId("display-name").value = name;
+        const phone = byId("phone-number").value.trim();
+        if (phone && !/^[0-9+()\-\s]{7,20}$/.test(phone)) {
+          setStatus("profile-status", "電話番号の形式を確認してください。", true);
+          return;
+        }
+        try {
+          if (phone) localStorage.setItem(phoneStorageKey(auth.currentUser.uid), phone);
+          else localStorage.removeItem(phoneStorageKey(auth.currentUser.uid));
+        } catch { /* storage may be unavailable */ }
+        byId("account-phone").textContent = phone || auth.currentUser.phoneNumber || "未登録";
         let savedIcon = null;
         try { savedIcon = localStorage.getItem(iconStorageKey(auth.currentUser.uid)); } catch { /* storage may be unavailable */ }
         renderProfileIcon(savedIcon, name);
