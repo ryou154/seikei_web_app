@@ -1027,9 +1027,15 @@ body.camera-open {
 }
 
 .camera-screen-actions {
+  position: sticky;
+  bottom: -18px;
+  z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  margin: 0 -18px -18px;
+  padding: 12px 18px 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 28%);
 }
 
 .camera-screen-actions .sub-button {
@@ -1066,6 +1072,24 @@ body.camera-open {
 
   .scan-panel {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 760px) {
+  .camera-screen-inner {
+    gap: 9px;
+    max-height: 96vh;
+    padding: 12px;
+  }
+
+  .camera-stage {
+    max-height: 42vh;
+  }
+
+  .camera-screen-actions {
+    bottom: -12px;
+    margin: 0 -12px -12px;
+    padding: 9px 12px 12px;
   }
 }
 
