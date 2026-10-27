@@ -46,7 +46,7 @@
 
 .mypage-content {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 18px;
 }
@@ -63,7 +63,7 @@
 
 /* Keep the secondary account cards on the right so the profile column does not become disproportionately tall. */
 .mypage-content > section[aria-labelledby="saved-data-title"] {
-  grid-column: 2;
+  grid-column: auto;
 }
 
 .mypage-content > section[aria-labelledby="security-title"] {
