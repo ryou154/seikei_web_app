@@ -89,6 +89,17 @@ let guidedScanBusy = false;
 let privacyGeneration = 0;
 let cropperInstance = null;
 
+function escapeText(value) {
+  const text = String(value ?? "");
+  return text.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+
 function scrollToSimulationResult(target = resultPanel, block = "start") {
   if (!target) return;
   window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block }));
@@ -811,7 +822,11 @@ simulateButton.addEventListener("click", async () => {
     scrollToSimulationResult(resultPanel);
     await renderResult(latestResult);
   } catch (error) {
-    console.error("Simulation failed", error);
+    console.error("Simulation failed", error, {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack
+    });
     alert(`シミュレーションを開始できませんでした。${error?.message ? `\\n${error.message}` : ""}`);
   } finally {
     simulateButton.disabled = false;
@@ -1435,6 +1450,10 @@ async function createGeminiAfterImage(result) {
 
   if (!response.ok) {
     throw new Error(data.detail || data.error || "Gemini生成に失敗しました。");
+  }
+
+  if (typeof data.image !== "string" || !data.image.startsWith("data:image/")) {
+    throw new Error("Gemini APIから画像が返されませんでした。");
   }
 
   return {
