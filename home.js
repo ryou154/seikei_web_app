@@ -37,6 +37,9 @@
     status.textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`;
     status.dataset.error = "false";
   }));
+  document.querySelector(".plan-prompt-bubble")?.addEventListener("click", () => {
+    window.setTimeout(() => document.getElementById("plans-title")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  });
 
   function displayDate(value) {
     const date = new Date(value);
