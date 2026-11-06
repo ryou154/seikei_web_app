@@ -36,6 +36,25 @@ const cameraScanSteps = document.getElementById("camera-scan-steps");
 const cameraScanProgressBar = document.getElementById("camera-scan-progress-bar");
 const requestTextInput = document.getElementById("request-text");
 const genderSelect = document.getElementById("gender-select");
+const genderRadios = [...document.querySelectorAll('input[name="gender-choice"]')];
+genderRadios.forEach((radio) => {
+  radio.addEventListener("change", () => {
+    genderSelect.value = radio.value;
+    genderSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+});
+
+document.querySelectorAll(".detail-options-group").forEach((group) => {
+  const heading = group.querySelector("h3");
+  if (!heading) return;
+  const details = document.createElement("details");
+  details.className = "detail-options-group detail-options-collapsible";
+  const summary = document.createElement("summary");
+  summary.textContent = heading.textContent;
+  details.append(summary);
+  [...group.children].filter((child) => child !== heading).forEach((child) => details.append(child));
+  group.replaceWith(details);
+});
 const styleSelect = document.getElementById("style-select");
 const styleCustomInput = document.getElementById("style-custom");
 const eyeSelect = document.getElementById("eye-select");

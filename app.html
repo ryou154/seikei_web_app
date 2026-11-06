@@ -106,7 +106,11 @@
 
       <label class="field">
         <span>性別</span>
-        <select id="gender-select" required>
+        <div class="radio-choice-group" role="radiogroup" aria-label="性別">
+          <label><input type="radio" name="gender-choice" value="male"> 男性</label>
+          <label><input type="radio" name="gender-choice" value="female"> 女性</label>
+        </div>
+        <select id="gender-select" hidden required>
           <option value="" selected disabled>選択してください</option>
           <option value="male">男性</option>
           <option value="female">女性</option>
@@ -516,6 +520,11 @@
         if (!field || value === undefined) continue;
         if (field.tagName === "SELECT" && ![...field.options].some((option) => option.value === String(value))) continue;
         field.value = String(value);
+        if (key === "gender") {
+          document.querySelectorAll('input[name="gender-choice"]').forEach((radio) => {
+            radio.checked = radio.value === String(value);
+          });
+        }
         field.dispatchEvent(new Event("input", { bubbles: true }));
         field.dispatchEvent(new Event("change", { bubbles: true }));
       }

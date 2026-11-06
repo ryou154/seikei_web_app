@@ -206,7 +206,7 @@ h3 {
 
 .detail-options-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -223,6 +223,96 @@ h3 {
 .detail-options-group h3 {
   margin: 0 0 2px;
   font-size: 14px;
+}
+
+#gender-select {
+  display: none;
+}
+
+.radio-choice-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.radio-choice-group label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 110px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.radio-choice-group input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.detail-options-collapsible {
+  display: block;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: #fff;
+  overflow: hidden;
+}
+
+.detail-options-collapsible summary {
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+  background: var(--soft);
+}
+
+.detail-options-collapsible summary:hover {
+  background: #e4f1f7;
+}
+
+.detail-options-collapsible summary::after {
+  content: "⌄";
+  float: right;
+  color: var(--primary);
+  font-size: 20px;
+  line-height: 0.8;
+}
+
+.detail-options-collapsible[open] summary::after {
+  content: "⌃";
+}
+
+.detail-options-collapsible > label,
+.detail-options-collapsible > input,
+.detail-options-collapsible > div {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.detail-options-collapsible > label {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #f7fbfd;
+  line-height: 1.55;
+  transition: background-color 0.15s ease;
+}
+
+.detail-options-collapsible > label:hover {
+  background: #eaf5f9;
+}
+
+.detail-options-collapsible > label:last-child {
+  margin-bottom: 12px;
+}
+
+.detail-options-collapsible > label input[type="checkbox"] {
+  margin-top: 2px;
 }
 
 .detail-options-group label {
