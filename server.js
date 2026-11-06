@@ -452,7 +452,9 @@ function serveStatic(request, response) {
   }
   const relativePath = urlPath === "/"
     ? "index.html"
-    : urlPath.replace(/^[/\\]+/, "");
+    : urlPath === "/admin/"
+      ? "admin/index.html"
+      : urlPath.replace(/^[/\\]+/, "");
   const safePath = path.normalize(relativePath).replace(/^(\.\.[/\\])+/, "");
   const filePath = path.join(root, safePath);
 
