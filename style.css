@@ -278,13 +278,15 @@ h3 {
 }
 
 .detail-options-collapsible summary::after {
-  content: "▽";
+  content: "⌄";
   float: right;
   color: var(--primary);
+  font-size: 20px;
+  line-height: 0.8;
 }
 
 .detail-options-collapsible[open] summary::after {
-  content: "△";
+  content: "⌃";
 }
 
 .detail-options-collapsible > label,
