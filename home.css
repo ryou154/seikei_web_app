@@ -24,7 +24,7 @@
 .plan-button { width: 100%; min-height: 42px; margin-top: auto; border: 1px solid #b9dbe4; border-radius: 7px; color: #285266; background: #f1fafc; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
 .plan-button:hover { background: #dff2f6; }
 .home-plans .home-status { grid-column: 1 / -1; margin-top: 14px; }
-.plan-prompt-bubble { position: fixed; z-index: 8; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 10px; padding: 13px 15px 13px 18px; border: 1px solid #9bcbd8; border-radius: 18px 18px 5px 18px; color: #214f63; background: #eaf8fb; box-shadow: 0 10px 25px rgba(55,105,132,.2); font-size: 14px; font-weight: 800; line-height: 1.35; text-decoration: none; }
+.plan-prompt-bubble { position: fixed; z-index: 8; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 10px; padding: 13px 15px 13px 18px; border: 1px solid #9bcbd8; border-radius: 18px 18px 5px 18px; color: #214f63; background: #eaf8fb; box-shadow: 0 10px 25px rgba(55,105,132,.2); font: inherit; font-size: 14px; font-weight: 800; line-height: 1.35; text-align: left; cursor: pointer; }
 .plan-prompt-bubble::after { content: ""; position: absolute; right: 4px; bottom: -8px; width: 16px; height: 16px; border-right: 1px solid #9bcbd8; border-bottom: 1px solid #9bcbd8; background: #eaf8fb; transform: skewY(35deg) rotate(18deg); }
 .plan-prompt-bubble b { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; color: #fff; background: #4b94ad; font-size: 17px; }
 .plan-prompt-bubble:hover { color: #173f52; background: #dff3f7; transform: translateY(-2px); }
