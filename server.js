@@ -9,12 +9,14 @@ const { createAccountDeleteHandler } = require("./account-delete");
 const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = require("./clinic-admin");
 const { createAdminSettingsStore } = require("./admin-settings");
+const { createInquiryStore, clean } = require("./inquiry-store");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
 const clinicAdminDatabase = createClinicAdminStore(firestore);
 const adminSettingsDatabase = createAdminSettingsStore(firestore);
+const inquiryDatabase = createInquiryStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
@@ -77,6 +79,28 @@ const server = http.createServer(async (request, response) => {
         }
         sendJson(response, 200, await adminSettingsDatabase.saveBlockedWords(body.blockedWords, adminIdentity.email));
       }
+      return;
+    }
+    if (request.method === "POST" && request.url === "/api/contact") {
+      const identity = await authorize(request);
+      const body = await readJsonBody(request);
+      if (!clean(body.subject, 120) || !clean(body.message, 4000)) return sendJson(response, 400, { error: "件名と内容を入力してください。" });
+      sendJson(response, 201, { inquiry: await inquiryDatabase.create({ email: identity.email, uid: identity.uid, subject: body.subject, message: body.message }) });
+      return;
+    }
+    if ((request.url === "/api/admin/inquiries" || request.url.startsWith("/api/admin/inquiries?")) && request.method === "GET") {
+      await requireAdmin(request, authorize);
+      const status = new URL(request.url, `http://localhost:${port}`).searchParams.get("status") || "unanswered";
+      sendJson(response, 200, { inquiries: await inquiryDatabase.list(status) });
+      return;
+    }
+    const inquiryMatch = /^\/api\/admin\/inquiries\/([A-Za-z0-9_-]+)$/.exec(request.url);
+    if (inquiryMatch && request.method === "PUT") {
+      await requireAdmin(request, authorize);
+      const body = await readJsonBody(request);
+      if (!["unanswered", "answered"].includes(body.status)) return sendJson(response, 400, { error: "回答状態が不正です。" });
+      const inquiry = await inquiryDatabase.updateStatus(inquiryMatch[1], body.status);
+      sendJson(response, inquiry ? 200 : 404, inquiry ? { inquiry } : { error: "問い合わせが見つかりません。" });
       return;
     }
     if (request.url === "/api/clinics" || request.url.startsWith("/api/clinics?") || request.url.startsWith("/api/clinics/")) {
@@ -442,8 +466,8 @@ function serveStatic(request, response) {
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
-    "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/blocked-words.html", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", "/admin-settings.js", logoFile, latestLogoFile
+    "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", "/admin-settings.js", "/inquiry-store.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
