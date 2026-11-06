@@ -52,3 +52,6 @@
   .editor-actions { align-items: stretch; flex-direction: column; }
   .editor-actions button { width: 100%; }
 }
+.admin-clinics-page #common-navigation { display: none; }
+.admin-back-link { display: inline-block; margin-bottom: 14px; color: #285266; font-size: 14px; font-weight: 800; text-decoration: none; }
+.admin-back-link:hover { text-decoration: underline; }
