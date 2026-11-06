@@ -206,7 +206,7 @@ h3 {
 
 .detail-options-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
@@ -260,6 +260,8 @@ h3 {
   align-self: start;
   height: fit-content;
   padding: 0;
+  border: 1px solid var(--line);
+  background: #fff;
   overflow: hidden;
 }
 
@@ -268,6 +270,11 @@ h3 {
   cursor: pointer;
   font-weight: 700;
   list-style: none;
+  background: var(--soft);
+}
+
+.detail-options-collapsible summary:hover {
+  background: #e4f1f7;
 }
 
 .detail-options-collapsible summary::after {
