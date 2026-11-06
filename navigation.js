@@ -42,21 +42,38 @@
   nav.append(list);
   const account = document.createElement("div");
   account.className = "common-navigation__account";
+  const accountTrigger = document.createElement("button");
+  accountTrigger.type = "button";
+  accountTrigger.className = "common-navigation__account-trigger";
+  accountTrigger.setAttribute("aria-haspopup", "true");
+  accountTrigger.setAttribute("aria-expanded", "false");
+  const avatar = document.createElement("span");
+  avatar.className = "common-navigation__avatar";
+  avatar.setAttribute("aria-hidden", "true");
   const email = document.createElement("span");
   email.className = "common-navigation__email";
+  accountTrigger.append(avatar, email);
+  const menu = document.createElement("div");
+  menu.className = "common-navigation__account-menu";
+  const mypage = document.createElement("a");
+  mypage.href = "/mypage.html";
+  mypage.textContent = "マイページ";
   const logout = document.createElement("button");
   logout.type = "button";
-  logout.className = "sub-button";
+  logout.className = "common-navigation__logout";
   logout.textContent = "ログアウト";
   logout.addEventListener("click", () => window.AppAuth?.logout());
-  account.append(email, logout);
+  menu.append(mypage, logout);
+  account.append(accountTrigger, menu);
   nav.append(account);
   container.replaceChildren(nav);
 
   function updateAccount() {
     const auth = window.AppAuth;
     account.hidden = !auth?.signedIn;
-    email.textContent = auth?.signedIn ? (auth.displayName || auth.email) : "";
+    const accountName = auth?.signedIn ? (auth.displayName || auth.email || "ユーザー") : "";
+    email.textContent = accountName.length > 18 ? `${accountName.slice(0, 18)}…` : accountName;
+    avatar.textContent = accountName.trim().charAt(0).toUpperCase() || "U";
     logout.disabled = !auth?.signedIn || auth.busy;
     logout.textContent = auth?.busy ? "処理中…" : "ログアウト";
   }
