@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 | MEYLON</title>
+  <link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../navigation.css"><link rel="stylesheet" href="admin.css">
+  <script src="../navigation.js" defer></script>
+</head>
+<body class="admin-dashboard-page">
+  <div id="common-navigation"></div>
+  <header class="app-header admin-dashboard-header"><p class="eyebrow">ADMIN CONSOLE</p><h1>管理画面</h1><p class="lead">管理者権限を持つアカウント専用の設定画面です。</p></header>
+  <main id="admin-content" class="admin-dashboard" hidden>
+    <p id="admin-status" class="admin-dashboard-status" role="status" aria-live="polite"></p>
+    <section class="admin-card-grid" aria-label="管理メニュー">
+      <a class="admin-card" href="../admin-clinics.html"><span class="admin-card-kicker">CLINICS</span><strong>クリニック管理</strong><span>公開情報、施術、料金、公式情報を確認・編集します。</span></a>
+      <section class="admin-card admin-card-muted"><span class="admin-card-kicker">API USAGE</span><strong>API使用料</strong><span>API使用料の集計はGoogle Cloudの請求レポートで確認できます。ここには利用状況表示を追加予定です。</span></section>
+      <section class="admin-card admin-settings-card"><span class="admin-card-kicker">SAFETY</span><strong>禁止ワード</strong><label for="blocked-words">1行に1語</label><textarea id="blocked-words" rows="5" placeholder="例：治療効果を保証"></textarea><button id="save-blocked-words" type="button">禁止ワードを保存</button><span id="blocked-words-status" class="admin-inline-status" role="status"></span></section>
+    </section>
+    <button id="admin-logout" class="sub-button" type="button">ログアウト</button>
+  </main>
+  <script type="module" src="../auth-core.js"></script><script type="module" src="admin.js"></script>
+</body>
+</html>

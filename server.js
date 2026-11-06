@@ -7,12 +7,14 @@ const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
 const { createAccountDeleteHandler } = require("./account-delete");
 const { createClinicStore, createClinicHandler } = require("./clinic-store");
-const { createClinicAdminStore, createClinicAdminHandler } = require("./clinic-admin");
+const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = require("./clinic-admin");
+const { createAdminSettingsStore } = require("./admin-settings");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
 const clinicAdminDatabase = createClinicAdminStore(firestore);
+const adminSettingsDatabase = createAdminSettingsStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
@@ -58,6 +60,25 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, result.status, result.data);
       return;
     }
+    if (request.method === "GET" && request.url === "/api/admin/session") {
+      const identity = await requireAdmin(request, authorize);
+      sendJson(response, 200, { admin: true, uid: identity.uid, email: identity.email });
+      return;
+    }
+    if (request.url === "/api/admin/settings" && (request.method === "GET" || request.method === "PUT")) {
+      await requireAdmin(request, authorize);
+      if (request.method === "GET") {
+        sendJson(response, 200, await adminSettingsDatabase.get());
+      } else {
+        const body = await readJsonBody(request);
+        if (!Array.isArray(body.blockedWords)) return sendJson(response, 400, { error: "禁止ワードを確認してください。" });
+        if (body.blockedWords.length > 200 || body.blockedWords.some((word) => typeof word !== "string" || word.trim().length > 100)) {
+          return sendJson(response, 400, { error: "禁止ワードは200件以内、1件100文字以内で入力してください。" });
+        }
+        sendJson(response, 200, { blockedWords: await adminSettingsDatabase.saveBlockedWords(body.blockedWords) });
+      }
+      return;
+    }
     if (request.url === "/api/clinics" || request.url.startsWith("/api/clinics?") || request.url.startsWith("/api/clinics/")) {
       const result = await handleClinics(request);
       sendJson(response, result.status, result.data);
@@ -101,6 +122,13 @@ async function handleGeminiEdit(request, response) {
   }
 
   const body = await readJsonBody(request);
+  const blockedWords = (await adminSettingsDatabase.get()).blockedWords || [];
+  const requestText = JSON.stringify(body).toLocaleLowerCase("ja-JP");
+  const blockedWord = blockedWords.find((word) => requestText.includes(String(word).toLocaleLowerCase("ja-JP")));
+  if (blockedWord) {
+    sendJson(response, 400, { error: "入力内容に使用できない言葉が含まれています。" });
+    return;
+  }
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const retryPrompt = buildGeminiPrompt(body, { compact: true });
@@ -415,7 +443,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/index.html", "/admin/admin.js", "/admin/admin.css", "/admin-settings.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);

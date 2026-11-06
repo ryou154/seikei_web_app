@@ -716,5 +716,6 @@ module.exports = {
   normalizeAdminClinicUpdate,
   adminClinic,
   requestPlacePreview,
-  validAdminClinicId
+  validAdminClinicId,
+  requireAdmin
 };
