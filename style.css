@@ -1564,7 +1564,7 @@ button:hover:not(:disabled) {
 
 .app-page .step-workspace {
   display: grid;
-  grid-template-columns: minmax(250px, 0.36fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 18px;
 }
@@ -1576,7 +1576,7 @@ button:hover:not(:disabled) {
 }
 
 .app-page .input-panel {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: auto;
   min-width: 0;
 }
