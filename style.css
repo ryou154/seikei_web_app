@@ -208,6 +208,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  align-items: start;
 }
 
 .detail-options-group {
@@ -256,6 +257,8 @@ h3 {
 
 .detail-options-collapsible {
   display: block;
+  align-self: start;
+  height: fit-content;
   padding: 0;
   overflow: hidden;
 }
