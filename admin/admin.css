@@ -1,5 +1,5 @@
-.admin-dashboard-page { min-height: 100vh; }
-.admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
+.admin-dashboard-page { min-height: 100vh; background: #f4f8fa; }
+.admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: 280px; margin-right: 32px; }
 .admin-dashboard-header { margin-bottom: 24px; }
 .admin-dashboard { margin-bottom: 48px; }
 .admin-dashboard[hidden] { display: none; }
@@ -17,4 +17,21 @@
 .admin-settings-card button { width: fit-content; }
 .admin-inline-status { min-height: 1.4em; color: var(--muted); font-size: 13px; }
 .admin-dashboard > .sub-button { margin-top: 24px; }
-@media (max-width: 760px) { .admin-card-grid { grid-template-columns: 1fr; } }
+.admin-sidebar-toggle { position: fixed; z-index: 30; top: 20px; left: 20px; display: grid; gap: 5px; width: 44px; height: 44px; padding: 11px 10px; border: 1px solid #cfe3ea; border-radius: 10px; background: #fff; box-shadow: 0 4px 16px rgba(55,105,132,.12); cursor: pointer; }
+.admin-sidebar-toggle span { display: block; height: 2px; border-radius: 2px; background: #285266; }
+.admin-sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 240px; padding: 88px 18px 22px; border-right: 1px solid #cfe3ea; background: #fff; box-shadow: 8px 0 24px rgba(55,105,132,.08); }
+.admin-sidebar-brand { display: grid; gap: 4px; padding: 0 14px 28px; }
+.admin-sidebar-brand strong { color: #173c4e; font-size: 20px; }
+.admin-sidebar nav { display: grid; gap: 6px; }
+.admin-sidebar-link { padding: 12px 14px; border-radius: 9px; color: #456879; font-size: 14px; font-weight: 800; text-decoration: none; }
+.admin-sidebar-link:hover,.admin-sidebar-link.is-active { color: #173c4e; background: #eaf5f9; }
+.admin-sidebar > .sub-button { margin: auto 14px 0; }
+.admin-sidebar-overlay { display: none; }
+@media (max-width: 760px) {
+  .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
+  .admin-sidebar { transform: translateX(-100%); transition: transform .2s ease; }
+  .admin-dashboard-page.sidebar-open .admin-sidebar { transform: translateX(0); }
+  .admin-sidebar-overlay { position: fixed; z-index: 10; inset: 0; background: rgba(23,60,78,.35); }
+  .admin-sidebar-overlay:not([hidden]) { display: block; }
+  .admin-card-grid { grid-template-columns: 1fr; }
+}
