@@ -166,6 +166,87 @@
   font-size: 0.85rem;
 }
 
+.common-navigation__account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 210px;
+  min-height: 44px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--ink, #40343a);
+  background: transparent;
+  cursor: pointer;
+}
+
+.common-navigation__account-trigger:hover,
+.common-navigation__account-trigger:focus-visible {
+  border-color: var(--line, #eadde3);
+  background: var(--soft, #fff0f4);
+  outline: none;
+}
+
+.common-navigation__avatar {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--primary, #b8324d);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.common-navigation__account-menu {
+  position: absolute;
+  top: calc(100% - 2px);
+  right: 16px;
+  z-index: 10;
+  display: grid;
+  min-width: 150px;
+  padding: 6px;
+  border: 1px solid var(--line, #eadde3);
+  border-radius: 10px;
+  background: var(--panel, #fff);
+  box-shadow: 0 12px 26px rgb(55 105 132 / 18%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.common-navigation__account:hover .common-navigation__account-menu,
+.common-navigation__account:focus-within .common-navigation__account-menu,
+.common-navigation__account-menu:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.common-navigation__account-menu a,
+.common-navigation__logout {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ink, #40343a);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.common-navigation__account-menu a:hover,
+.common-navigation__logout:hover:not(:disabled) {
+  background: var(--soft, #fff0f4);
+}
+
 /* ログアウトボタン */
 .common-navigation__account .sub-button {
   display: flex;
@@ -209,7 +290,7 @@ html {
   .common-navigation__logo { grid-column: 1; }
   .common-navigation__logo img { max-width: 128px; }
   .common-navigation__account { grid-column: 2; }
-  .common-navigation__email { display: none; }
+  .common-navigation__email { display: block; max-width: 92px; }
   .common-navigation__links {
     grid-column: 1 / -1;
     justify-self: stretch;
