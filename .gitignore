@@ -2,6 +2,10 @@
 .env.*
 !.env.example
 node_modules/
+face3d/test-data/
+face3d/models/*
+!face3d/models/.gitkeep
+!face3d/models/README.md
 server-out.log
 server-err.log
 *.log
