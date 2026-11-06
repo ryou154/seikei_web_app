@@ -82,6 +82,7 @@
   planModal?.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => { selectPlan(button); element("plan-modal-status").textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`; }));
   updatePlanPrompt();
   updateCurrentPlan();
+  if (new URLSearchParams(location.search).get("open") === "plans" && planModal) planModal.hidden = false;
   document.addEventListener("keydown", (event) => { if (event.key === "Escape") closePlanModal(); });
 
   function displayDate(value) {

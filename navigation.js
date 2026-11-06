@@ -141,7 +141,7 @@
     if (!hasPaidPlan) {
       const plan = document.createElement("a");
       plan.className = "navigation-prompt navigation-plan-prompt";
-      plan.href = "/home.html#plans-title";
+      plan.href = "/home.html?open=plans#plans-title";
       plan.innerHTML = "有料プランは<br>いかがですか？ <b aria-hidden=\"true\">→</b>";
       prompts.append(plan);
     }
