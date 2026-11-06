@@ -1142,6 +1142,11 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
 
 function renderAfterImageViewer(container, imageData) {
   if (!container || !imageData) return;
+  // The Three.js landmark mesh is mounted after face analysis. Keep only a
+  // placeholder here so the legacy radial-strip renderer cannot flash or
+  // replace the real mesh.
+  container.innerHTML = '<div class="face-3d-viewer" aria-label="シミュレーション後の顔3Dモデルを読み込み中"></div>';
+  return;
   container.innerHTML = `
     <div class="face-3d-viewer" data-rotation="0" tabindex="0" aria-label="After画像の3Dビュー。左右にドラッグまたはスワイプして回転できます。">
       <div class="face-3d-stage">
