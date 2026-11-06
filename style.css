@@ -294,6 +294,28 @@ h3 {
   margin-right: 12px;
 }
 
+.detail-options-collapsible > label {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #f7fbfd;
+  line-height: 1.55;
+  transition: background-color 0.15s ease;
+}
+
+.detail-options-collapsible > label:hover {
+  background: #eaf5f9;
+}
+
+.detail-options-collapsible > label:last-child {
+  margin-bottom: 12px;
+}
+
+.detail-options-collapsible > label input[type="checkbox"] {
+  margin-top: 2px;
+}
+
 .detail-options-group label {
   display: flex;
   align-items: flex-start;
