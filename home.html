@@ -87,6 +87,10 @@
     </main>
   </div>
   <a class="plan-prompt-bubble" href="#plans-title" aria-label="有料プランを見る"><span>有料プランは<br>いかがですか？</span><b aria-hidden="true">→</b></a>
+  <div id="plan-modal" class="plan-modal" hidden role="dialog" aria-modal="true" aria-labelledby="plan-modal-title">
+    <div class="plan-modal-backdrop" data-close-plan-modal></div>
+    <section class="plan-modal-card"><button class="plan-modal-close" type="button" aria-label="閉じる" data-close-plan-modal>×</button><p class="section-kicker">Plans</p><h2 id="plan-modal-title">有料プランはいかがですか？</h2><p class="home-muted">より多くのシミュレーションを利用できるプランをご案内します。</p><div class="plan-modal-options"><button type="button" data-plan="スタンダード">スタンダード　¥980 / 月</button><button type="button" data-plan="プレミアム">プレミアム　¥1,980 / 月</button></div><p id="plan-modal-status" class="home-status" role="status" aria-live="polite"></p><p class="plan-modal-note">デモ表示のため、ここでは決済は発生しません。</p></section>
+  </div>
   <script src="data/clinics.js"></script>
   <script src="data/clinic-details.js"></script>
   <script src="home.js"></script>

@@ -28,6 +28,16 @@
 .plan-prompt-bubble::after { content: ""; position: absolute; right: 4px; bottom: -8px; width: 16px; height: 16px; border-right: 1px solid #9bcbd8; border-bottom: 1px solid #9bcbd8; background: #eaf8fb; transform: skewY(35deg) rotate(18deg); }
 .plan-prompt-bubble b { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; color: #fff; background: #4b94ad; font-size: 17px; }
 .plan-prompt-bubble:hover { color: #173f52; background: #dff3f7; transform: translateY(-2px); }
+.plan-modal[hidden] { display: none; }
+.plan-modal { position: fixed; z-index: 40; inset: 0; display: grid; place-items: center; padding: 20px; }
+.plan-modal-backdrop { position: absolute; inset: 0; background: rgba(20,48,61,.48); }
+.plan-modal-card { position: relative; width: min(100%, 560px); padding: 30px; border: 1px solid #c7e1e8; border-radius: 16px; background: #fff; box-shadow: 0 20px 55px rgba(20,48,61,.28); }
+.plan-modal-card h2 { margin: 5px 0 8px; color: #173f52; font-size: 24px; }
+.plan-modal-close { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; color: #315c70; background: #eef7f9; font-size: 24px; line-height: 1; cursor: pointer; }
+.plan-modal-options { display: grid; gap: 10px; margin-top: 20px; }
+.plan-modal-options button { min-height: 48px; border: 1px solid #afd3de; border-radius: 8px; color: #285266; background: #eff9fb; font: inherit; font-weight: 800; cursor: pointer; }
+.plan-modal-options button:hover { background: #dff2f6; }
+.plan-modal-note { margin: 18px 0 0; color: var(--home-muted); font-size: 12px; }
 .home-section { padding: 32px 0; border-bottom: 1px solid var(--home-line); }
 .home-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
 .home-section h2 { margin: 3px 0 0; font-size: 21px; }

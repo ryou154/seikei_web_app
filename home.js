@@ -37,9 +37,12 @@
     status.textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`;
     status.dataset.error = "false";
   }));
-  document.querySelector(".plan-prompt-bubble")?.addEventListener("click", () => {
-    window.setTimeout(() => document.getElementById("plans-title")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-  });
+  const planModal = element("plan-modal");
+  const closePlanModal = () => { if (planModal) planModal.hidden = true; };
+  document.querySelector(".plan-prompt-bubble")?.addEventListener("click", (event) => { event.preventDefault(); if (planModal) planModal.hidden = false; });
+  planModal?.querySelectorAll("[data-close-plan-modal]").forEach((item) => item.addEventListener("click", closePlanModal));
+  planModal?.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => { element("plan-modal-status").textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`; }));
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closePlanModal(); });
 
   function displayDate(value) {
     const date = new Date(value);
