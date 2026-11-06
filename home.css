@@ -31,7 +31,9 @@
 .plan-modal[hidden] { display: none; }
 .plan-modal { position: fixed; z-index: 40; inset: 0; display: grid; place-items: center; padding: 20px; }
 .plan-modal-backdrop { position: absolute; inset: 0; background: rgba(20,48,61,.48); }
-.plan-modal-card { position: relative; width: min(100%, 560px); padding: 30px; border: 1px solid #c7e1e8; border-radius: 16px; background: #fff; box-shadow: 0 20px 55px rgba(20,48,61,.28); }
+.plan-modal-card { position: relative; width: min(100%, 1120px); max-height: calc(100vh - 40px); overflow: auto; padding: 30px; border: 1px solid #c7e1e8; border-radius: 16px; background: #fff; box-shadow: 0 20px 55px rgba(20,48,61,.28); }
+.plan-modal-card .plan-card-grid { margin-top: 20px; }
+.plan-modal-card .plan-card-featured { transform: none; }
 .plan-modal-card h2 { margin: 5px 0 8px; color: #173f52; font-size: 24px; }
 .plan-modal-close { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; color: #315c70; background: #eef7f9; font-size: 24px; line-height: 1; cursor: pointer; }
 .plan-modal-options { display: grid; gap: 10px; margin-top: 20px; }
