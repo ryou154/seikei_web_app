@@ -32,6 +32,12 @@
     status.dataset.error = String(error);
   }
 
+  document.querySelectorAll(".plan-button").forEach((button) => button.addEventListener("click", () => {
+    const status = element("plan-status");
+    status.textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`;
+    status.dataset.error = "false";
+  }));
+
   function displayDate(value) {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? "保存日時不明" : date.toLocaleDateString("ja-JP");

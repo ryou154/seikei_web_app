@@ -22,6 +22,20 @@
         <a class="home-primary-action" href="app.html#input-title">新しいシミュレーション</a>
       </header>
 
+      <section class="home-section home-plans" aria-labelledby="plans-title">
+        <div class="home-section-heading">
+          <div><p class="section-kicker">Plans</p><h2 id="plans-title">プランを選ぶ</h2></div>
+          <span class="plan-demo-badge">デモ表示</span>
+        </div>
+        <p class="home-muted">より多くのシミュレーションや保存機能を利用できるプランです。</p>
+        <div class="plan-card-grid">
+          <article class="plan-card"><p class="plan-name">Free</p><h3>無料プラン</h3><p class="plan-price">¥0 <span>/ 月</span></p><ul><li>月3回までシミュレーション</li><li>履歴10件まで保存</li><li>クリニック情報の閲覧</li></ul><button class="plan-button" type="button" data-plan="無料プラン">現在のプラン</button></article>
+          <article class="plan-card plan-card-featured"><p class="plan-name">Standard</p><h3>スタンダード</h3><p class="plan-price">¥980 <span>/ 月</span></p><ul><li>月30回までシミュレーション</li><li>履歴を無制限に保存</li><li>詳細な比較・メモ機能</li></ul><button class="plan-button" type="button" data-plan="スタンダード">このプランを選ぶ</button></article>
+          <article class="plan-card"><p class="plan-name">Premium</p><h3>プレミアム</h3><p class="plan-price">¥1,980 <span>/ 月</span></p><ul><li>シミュレーション回数無制限</li><li>優先的な画像生成</li><li>限定レポート機能</li></ul><button class="plan-button" type="button" data-plan="プレミアム">このプランを選ぶ</button></article>
+        </div>
+        <p id="plan-status" class="home-status" role="status" aria-live="polite"></p>
+      </section>
+
       <section class="home-section home-region" aria-labelledby="region-title">
         <div class="home-section-heading">
           <div>
