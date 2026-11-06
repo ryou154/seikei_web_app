@@ -32,7 +32,29 @@
     status.dataset.error = String(error);
   }
 
+  function updatePlanPrompt() {
+    const prompt = document.querySelector(".plan-prompt-bubble");
+    if (!prompt) return;
+    let hasPaidPlan = false;
+    try {
+      hasPaidPlan = ["スタンダード", "プレミアム"].includes(localStorage.getItem("seikei-selected-plan"));
+    } catch {}
+    prompt.hidden = hasPaidPlan;
+  }
+
+  function selectPlan(button) {
+    try {
+      if (["スタンダード", "プレミアム"].includes(button.dataset.plan)) {
+        localStorage.setItem("seikei-selected-plan", button.dataset.plan);
+      } else {
+        localStorage.removeItem("seikei-selected-plan");
+      }
+    } catch {}
+    updatePlanPrompt();
+  }
+
   document.querySelectorAll(".plan-button").forEach((button) => button.addEventListener("click", () => {
+    selectPlan(button);
     const status = element("plan-status");
     status.textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`;
     status.dataset.error = "false";
@@ -41,7 +63,8 @@
   const closePlanModal = () => { if (planModal) planModal.hidden = true; };
   document.querySelector(".plan-prompt-bubble")?.addEventListener("click", (event) => { event.preventDefault(); if (planModal) planModal.hidden = false; });
   planModal?.querySelectorAll("[data-close-plan-modal]").forEach((item) => item.addEventListener("click", closePlanModal));
-  planModal?.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => { element("plan-modal-status").textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`; }));
+  planModal?.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => { selectPlan(button); element("plan-modal-status").textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`; }));
+  updatePlanPrompt();
   document.addEventListener("keydown", (event) => { if (event.key === "Escape") closePlanModal(); });
 
   function displayDate(value) {
