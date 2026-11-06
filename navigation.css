@@ -130,6 +130,11 @@
   outline-offset: 2px;
 }
 
+.common-navigation__links a[href="/mypage.html"],
+.common-navigation__links a[href="/help.html"] {
+  display: none;
+}
+
 
 /* =========================
    右：ログアウト

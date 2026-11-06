@@ -26,6 +26,7 @@
     { href: "/app.html#clinic-title", label: "クリニック" },
     { href: "/mypage.html", label: "マイページ" },
     { href: "/help.html", label: "ヘルプ" }
+    { href: "/admin-clinics.html", label: "管理" }
   ];
 
   const navigationLinks = [];
