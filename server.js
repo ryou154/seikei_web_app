@@ -66,7 +66,7 @@ const server = http.createServer(async (request, response) => {
       return;
     }
     if (request.url === "/api/admin/settings" && (request.method === "GET" || request.method === "PUT")) {
-      await requireAdmin(request, authorize);
+      const adminIdentity = await requireAdmin(request, authorize);
       if (request.method === "GET") {
         sendJson(response, 200, await adminSettingsDatabase.get());
       } else {
@@ -75,7 +75,7 @@ const server = http.createServer(async (request, response) => {
         if (body.blockedWords.length > 200 || body.blockedWords.some((word) => typeof word !== "string" || word.trim().length > 100)) {
           return sendJson(response, 400, { error: "禁止ワードは200件以内、1件100文字以内で入力してください。" });
         }
-        sendJson(response, 200, { blockedWords: await adminSettingsDatabase.saveBlockedWords(body.blockedWords) });
+        sendJson(response, 200, await adminSettingsDatabase.saveBlockedWords(body.blockedWords, adminIdentity.email));
       }
       return;
     }
