@@ -42,6 +42,21 @@
     prompt.hidden = hasPaidPlan;
   }
 
+  function updateCurrentPlan() {
+    const name = element("current-plan-name");
+    const detail = element("current-plan-detail");
+    if (!name || !detail) return;
+    let plan = "無料プラン";
+    try { plan = localStorage.getItem("seikei-selected-plan") || plan; } catch {}
+    const details = {
+      "無料プラン": "月3回までシミュレーション",
+      "スタンダード": "月30回・広告なし",
+      "プレミアム": "回数無制限・広告なし"
+    };
+    name.textContent = plan;
+    detail.textContent = details[plan] || details["無料プラン"];
+  }
+
   function selectPlan(button) {
     try {
       if (["スタンダード", "プレミアム"].includes(button.dataset.plan)) {
@@ -51,6 +66,7 @@
       }
     } catch {}
     updatePlanPrompt();
+    updateCurrentPlan();
   }
 
   document.querySelectorAll(".plan-button").forEach((button) => button.addEventListener("click", () => {
@@ -65,6 +81,7 @@
   planModal?.querySelectorAll("[data-close-plan-modal]").forEach((item) => item.addEventListener("click", closePlanModal));
   planModal?.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => { selectPlan(button); element("plan-modal-status").textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`; }));
   updatePlanPrompt();
+  updateCurrentPlan();
   document.addEventListener("keydown", (event) => { if (event.key === "Escape") closePlanModal(); });
 
   function displayDate(value) {
