@@ -225,6 +225,65 @@ h3 {
   font-size: 14px;
 }
 
+#gender-select {
+  display: none;
+}
+
+.radio-choice-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.radio-choice-group label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 110px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.radio-choice-group input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.detail-options-collapsible {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-options-collapsible summary {
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.detail-options-collapsible summary::after {
+  content: "▽";
+  float: right;
+  color: var(--primary);
+}
+
+.detail-options-collapsible[open] summary::after {
+  content: "△";
+}
+
+.detail-options-collapsible > label,
+.detail-options-collapsible > input,
+.detail-options-collapsible > div {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
 .detail-options-group label {
   display: flex;
   align-items: flex-start;
