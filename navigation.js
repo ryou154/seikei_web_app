@@ -134,10 +134,11 @@
   try {
     hasPaidPlan = ["スタンダード", "プレミアム"].includes(localStorage.getItem("seikei-selected-plan"));
   } catch {}
-  if (!isHelpPage && !isAdminPage) {
+  const isHomePage = location.pathname.endsWith("/home.html");
+  if (!isHelpPage && !isAdminPage && !isHomePage) {
     const prompts = document.createElement("div");
     prompts.className = "navigation-prompts";
-    if (!hasPaidPlan && !location.pathname.endsWith("/home.html")) {
+    if (!hasPaidPlan) {
       const plan = document.createElement("a");
       plan.className = "navigation-prompt navigation-plan-prompt";
       plan.href = "/home.html#plans-title";
