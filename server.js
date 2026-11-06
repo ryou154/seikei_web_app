@@ -443,7 +443,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/admin.js", "/admin/admin.css", "/admin-settings.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/blocked-words.html", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", "/admin-settings.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
@@ -456,6 +456,8 @@ function serveStatic(request, response) {
       ? "admin/index.html"
       : urlPath === "/admin/clinics.html"
         ? "admin-clinics.html"
+        : urlPath === "/admin/api-usage.html" || urlPath === "/admin/blocked-words.html"
+          ? urlPath.replace(/^[/\\]+/, "")
       : urlPath.replace(/^[/\\]+/, "");
   const safePath = path.normalize(relativePath).replace(/^(\.\.[/\\])+/, "");
   const filePath = path.join(root, safePath);
