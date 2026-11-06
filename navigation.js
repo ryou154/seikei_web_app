@@ -24,8 +24,7 @@
     { href: "/app.html#input-title", label: "シミュレーション" },
     { href: "/history.html", label: "履歴" },
     { href: "/app.html#clinic-title", label: "クリニック" },
-    { href: "/mypage.html", label: "マイページ" },
-    { href: "/admin-clinics.html", label: "管理" }
+    { href: "/mypage.html", label: "マイページ" }
   ];
 
   const navigationLinks = [];

@@ -11,6 +11,12 @@
 .admin-card span:last-child { color: var(--muted); font-size: 14px; line-height: 1.7; }
 .admin-card-kicker { color: var(--primary-dark); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 .admin-card-muted { background: #f5f8f9; }
+.api-usage-panel { min-height: 220px; }
+.api-usage-panel > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.usage-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
+.usage-metrics div { display: grid; gap: 5px; padding: 12px; border: 1px solid #d7e7ec; border-radius: 9px; background: #fff; }
+.usage-metrics span { color: var(--muted); font-size: 12px; }
+.usage-metrics strong { color: #285266; font-size: 17px; }
 .admin-settings-card { align-content: start; }
 .admin-settings-card label { color: var(--muted); font-size: 13px; font-weight: 700; }
 .admin-settings-card textarea { min-height: 110px; resize: vertical; }
@@ -34,4 +40,5 @@
   .admin-sidebar-overlay { position: fixed; z-index: 10; inset: 0; background: rgba(23,60,78,.35); }
   .admin-sidebar-overlay:not([hidden]) { display: block; }
   .admin-card-grid { grid-template-columns: 1fr; }
+  .usage-metrics { grid-template-columns: 1fr; }
 }
