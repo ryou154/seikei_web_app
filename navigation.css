@@ -200,6 +200,13 @@
   font-weight: 800;
 }
 
+.common-navigation__avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .common-navigation__account-menu {
   position: absolute;
   top: calc(100% - 2px);

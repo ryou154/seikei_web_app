@@ -73,12 +73,25 @@
     account.hidden = !auth?.signedIn;
     const accountName = auth?.signedIn ? (auth.displayName || auth.email || "ユーザー") : "";
     email.textContent = accountName.length > 18 ? `${accountName.slice(0, 18)}…` : accountName;
-    avatar.textContent = accountName.trim().charAt(0).toUpperCase() || "U";
+    avatar.textContent = "";
+    let savedIcon = "";
+    try { savedIcon = auth?.uid ? localStorage.getItem(`meylon-profile-icon:${auth.uid}`) || "" : ""; } catch {}
+    if (savedIcon) {
+      const image = document.createElement("img");
+      image.src = savedIcon;
+      image.alt = "";
+      avatar.append(image);
+    } else {
+      avatar.textContent = accountName.trim().charAt(0).toUpperCase() || "U";
+    }
     logout.disabled = !auth?.signedIn || auth.busy;
     logout.textContent = auth?.busy ? "処理中…" : "ログアウト";
   }
   window.addEventListener("auth-state-changed", updateAccount);
   window.addEventListener("profile-updated", updateAccount);
+  window.addEventListener("storage", (event) => {
+    if (!event.key || event.key.startsWith("meylon-profile-icon:")) updateAccount();
+  });
   updateAccount();
 
   function updateCurrentPage() {
