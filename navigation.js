@@ -128,6 +128,26 @@
   window.addEventListener("app-authorized", () => showPage());
   window.addEventListener("auth-state-changed", stopSlide);
   reducedMotion?.addEventListener("change", stopSlide);
+  const isHelpPage = location.pathname.endsWith("/help.html");
+  const isAdminPage = location.pathname.includes("/admin") || location.pathname.endsWith("/admin-clinics.html");
+  if (!isHelpPage && !isAdminPage) {
+    const prompts = document.createElement("div");
+    prompts.className = "navigation-prompts";
+    if (!location.pathname.endsWith("/home.html")) {
+      const plan = document.createElement("a");
+      plan.className = "navigation-prompt navigation-plan-prompt";
+      plan.href = "/home.html#plans-title";
+      plan.innerHTML = "有料プランは<br>いかがですか？ <b aria-hidden=\"true\">→</b>";
+      prompts.append(plan);
+    }
+    const help = document.createElement("a");
+    help.className = "navigation-prompt navigation-help-prompt";
+    help.href = "/help.html";
+    help.setAttribute("aria-label", "ヘルプを開く");
+    help.innerHTML = "？<span>ヘルプ</span>";
+    prompts.append(help);
+    document.body.append(prompts);
+  }
   showPage(false);
 })();
 

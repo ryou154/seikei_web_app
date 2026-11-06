@@ -28,6 +28,7 @@
 .plan-prompt-bubble::after { content: ""; position: absolute; right: 4px; bottom: -8px; width: 16px; height: 16px; border-right: 1px solid #9bcbd8; border-bottom: 1px solid #9bcbd8; background: #eaf8fb; transform: skewY(35deg) rotate(18deg); }
 .plan-prompt-bubble b { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; color: #fff; background: #4b94ad; font-size: 17px; }
 .plan-prompt-bubble:hover { color: #173f52; background: #dff3f7; transform: translateY(-2px); }
+.home-help-bubble { position: fixed; z-index: 8; right: 24px; bottom: 104px; display: inline-flex; align-items: center; gap: 7px; padding: 10px 13px; border: 1px solid #9bcbd8; border-radius: 16px 16px 5px 16px; color: #285266; background: #fff; box-shadow: 0 8px 20px rgba(55,105,132,.16); font-size: 18px; font-weight: 850; text-decoration: none; }.home-help-bubble span { font-size: 12px; }.home-help-bubble:hover { background: #eef9fb; transform: translateY(-2px); }
 .plan-modal[hidden] { display: none; }
 .plan-modal { position: fixed; z-index: 40; inset: 0; display: grid; place-items: center; padding: 20px; }
 .plan-modal-backdrop { position: absolute; inset: 0; background: rgba(20,48,61,.48); }
@@ -104,6 +105,7 @@
   .plan-card-grid { grid-template-columns: 1fr; }
   .plan-card-featured { transform: none; }
   .plan-prompt-bubble { right: 14px; bottom: 14px; font-size: 12px; }
+  .home-help-bubble { right: 14px; bottom: 86px; }
   .home-summary { grid-template-columns: 1fr; gap: 18px; }
   .home-summary dl { justify-content: space-between; }
 }
