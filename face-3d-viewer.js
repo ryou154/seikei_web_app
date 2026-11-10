@@ -61,9 +61,18 @@ function facialDepth(point, normalized, points, width, height) {
 function createFaceGeometry(analysis) {
   const scanViews = Object.values(analysis.scan?.views || {})
     .filter((view) => Array.isArray(view.landmarks) && view.landmarks.length === analysis.landmarks.length);
+  const referenceFaceWidth = Number(analysis.scan?.views?.front?.capture?.faceWidthInFrame) || 0;
   const points = analysis.landmarks.map(({ x, y, z = 0 }, index) => {
     if (!scanViews.length) return { x, y, z };
-    const depths = scanViews.map((view) => Number(view.landmarks[index]?.z)).filter(Number.isFinite);
+    const depths = scanViews.map((view) => {
+      const value = Number(view.landmarks[index]?.z);
+      const frameWidth = Number(view.capture?.faceWidthInFrame) || referenceFaceWidth;
+      // Normalize MediaPipe's relative depth by the captured face scale so
+      // different camera distances do not distort the reconstructed surface.
+      return Number.isFinite(value) && frameWidth > 0 && referenceFaceWidth > 0
+        ? value * referenceFaceWidth / frameWidth
+        : value;
+    }).filter(Number.isFinite);
     const averageDepth = depths.length
       ? depths.reduce((sum, value) => sum + value, 0) / depths.length
       : z;

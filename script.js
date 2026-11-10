@@ -754,7 +754,23 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
 
 function acceptGuidedScanView(stepKey, imageData, analysis) {
   const front = guidedScan.views.front?.analysis.metrics;
-  guidedScan.views[stepKey] = { imageData, analysis };
+  guidedScan.views[stepKey] = {
+    imageData,
+    analysis,
+    capture: {
+      capturedAt: new Date().toISOString(),
+      sourceWidth: cameraPreview.videoWidth,
+      sourceHeight: cameraPreview.videoHeight,
+      imageWidth: captureCanvas.width,
+      imageHeight: captureCanvas.height,
+      faceWidthInFrame: analysis.metrics.faceWidthInFrame,
+      faceHeightInFrame: analysis.metrics.faceHeightInFrame,
+      frameCenterOffsetX: analysis.metrics.frameCenterOffsetX,
+      frameCenterOffsetY: analysis.metrics.frameCenterOffsetY,
+      yawRatio: analysis.metrics.yawRatio,
+      pitchRatio: analysis.metrics.pitchRatio
+    }
+  };
   if (stepKey === "left") {
     guidedScan.horizontalSign = Math.sign(analysis.metrics.yawRatio - front.yawRatio) || 1;
   }
@@ -804,7 +820,8 @@ function completeGuidedScan() {
     views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
       landmarks: view.analysis.landmarks,
       meshConnections: view.analysis.meshConnections,
-      metrics: view.analysis.metrics
+      metrics: view.analysis.metrics,
+      capture: view.capture
     }]))
   };
   cameraScanProgressBar.style.width = "100%";
