@@ -1736,6 +1736,70 @@ button:hover:not(:disabled) {
 
 .three-face-fallback[hidden] { display: none; }
 
+.directional-after-viewer {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.directional-after-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.directional-after-tab {
+  flex: 1 1 72px;
+  min-height: 40px;
+  border: 1px solid #c6dce8;
+  border-radius: 10px;
+  background: #fffefa;
+  color: #294657;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.directional-after-tab:hover,
+.directional-after-tab.is-active {
+  background: #e8f4f8;
+  border-color: #78b4cd;
+}
+
+.directional-after-tab:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.directional-after-stage {
+  position: relative;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f7e8ee;
+}
+
+.directional-after-image {
+  display: block;
+  width: 100%;
+  max-height: 560px;
+  object-fit: contain;
+}
+
+.directional-after-status {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  margin: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(69 26 53 / 72%);
+  font-size: 0.8rem;
+}
+
 .three-face-fallback-layer {
   position: absolute;
   inset: 0;
