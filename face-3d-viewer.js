@@ -131,9 +131,10 @@ function mount(container, imageData, analysis) {
   const group = new THREE.Group(); scene.add(group); scene.add(new THREE.HemisphereLight(0xffffff, 0x7d516b, 1.8));
   const light = new THREE.DirectionalLight(0xffffff, 2.4); light.position.set(0.4, 0.8, 2.5); scene.add(light);
   const geometry = createFaceGeometry(analysis);
+  let textureReady = false;
   const texture = new THREE.TextureLoader().load(
     imageData,
-    () => { fallbackImage.hidden = false; },
+    () => { textureReady = true; fallbackImage.hidden = false; },
     undefined,
     () => { fallbackImage.hidden = false; }
   );
@@ -149,6 +150,7 @@ function mount(container, imageData, analysis) {
     if (!active) return;
     try {
       renderer.render(scene, camera);
+      if (textureReady && geometry.index?.count >= 3) fallbackImage.hidden = true;
       requestAnimationFrame(animate);
     } catch (error) {
       console.warn("3D描画に失敗したため画像表示へ切り替えます", error);
