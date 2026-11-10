@@ -128,6 +128,13 @@ test("successful login redirects to home only after verification and authorizati
   assert.deepEqual(app.state.redirects, ["/home.html"]);
 });
 
+test("authorized admin index stays on the admin dashboard", async () => {
+  const app = await setup("/admin/index.html");
+  await app.login("alice", true);
+  assert.deepEqual(app.state.redirects, []);
+  assert.equal(app.api.uid, "alice");
+});
+
 test("a stale token is refreshed once and the Firebase app is initialized once", async () => {
   const app = await setup();
   app.state.sessionStatuses.push(401, 200);
