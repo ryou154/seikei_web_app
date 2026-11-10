@@ -19,6 +19,7 @@
     "clinics:official:auto-apply": "node --env-file-if-exists=.env scripts/sync-clinic-official.js --all --limit 50 --execute --auto-apply"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^8.1.1",
     "@google-cloud/firestore": "^9.2.0",
     "@mediapipe/tasks-vision": "^1.1.1",
     "firebase-admin": "14.5.0",
