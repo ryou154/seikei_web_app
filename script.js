@@ -1249,6 +1249,26 @@ function renderAfterImageViewer(container, imageData) {
   });
 }
 
+function combineAfterShapeWithScanDepth(afterAnalysis, scanAnalysis) {
+  if (!scanAnalysis?.ok || !scanAnalysis.landmarks?.length) return afterAnalysis;
+  if (!afterAnalysis?.ok || !afterAnalysis.landmarks?.length) return scanAnalysis;
+  const landmarks = afterAnalysis.landmarks.map((point, index) => ({
+    ...point,
+    // Keep the generated image's 2D shape while reusing the depth measured
+    // during the guided scan. A front-facing generated image cannot provide
+    // reliable new depth by itself.
+    z: scanAnalysis.landmarks[index]?.z ?? point.z
+  }));
+  return {
+    ...afterAnalysis,
+    ok: true,
+    landmarks,
+    meshConnections: afterAnalysis.meshConnections?.length
+      ? afterAnalysis.meshConnections
+      : scanAnalysis.meshConnections
+  };
+}
+
 async function renderResult(result) {
   const ownerUid = window.AppAuth?.uid;
   const stillCurrent = () => latestResult === result && (!ownerUid || window.AppAuth?.uid === ownerUid);
@@ -1284,11 +1304,15 @@ async function renderResult(result) {
     result.afterImage = generatedImage;
     renderAfterImageViewer(afterImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
+    const meshAnalysis = combineAfterShapeWithScanDepth(result.afterFaceAnalysis, result.faceAnalysis);
     const mountThreeViewer = (attempt = 0) => {
       const threeViewer = afterImage.querySelector(".face-3d-viewer");
       if (!threeViewer) return;
       if (window.Face3DViewer) {
-        window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, result.afterFaceAnalysis);
+        const mounted = window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, meshAnalysis);
+        if (!mounted) {
+          threeViewer.parentElement.innerHTML = `<img class="after-3d-fallback-image" src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
+        }
         return;
       }
       if (attempt < 20) window.setTimeout(() => mountThreeViewer(attempt + 1), 100);
