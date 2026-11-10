@@ -1164,7 +1164,11 @@ function renderAfterImageViewer(container, imageData) {
   // The Three.js landmark mesh is mounted after face analysis. Keep only a
   // placeholder here so the legacy radial-strip renderer cannot flash or
   // replace the real mesh.
-  container.innerHTML = '<div class="face-3d-viewer" aria-label="シミュレーション後の顔3Dモデルを読み込み中"></div>';
+  container.innerHTML = `
+    <div class="face-3d-viewer" aria-label="シミュレーション後の顔3Dモデルを読み込み中">
+      <img class="three-face-fallback" src="${imageData}" alt="シミュレーション後の予測イメージ">
+      <p class="face-3d-help">3Dモデルを準備しています…</p>
+    </div>`;
   return;
   container.innerHTML = `
     <div class="face-3d-viewer" data-rotation="0" tabindex="0" aria-label="After画像の3Dビュー。左右にドラッグまたはスワイプして回転できます。">
