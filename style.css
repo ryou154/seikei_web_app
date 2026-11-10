@@ -1715,7 +1715,7 @@ button:hover:not(:disabled) {
   min-height: 260px;
   overflow: hidden;
   cursor: ew-resize;
-  touch-action: pan-y;
+  touch-action: none;
   background: radial-gradient(circle at 50% 35%, #fff7fa, #f1dce6);
 }
 
