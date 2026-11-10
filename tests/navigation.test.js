@@ -51,18 +51,13 @@ test("navigation keeps the menu still, slides page content and resets scroll for
   assert.equal(menuAnchors()[1].href, "/home.html");
   assert.equal(menuAnchors()[1].textContent, "ホーム");
   assert.equal(menuAnchors()[3].href, "/history.html");
-  const adminLink = menuAnchors().find((anchor) => anchor.href === "/admin/");
-  assert.equal(adminLink?.textContent, "管理");
+  assert.equal(menuAnchors().some((anchor) => anchor.href.startsWith("/admin")), false);
   assert.equal(history.scrollRestoration, "manual");
   assert.equal(slides.length, 0);
   for (const anchor of menuAnchors()) {
     const [file, id] = anchor.href.split("#");
-    const relativeFile = file === "/admin/" ? "admin/index.html" : file.replace(/^\//, "");
+    const relativeFile = file.replace(/^\//, "");
     const html = fs.readFileSync(path.join(__dirname, "..", relativeFile), "utf8");
-    if (file === "/admin/") {
-      assert.ok(html.includes('id="admin-sidebar"'));
-      continue;
-    }
     const navigationIndex = html.indexOf('id="common-navigation"');
     const contentIndex = html.indexOf('id="page-transition-content"');
     assert.ok(navigationIndex >= 0);

@@ -23,8 +23,7 @@
     { href: "/home.html", label: "ホーム" },
     { href: "/app.html#input-title", label: "シミュレーション" },
     { href: "/history.html", label: "履歴" },
-    { href: "/app.html#clinic-title", label: "クリニック" },
-    { href: "/admin/", label: "管理" }
+    { href: "/app.html#clinic-title", label: "クリニック" }
   ];
 
   const navigationLinks = [];

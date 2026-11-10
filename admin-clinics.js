@@ -573,6 +573,7 @@
     try {
       const access = await window.AppAuth.fetch("/api/admin/session");
       if (!access.ok) throw new Error("管理者権限がありません。");
+      document.body.classList.remove("admin-auth-pending");
     } catch (error) {
       byId("admin-access-status").textContent = error.message || "管理者権限がありません。";
       initialized = false;
