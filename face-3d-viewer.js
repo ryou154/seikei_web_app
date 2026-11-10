@@ -80,7 +80,24 @@ function mount(container, imageData, analysis) {
   root.setAttribute("aria-label", "シミュレーション後の顔3Dモデル。左右にドラッグして回転できます。");
   const canvas = document.createElement("canvas"); root.append(canvas);
   const help = document.createElement("p"); help.className = "face-3d-help"; help.textContent = "左右にドラッグ／スワイプして顔の凹凸を確認"; root.append(help); container.append(root);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const showFallback = () => {
+    root.replaceChildren();
+    const image = document.createElement("img");
+    image.className = "three-face-fallback";
+    image.src = imageData;
+    image.alt = "シミュレーション後の予測イメージ";
+    root.append(image);
+  };
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
+  } catch (error) {
+    console.warn("3D表示を初期化できないため画像表示へ切り替えます", error);
+    showFallback();
+    return false;
+  }
   const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 10); camera.position.z = 3.2;
   const group = new THREE.Group(); scene.add(group); scene.add(new THREE.HemisphereLight(0xffffff, 0x7d516b, 1.8));
   const light = new THREE.DirectionalLight(0xffffff, 2.4); light.position.set(0.4, 0.8, 2.5); scene.add(light);
@@ -92,7 +109,18 @@ function mount(container, imageData, analysis) {
   root.addEventListener("pointerup", () => { dragging = false; }); root.addEventListener("pointercancel", () => { dragging = false; });
   const resize = () => { const w = Math.max(root.clientWidth, 1); const h = Math.max(root.clientHeight, 1); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
   const observer = new ResizeObserver(resize); observer.observe(root); resize(); let active = true;
-  const animate = () => { if (active) { renderer.render(scene, camera); requestAnimationFrame(animate); } }; animate();
+  const animate = () => {
+    if (!active) return;
+    try {
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    } catch (error) {
+      console.warn("3D描画に失敗したため画像表示へ切り替えます", error);
+      active = false;
+      showFallback();
+    }
+  };
+  animate();
   viewers.set(container, { dispose() { active = false; observer.disconnect(); texture.dispose(); geometry.dispose(); material.dispose(); renderer.dispose(); } }); return true;
 }
 

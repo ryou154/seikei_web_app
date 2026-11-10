@@ -1725,6 +1725,13 @@ button:hover:not(:disabled) {
   height: 100%;
 }
 
+.three-face-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .app-page .comparison .image-placeholder,
 .app-page .comparison .after-preview,
 
