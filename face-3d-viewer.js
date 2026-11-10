@@ -115,7 +115,7 @@ function mount(container, imageData, analysis) {
   const geometry = createFaceGeometry(analysis);
   const texture = new THREE.TextureLoader().load(
     imageData,
-    () => { fallbackImage.hidden = true; },
+    () => { fallbackImage.hidden = false; },
     undefined,
     () => { fallbackImage.hidden = false; }
   );
