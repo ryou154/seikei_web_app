@@ -1,0 +1,66 @@
+.admin-dashboard-page { min-height: 100vh; background: #f4f8fa; }
+.admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: 280px; margin-right: 32px; }
+.admin-dashboard-header { margin-bottom: 24px; }
+.admin-dashboard { margin-bottom: 48px; }
+.admin-dashboard[hidden] { display: none; }
+.admin-dashboard-status { min-height: 1.5em; margin: 0 0 18px; color: var(--muted); }
+.admin-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.admin-card { display: grid; gap: 8px; min-height: 170px; padding: 24px; border: 1px solid #cfe3ea; border-radius: 14px; color: var(--ink); background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); text-decoration: none; }
+.admin-card:hover { border-color: #7fb8ca; transform: translateY(-2px); }
+.admin-card strong { font-size: 21px; }
+.admin-card span:last-child { color: var(--muted); font-size: 14px; line-height: 1.7; }
+.admin-card-kicker { color: var(--primary-dark); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.admin-card-muted { background: #f5f8f9; }
+.api-usage-panel { min-height: 220px; }
+.api-usage-panel > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.usage-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
+.usage-metrics div { display: grid; gap: 5px; padding: 12px; border: 1px solid #d7e7ec; border-radius: 9px; background: #fff; }
+.usage-metrics span { color: var(--muted); font-size: 12px; }
+.usage-metrics strong { color: #285266; font-size: 17px; }
+.admin-settings-card { align-content: start; }
+.admin-settings-card label { color: var(--muted); font-size: 13px; font-weight: 700; }
+.admin-settings-card textarea { min-height: 110px; resize: vertical; }
+.admin-settings-card button { width: fit-content; }
+.admin-inline-status { min-height: 1.4em; color: var(--muted); font-size: 13px; }
+.admin-dashboard > .sub-button { margin-top: 24px; }
+.admin-sub-content { width: min(100% - 32px, 1040px); margin: 42px 32px 48px 280px; }
+.admin-sub-content h1 { margin: 6px 0 8px; color: #173c4e; }
+.admin-sub-content .lead { margin: 0 0 28px; color: var(--muted); }
+.usage-metrics-large { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.usage-metrics-large div { display: grid; gap: 8px; min-height: 130px; padding: 22px; border: 1px solid #cfe3ea; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); }
+.usage-metrics-large span { color: var(--muted); font-size: 13px; font-weight: 700; }
+.usage-metrics-large strong { color: #285266; font-size: 24px; }
+.usage-metrics-large small { color: var(--muted); }
+.admin-settings-page-card { display: grid; gap: 12px; max-width: 760px; padding: 24px; border: 1px solid #cfe3ea; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); }
+.admin-settings-page-card textarea { width: 100%; box-sizing: border-box; }
+.blocked-word-add { display: flex; gap: 10px; }
+.blocked-word-add input { flex: 1; }
+.blocked-word-list { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.blocked-word-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid #d7e7ec; border-radius: 8px; color: #285266; background: #f7fbfc; }
+.blocked-word-list .sub-button { min-height: 32px; padding: 5px 10px; font-size: 12px; }
+.admin-history-table-wrap { overflow-x: auto; }
+.admin-history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-history-table th, .admin-history-table td { padding: 10px 8px; border-bottom: 1px solid #d7e7ec; text-align: left; white-space: nowrap; }
+.admin-history-table th { color: #456879; font-weight: 800; }
+.inquiry-toolbar { display: flex; gap: 10px; margin: 18px 0; }.inquiry-toolbar select { min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font: inherit; }.inquiry-list { display: grid; gap: 14px; }.inquiry-card { padding: 18px; border: 1px solid #cfe3ea; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(55,105,132,.07); }.inquiry-card-head { display: flex; justify-content: space-between; gap: 12px; }.inquiry-card-head span,.inquiry-email { color: var(--muted); font-size: 12px; }.inquiry-message { white-space: pre-wrap; line-height: 1.7; }.inquiry-toggle { min-height: 36px; padding: 7px 12px; font-size: 13px; }
+.admin-sidebar-toggle { position: fixed; z-index: 30; top: 20px; left: 20px; display: grid; gap: 5px; width: 44px; height: 44px; padding: 11px 10px; border: 1px solid #cfe3ea; border-radius: 10px; background: #fff; box-shadow: 0 4px 16px rgba(55,105,132,.12); cursor: pointer; }
+.admin-sidebar-toggle span { display: block; height: 2px; border-radius: 2px; background: #285266; }
+.admin-sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 240px; padding: 88px 18px 22px; border-right: 1px solid #cfe3ea; background: #fff; box-shadow: 8px 0 24px rgba(55,105,132,.08); }
+.admin-sidebar-brand { display: grid; gap: 4px; padding: 0 14px 28px; }
+.admin-sidebar-brand strong { color: #173c4e; font-size: 20px; }
+.admin-sidebar nav { display: grid; gap: 6px; }
+.admin-sidebar-link { padding: 12px 14px; border-radius: 9px; color: #456879; font-size: 14px; font-weight: 800; text-decoration: none; }
+.admin-sidebar-link:hover,.admin-sidebar-link.is-active { color: #173c4e; background: #eaf5f9; }
+.admin-sidebar > .sub-button { margin: auto 14px 0; }
+.admin-sidebar-overlay { display: none; }
+@media (max-width: 760px) {
+  .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
+  .admin-sidebar { transform: translateX(-100%); transition: transform .2s ease; }
+  .admin-dashboard-page.sidebar-open .admin-sidebar { transform: translateX(0); }
+  .admin-sidebar-overlay { position: fixed; z-index: 10; inset: 0; background: rgba(23,60,78,.35); }
+  .admin-sidebar-overlay:not([hidden]) { display: block; }
+  .admin-card-grid { grid-template-columns: 1fr; }
+  .usage-metrics { grid-template-columns: 1fr; }
+  .admin-sub-content { width: min(100% - 32px, 1040px); margin: 32px auto 48px; }
+  .usage-metrics-large { grid-template-columns: 1fr; }
+}

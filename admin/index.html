@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 | MEYLON</title>
+  <link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../navigation.css"><link rel="stylesheet" href="admin.css">
+  <script src="../navigation.js" defer></script>
+</head>
+<body class="admin-dashboard-page">
+  <button id="admin-sidebar-toggle" class="admin-sidebar-toggle" type="button" aria-label="管理メニューを開く" aria-expanded="false"><span></span><span></span><span></span></button>
+  <aside id="admin-sidebar" class="admin-sidebar" aria-label="管理メニュー">
+    <div class="admin-sidebar-brand"><span class="admin-card-kicker">MEYLON</span><strong>管理画面</strong></div>
+    <nav>
+      <a class="admin-sidebar-link is-active" href="#admin-home">ダッシュボード</a>
+      <a class="admin-sidebar-link" href="clinics.html">クリニック管理</a>
+      <a class="admin-sidebar-link" href="api-usage.html">API使用料</a>
+      <a class="admin-sidebar-link" href="blocked-words.html">禁止ワード</a>
+      <a class="admin-sidebar-link" href="inquiries.html">問い合わせ</a>
+    </nav>
+    <button id="admin-logout" class="sub-button" type="button">ログアウト</button>
+  </aside>
+  <div id="admin-sidebar-overlay" class="admin-sidebar-overlay" hidden></div>
+  <header id="admin-home" class="app-header admin-dashboard-header"><p class="eyebrow">ADMIN CONSOLE</p><h1>管理画面</h1><p class="lead">管理者権限を持つアカウント専用の設定画面です。</p></header>
+  <main id="admin-content" class="admin-dashboard" hidden>
+    <p id="admin-status" class="admin-dashboard-status" role="status" aria-live="polite"></p>
+    <section class="admin-card-grid" aria-label="管理メニュー">
+      <a class="admin-card" href="clinics.html"><span class="admin-card-kicker">CLINICS</span><strong>クリニック管理</strong><span>公開情報、施術、料金、公式情報を確認・編集します。</span></a>
+      <a class="admin-card admin-card-muted" href="api-usage.html"><span class="admin-card-kicker">API USAGE</span><strong>API使用料</strong><span>Gemini・Google Placesの利用状況を確認します。</span></a>
+      <a class="admin-card admin-card-muted" href="blocked-words.html"><span class="admin-card-kicker">SAFETY</span><strong>禁止ワード</strong><span>シミュレーション入力で使用できない語句を設定します。</span></a>
+    </section>
+    <button id="admin-logout" class="sub-button" type="button">ログアウト</button>
+  </main>
+  <script type="module" src="../auth-core.js"></script><script type="module" src="admin.js"></script>
+</body>
+</html>
