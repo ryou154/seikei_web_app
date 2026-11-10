@@ -112,7 +112,14 @@ function mount(container, imageData, analysis) {
   const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 10); camera.position.z = 3.2;
   const group = new THREE.Group(); scene.add(group); scene.add(new THREE.HemisphereLight(0xffffff, 0x7d516b, 1.8));
   const light = new THREE.DirectionalLight(0xffffff, 2.4); light.position.set(0.4, 0.8, 2.5); scene.add(light);
-  const geometry = createFaceGeometry(analysis); const texture = new THREE.TextureLoader().load(imageData); texture.colorSpace = THREE.SRGBColorSpace;
+  const geometry = createFaceGeometry(analysis);
+  const texture = new THREE.TextureLoader().load(
+    imageData,
+    () => { fallbackImage.hidden = true; },
+    undefined,
+    () => { fallbackImage.hidden = false; }
+  );
+  texture.colorSpace = THREE.SRGBColorSpace;
   const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.82, metalness: 0, side: THREE.DoubleSide }); group.add(new THREE.Mesh(geometry, material));
   let dragging = false; let lastX = 0;
   root.addEventListener("pointerdown", (e) => { dragging = true; lastX = e.clientX; root.setPointerCapture(e.pointerId); });

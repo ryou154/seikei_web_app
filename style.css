@@ -1734,6 +1734,8 @@ button:hover:not(:disabled) {
   object-fit: contain;
 }
 
+.three-face-fallback[hidden] { display: none; }
+
 .three-face-fallback-layer {
   position: absolute;
   inset: 0;
