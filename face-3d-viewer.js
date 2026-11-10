@@ -42,14 +42,20 @@ function facialDepth(point, normalized, points, width, height) {
   const leftEye = landmarkCenter(points, [33, 133, 159, 145], { x: 0.39, y: 0.41 });
   const rightEye = landmarkCenter(points, [263, 362, 386, 374], { x: 0.61, y: 0.41 });
   const mouth = landmarkCenter(points, [61, 291, 13, 14], { x: 0.5, y: 0.68 });
-  const cheekBase = 0.08 * Math.sqrt(Math.max(0, 1 - normalized.x * normalized.x * 1.7));
-  const noseBridge = gaussian(point, nose, width * 0.115, height * 0.22) * 0.18;
-  const noseTip = gaussian(point, nose, width * 0.075, height * 0.105) * 0.22;
+  const forehead = gaussian(point, { x: 0.5, y: 0.29 }, width * 0.27, height * 0.18) * 0.055;
+  const cheeks = (gaussian(point, { x: 0.39, y: 0.54 }, width * 0.17, height * 0.2) +
+    gaussian(point, { x: 0.61, y: 0.54 }, width * 0.17, height * 0.2)) * 0.045;
+  const chin = gaussian(point, { x: 0.5, y: 0.82 }, width * 0.16, height * 0.12) * 0.065;
+  const noseBridge = gaussian(point, { x: nose.x, y: nose.y - height * 0.09 }, width * 0.055, height * 0.19) * 0.22;
+  const noseTip = gaussian(point, nose, width * 0.075, height * 0.09) * 0.32;
+  const noseWings = gaussian(point, { x: nose.x, y: nose.y + height * 0.025 }, width * 0.14, height * 0.06) * 0.08;
   const eyeSocket = (gaussian(point, leftEye, width * 0.105, height * 0.055) +
-    gaussian(point, rightEye, width * 0.105, height * 0.055)) * -0.055;
-  const mouthVolume = gaussian(point, mouth, width * 0.12, height * 0.055) * 0.08;
-  const landmarkDepth = clamp(-Number(point.z || 0) / width, -0.12, 0.12);
-  return clamp(cheekBase + noseBridge + noseTip + eyeSocket + mouthVolume + landmarkDepth * 0.45, -0.16, 0.48);
+    gaussian(point, rightEye, width * 0.105, height * 0.055)) * -0.075;
+  const mouthVolume = gaussian(point, mouth, width * 0.12, height * 0.06) * 0.11;
+  const landmarkDepth = clamp(-Number(point.z || 0) / width, -0.16, 0.16);
+  // Keep the cheeks and forehead close to a facial plane; only named facial
+  // regions receive strong displacement, avoiding an oval/sphere silhouette.
+  return clamp(forehead + cheeks + chin + noseBridge + noseTip + noseWings + eyeSocket + mouthVolume + landmarkDepth * 0.7, -0.2, 0.62);
 }
 
 function createFaceGeometry(analysis) {
