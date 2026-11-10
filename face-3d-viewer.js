@@ -84,6 +84,11 @@ function mount(container, imageData, analysis) {
   viewers.get(container)?.dispose(); container.replaceChildren();
   const root = document.createElement("div"); root.className = "three-face-viewer"; root.tabIndex = 0;
   root.setAttribute("aria-label", "シミュレーション後の顔3Dモデル。左右にドラッグして回転できます。");
+  const fallbackImage = document.createElement("img");
+  fallbackImage.className = "three-face-fallback three-face-fallback-layer";
+  fallbackImage.src = imageData;
+  fallbackImage.alt = "シミュレーション後の予測イメージ";
+  root.append(fallbackImage);
   const canvas = document.createElement("canvas"); root.append(canvas);
   const help = document.createElement("p"); help.className = "face-3d-help"; help.textContent = "左右にドラッグ／スワイプして顔の凹凸を確認"; root.append(help); container.append(root);
   const showFallback = () => {
