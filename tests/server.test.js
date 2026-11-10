@@ -92,6 +92,8 @@ test("login page starts locked and public assets are available", async () => {
   const adminClinics = await (await fetch(`${base}/admin-clinics.html`)).text();
   const adminClinicsScript = await (await fetch(`${base}/admin-clinics.js`)).text();
   const adminIndex = await (await fetch(`${base}/admin/`)).text();
+  const adminApiUsage = await (await fetch(`${base}/admin/api-usage.html`)).text();
+  const adminBlockedWords = await (await fetch(`${base}/admin/blocked-words.html`)).text();
   const adminInquiriesScript = await (await fetch(`${base}/admin/inquiries.js`)).text();
   const adminCss = await (await fetch(`${base}/admin/admin.css`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
@@ -114,6 +116,8 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(adminClinics, /href="\/admin\/">ダッシュボード<\/a>/);
   assert.match(adminClinicsScript, /classList\.remove\("admin-auth-pending"\)/);
   assert.match(adminIndex, /id="admin-content"[^>]*hidden/);
+  assert.match(adminApiUsage, /href="inquiries\.html">問い合わせ<\/a>/);
+  assert.match(adminBlockedWords, /href="inquiries\.html">問い合わせ<\/a>/);
   assert.match(adminInquiriesScript, /\/api\/admin\/session/);
   assert.match(adminCss, /\.admin-dashboard-page[^}]*visibility:\s*hidden/);
   assert.match(adminClinics, /id="published-prefecture"/);
