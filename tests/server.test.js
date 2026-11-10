@@ -56,6 +56,9 @@ test("history read, save and deletion reject missing or forged authentication ov
       ["GET", "/api/account/profile"],
       ["GET", "/api/clinics"],
       ["GET", "/api/clinics/clinic-test"],
+      ["GET", "/api/admin/session"],
+      ["GET", "/api/admin/settings"],
+      ["GET", "/api/admin/inquiries"],
       ["GET", "/api/admin/clinics"],
       ["POST", "/api/admin/clinics/discover"],
       ["PUT", "/api/account/history"],
@@ -75,7 +78,7 @@ test("history read, save and deletion reject missing or forged authentication ov
   }
 });
 test("server source, credentials, Git and dependencies are not public", async () => {
-  for (const url of ["/.env", "/.env.example", "/.git/config", "/server.js", "/server.js?download=1", "/auth-server.js", "/account-store.js", "/image-store.js", "/firestore.rules", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/tests/manual/responsive-preview.cjs", "/%2e%2e%5cserver.js"]) {
+  for (const url of ["/.env", "/.env.example", "/.git/config", "/server.js", "/server.js?download=1", "/auth-server.js", "/account-store.js", "/image-store.js", "/admin-settings.js", "/inquiry-store.js", "/firestore.rules", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/tests/manual/responsive-preview.cjs", "/%2e%2e%5cserver.js"]) {
     assert.equal((await fetch(base + url)).status, 404, url);
   }
 });
@@ -88,6 +91,9 @@ test("login page starts locked and public assets are available", async () => {
   const mypage = await (await fetch(`${base}/mypage.html`)).text();
   const adminClinics = await (await fetch(`${base}/admin-clinics.html`)).text();
   const adminClinicsScript = await (await fetch(`${base}/admin-clinics.js`)).text();
+  const adminIndex = await (await fetch(`${base}/admin/`)).text();
+  const adminInquiriesScript = await (await fetch(`${base}/admin/inquiries.js`)).text();
+  const adminCss = await (await fetch(`${base}/admin/admin.css`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
@@ -102,6 +108,11 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(mypage, /<h1>マイページ<\/h1>/);
   assert.match(mypage, /src="mypage\.js"/);
   assert.match(adminClinics, /id="update-nationwide-clinics"/);
+  assert.match(adminClinics, /admin-auth-pending/);
+  assert.match(adminClinicsScript, /classList\.remove\("admin-auth-pending"\)/);
+  assert.match(adminIndex, /id="admin-content"[^>]*hidden/);
+  assert.match(adminInquiriesScript, /\/api\/admin\/session/);
+  assert.match(adminCss, /\.admin-dashboard-page[^}]*visibility:\s*hidden/);
   assert.match(adminClinics, /id="published-prefecture"/);
   assert.match(adminClinics, /公開済みクリニック/);
   assert.doesNotMatch(adminClinics, /id="discover-clinics"/);

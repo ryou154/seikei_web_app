@@ -11,7 +11,7 @@ test("navigation keeps the menu still, slides page content and resets scroll for
   const motion = { matches: false, addEventListener() {} };
   const history = { pushState(_state, _title, url) { location.href = url; pushed++; } };
   const document = {
-    body: { animate() { assert.fail("the body and menu must not animate"); } },
+    body: { append() {}, animate() { assert.fail("the body and menu must not animate"); } },
     querySelector() { return { setAttribute() {}, focus(options) {
       assert.equal(options.preventScroll, true); focusCount++;
     } }; },
@@ -51,13 +51,17 @@ test("navigation keeps the menu still, slides page content and resets scroll for
   assert.equal(menuAnchors()[1].href, "/home.html");
   assert.equal(menuAnchors()[1].textContent, "ホーム");
   assert.equal(menuAnchors()[3].href, "/history.html");
+  assert.equal(menuAnchors().some((anchor) => anchor.href.startsWith("/admin")), false);
   assert.equal(history.scrollRestoration, "manual");
   assert.equal(slides.length, 0);
   for (const anchor of menuAnchors()) {
     const [file, id] = anchor.href.split("#");
     const relativeFile = file.replace(/^\//, "");
     const html = fs.readFileSync(path.join(__dirname, "..", relativeFile), "utf8");
-    assert.ok(html.indexOf('id="common-navigation"') < html.indexOf('id="page-transition-content"'));
+    const navigationIndex = html.indexOf('id="common-navigation"');
+    const contentIndex = html.indexOf('id="page-transition-content"');
+    assert.ok(navigationIndex >= 0);
+    if (contentIndex >= 0) assert.ok(navigationIndex < contentIndex);
     if (relativeFile === 'app.html') assert.ok(!html.includes('<header class="app-header">'));
     if (relativeFile === 'login.html') assert.ok(html.indexOf('</header>') < html.indexOf('id="page-transition-content"'));
     if (id) assert.ok(html.includes('id="' + id + '"'));

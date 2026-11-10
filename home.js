@@ -32,6 +32,59 @@
     status.dataset.error = String(error);
   }
 
+  function updatePlanPrompt() {
+    const prompt = document.querySelector(".plan-prompt-bubble");
+    if (!prompt) return;
+    let hasPaidPlan = false;
+    try {
+      hasPaidPlan = ["スタンダード", "プレミアム"].includes(localStorage.getItem("seikei-selected-plan"));
+    } catch {}
+    prompt.hidden = hasPaidPlan;
+  }
+
+  function updateCurrentPlan() {
+    const name = element("current-plan-name");
+    const detail = element("current-plan-detail");
+    if (!name || !detail) return;
+    let plan = "無料プラン";
+    try { plan = localStorage.getItem("seikei-selected-plan") || plan; } catch {}
+    const details = {
+      "無料プラン": "月3回までシミュレーション",
+      "スタンダード": "月30回・広告なし",
+      "プレミアム": "回数無制限・広告なし"
+    };
+    name.textContent = plan;
+    detail.textContent = details[plan] || details["無料プラン"];
+  }
+
+  function selectPlan(button) {
+    try {
+      if (["スタンダード", "プレミアム"].includes(button.dataset.plan)) {
+        localStorage.setItem("seikei-selected-plan", button.dataset.plan);
+      } else {
+        localStorage.removeItem("seikei-selected-plan");
+      }
+    } catch {}
+    updatePlanPrompt();
+    updateCurrentPlan();
+  }
+
+  document.querySelectorAll(".plan-button").forEach((button) => button.addEventListener("click", () => {
+    selectPlan(button);
+    const status = element("plan-status");
+    status.textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`;
+    status.dataset.error = "false";
+  }));
+  const planModal = element("plan-modal");
+  const closePlanModal = () => { if (planModal) planModal.hidden = true; };
+  document.querySelector(".plan-prompt-bubble")?.addEventListener("click", (event) => { event.preventDefault(); if (planModal) planModal.hidden = false; });
+  planModal?.querySelectorAll("[data-close-plan-modal]").forEach((item) => item.addEventListener("click", closePlanModal));
+  planModal?.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => { selectPlan(button); element("plan-modal-status").textContent = `${button.dataset.plan}を選択しました（デモ表示のため決済は発生しません）。`; }));
+  updatePlanPrompt();
+  updateCurrentPlan();
+  if (new URLSearchParams(location.search).get("open") === "plans" && planModal) planModal.hidden = false;
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closePlanModal(); });
+
   function displayDate(value) {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? "保存日時不明" : date.toLocaleDateString("ja-JP");

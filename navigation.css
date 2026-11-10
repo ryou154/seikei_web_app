@@ -19,6 +19,7 @@
    左：ロゴ
    ================================================== */
 
+.navigation-prompts { position: fixed; z-index: 8; right: 24px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }.navigation-prompt { display: inline-flex; align-items: center; gap: 7px; padding: 11px 14px; border: 1px solid #9bcbd8; border-radius: 16px 16px 5px 16px; color: #285266; background: #eaf8fb; box-shadow: 0 9px 22px rgba(55,105,132,.18); font-size: 13px; font-weight: 800; line-height: 1.3; text-decoration: none; }.navigation-prompt b { font-size: 17px; }.navigation-help-prompt { order: 1; padding: 10px 13px; background: #fff; font-size: 19px; }.navigation-help-prompt span { font-size: 12px; }.navigation-plan-prompt { order: 2; }.navigation-prompt:hover { background: #dff3f7; transform: translateY(-2px); }
 .common-navigation {
   position: relative;
   z-index: 20;
@@ -137,6 +138,11 @@
 .common-navigation__links a:focus-visible {
   outline: 3px solid var(--primary-dark, #b8324d);
   outline-offset: 2px;
+}
+
+.common-navigation__links a[href="/mypage.html"],
+.common-navigation__links a[href="/help.html"] {
+  display: none;
 }
 
 

@@ -566,10 +566,19 @@
     }
   }
 
-  function initialize() {
+  async function initialize() {
     const content = byId("app-content");
     if (initialized || !window.AppAuth?.uid) return;
     initialized = true;
+    try {
+      const access = await window.AppAuth.fetch("/api/admin/session");
+      if (!access.ok) throw new Error("管理者権限がありません。");
+      document.body.classList.remove("admin-auth-pending");
+    } catch (error) {
+      byId("admin-access-status").textContent = error.message || "管理者権限がありません。";
+      initialized = false;
+      return;
+    }
     content.hidden = false;
     populatePrefectures();
     byId("published-prefecture").addEventListener("change", () => void loadCandidates({ reset: true }));

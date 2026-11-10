@@ -157,6 +157,31 @@
   window.addEventListener("app-authorized", () => showPage());
   window.addEventListener("auth-state-changed", stopSlide);
   reducedMotion?.addEventListener("change", stopSlide);
+  const isHelpPage = location.pathname.endsWith("/help.html");
+  const isAdminPage = location.pathname.includes("/admin") || location.pathname.endsWith("/admin-clinics.html");
+  let hasPaidPlan = false;
+  try {
+    hasPaidPlan = ["スタンダード", "プレミアム"].includes(localStorage.getItem("seikei-selected-plan"));
+  } catch {}
+  const isHomePage = location.pathname.endsWith("/home.html");
+  if (!isHelpPage && !isAdminPage && !isHomePage) {
+    const prompts = document.createElement("div");
+    prompts.className = "navigation-prompts";
+    if (!hasPaidPlan) {
+      const plan = document.createElement("a");
+      plan.className = "navigation-prompt navigation-plan-prompt";
+      plan.href = "/home.html?open=plans#plans-title";
+      plan.innerHTML = "有料プランは<br>いかがですか？ <b aria-hidden=\"true\">→</b>";
+      prompts.append(plan);
+    }
+    const help = document.createElement("a");
+    help.className = "navigation-prompt navigation-help-prompt";
+    help.href = "/help.html";
+    help.setAttribute("aria-label", "ヘルプを開く");
+    help.innerHTML = "？<span>ヘルプ</span>";
+    prompts.append(help);
+    document.body.append(prompts);
+  }
   showPage(false);
 })();
 

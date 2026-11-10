@@ -1,4 +1,4 @@
-.admin-dashboard-page { min-height: 100vh; background: #f4f8fa; }
+.admin-dashboard-page { min-height: 100vh; visibility: hidden; background: #f4f8fa; }
 .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: 280px; margin-right: 32px; }
 .admin-dashboard-header { margin-bottom: 24px; }
 .admin-dashboard { margin-bottom: 48px; }

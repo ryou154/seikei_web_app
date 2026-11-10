@@ -10,6 +10,7 @@ async function initializeAdmin() {
     const response = await window.AppAuth.fetch("/api/admin/session");
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.admin !== true) throw new Error(data.error || "管理者権限がありません。");
+    page.style.visibility = "visible";
     if (content) content.hidden = false;
     showStatus(`${data.email || "管理者"} でログインしています。`);
     await loadSettings();
