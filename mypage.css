@@ -87,6 +87,10 @@
 
 .mypage-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .mypage-section-heading h2 { margin-bottom: 0; }
+.mypage-profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.mypage-profile-actions a { white-space: nowrap; }
+.mypage-content > section[aria-labelledby="profile-title"] { order: -2; }
+.mypage-content > section[aria-labelledby="overview-title"] { order: -1; }
 .profile-form:not(.is-editing) .profile-icon-controls { pointer-events: none; opacity: .7; }
 .profile-edit-hint { margin: -8px 0 16px; padding: 10px 12px; border: 1px solid #cfe3ea; border-radius: 8px; color: #285266; background: #eef7fb; font-size: 13px; line-height: 1.6; }
 .profile-form.is-editing input:not([readonly]) { border-color: #3e91ae; background: #fff; box-shadow: 0 0 0 3px rgba(62, 145, 174, .12); }
@@ -232,6 +236,8 @@
 
   .mypage-overview { grid-column: auto; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 18px 16px; }
   .mypage-overview-link { grid-column: 1 / -1; width: 100%; }
+
+  .mypage-profile-actions { justify-content: flex-start; }
 
   .danger-zone {
     grid-column: auto;
