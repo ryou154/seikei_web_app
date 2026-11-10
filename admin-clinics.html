@@ -7,11 +7,25 @@
   <title>クリニック管理 | MEYLON</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/navigation.css">
+  <link rel="stylesheet" href="/admin/admin.css">
   <link rel="stylesheet" href="/admin-clinics.css">
   <script src="/navigation.js" defer></script>
+  <script src="/admin/sidebar.js" defer></script>
   <script src="/admin-clinics.js" defer></script>
 </head>
 <body class="app-page admin-clinics-page admin-auth-pending">
+  <button id="admin-sidebar-toggle" class="admin-sidebar-toggle" type="button" aria-label="管理メニューを開く" aria-expanded="false"><span></span><span></span><span></span></button>
+  <aside id="admin-sidebar" class="admin-sidebar" aria-label="管理メニュー">
+    <div class="admin-sidebar-brand"><span class="admin-card-kicker">MEYLON</span><strong>管理画面</strong></div>
+    <nav>
+      <a class="admin-sidebar-link" href="/admin/">ダッシュボード</a>
+      <a class="admin-sidebar-link is-active" href="/admin/clinics.html">クリニック管理</a>
+      <a class="admin-sidebar-link" href="/admin/api-usage.html">API使用料</a>
+      <a class="admin-sidebar-link" href="/admin/blocked-words.html">禁止ワード</a>
+      <a class="admin-sidebar-link" href="/admin/inquiries.html">問い合わせ</a>
+    </nav>
+  </aside>
+  <div id="admin-sidebar-overlay" class="admin-sidebar-overlay" hidden></div>
   <div id="common-navigation"></div>
   <header class="app-header">
     <div>

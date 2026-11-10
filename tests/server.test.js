@@ -105,10 +105,13 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(history, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
   assert.match(history, /id="history-list"/);
   assert.match(history, /src="auth-core\.js"/);
-  assert.match(mypage, /<h1>マイページ<\/h1>/);
+  assert.match(mypage, /<title>マイページ \| MEYLON<\/title>/);
+  assert.match(mypage, /id="profile-title">プロフィール<\/h2>/);
   assert.match(mypage, /src="mypage\.js"/);
   assert.match(adminClinics, /id="update-nationwide-clinics"/);
   assert.match(adminClinics, /admin-auth-pending/);
+  assert.match(adminClinics, /id="admin-sidebar"/);
+  assert.match(adminClinics, /href="\/admin\/">ダッシュボード<\/a>/);
   assert.match(adminClinicsScript, /classList\.remove\("admin-auth-pending"\)/);
   assert.match(adminIndex, /id="admin-content"[^>]*hidden/);
   assert.match(adminInquiriesScript, /\/api\/admin\/session/);
