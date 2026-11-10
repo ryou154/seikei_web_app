@@ -59,7 +59,16 @@ function facialDepth(point, normalized, points, width, height) {
 }
 
 function createFaceGeometry(analysis) {
-  const points = analysis.landmarks.map(({ x, y, z = 0 }) => ({ x, y, z }));
+  const scanViews = Object.values(analysis.scan?.views || {})
+    .filter((view) => Array.isArray(view.landmarks) && view.landmarks.length === analysis.landmarks.length);
+  const points = analysis.landmarks.map(({ x, y, z = 0 }, index) => {
+    if (!scanViews.length) return { x, y, z };
+    const depths = scanViews.map((view) => Number(view.landmarks[index]?.z)).filter(Number.isFinite);
+    const averageDepth = depths.length
+      ? depths.reduce((sum, value) => sum + value, 0) / depths.length
+      : z;
+    return { x, y, z: z * 0.35 + averageDepth * 0.65 };
+  });
   const minX = Math.min(...points.map((p) => p.x)); const maxX = Math.max(...points.map((p) => p.x));
   const minY = Math.min(...points.map((p) => p.y)); const maxY = Math.max(...points.map((p) => p.y));
   const width = Math.max(maxX - minX, 0.001); const height = Math.max(maxY - minY, 0.001);

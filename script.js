@@ -798,7 +798,14 @@ function completeGuidedScan() {
   const frontView = guidedScan.views.front;
   const scanSummary = {
     completed: true,
-    viewCount: Object.keys(guidedScan.views).length
+    viewCount: Object.keys(guidedScan.views).length,
+    // Keep landmark data from every accepted direction for 3D reconstruction.
+    // Camera images remain private to the scan and are not needed here.
+    views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
+      landmarks: view.analysis.landmarks,
+      meshConnections: view.analysis.meshConnections,
+      metrics: view.analysis.metrics
+    }]))
   };
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
