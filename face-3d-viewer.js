@@ -22,6 +22,36 @@ function buildTriangles(landmarks, connections) {
   return [...triangles].map((key) => key.split(",").map(Number));
 }
 
+function landmarkCenter(points, indices, fallback) {
+  const selected = indices.map((index) => points[index]).filter(Boolean);
+  if (!selected.length) return fallback;
+  return selected.reduce((center, point) => ({
+    x: center.x + point.x / selected.length,
+    y: center.y + point.y / selected.length
+  }), { x: 0, y: 0 });
+}
+
+function gaussian(point, center, width, height) {
+  const dx = (point.x - center.x) / width;
+  const dy = (point.y - center.y) / height;
+  return Math.exp(-(dx * dx + dy * dy));
+}
+
+function facialDepth(point, normalized, points, width, height) {
+  const nose = landmarkCenter(points, [1, 2, 4, 5, 6], { x: 0.5, y: 0.53 });
+  const leftEye = landmarkCenter(points, [33, 133, 159, 145], { x: 0.39, y: 0.41 });
+  const rightEye = landmarkCenter(points, [263, 362, 386, 374], { x: 0.61, y: 0.41 });
+  const mouth = landmarkCenter(points, [61, 291, 13, 14], { x: 0.5, y: 0.68 });
+  const cheekBase = 0.08 * Math.sqrt(Math.max(0, 1 - normalized.x * normalized.x * 1.7));
+  const noseBridge = gaussian(point, nose, width * 0.115, height * 0.22) * 0.18;
+  const noseTip = gaussian(point, nose, width * 0.075, height * 0.105) * 0.22;
+  const eyeSocket = (gaussian(point, leftEye, width * 0.105, height * 0.055) +
+    gaussian(point, rightEye, width * 0.105, height * 0.055)) * -0.055;
+  const mouthVolume = gaussian(point, mouth, width * 0.12, height * 0.055) * 0.08;
+  const landmarkDepth = clamp(-Number(point.z || 0) / width, -0.12, 0.12);
+  return clamp(cheekBase + noseBridge + noseTip + eyeSocket + mouthVolume + landmarkDepth * 0.45, -0.16, 0.48);
+}
+
 function createFaceGeometry(analysis) {
   const points = analysis.landmarks.map(({ x, y, z = 0 }) => ({ x, y, z }));
   const minX = Math.min(...points.map((p) => p.x)); const maxX = Math.max(...points.map((p) => p.x));
@@ -31,9 +61,8 @@ function createFaceGeometry(analysis) {
   const positions = []; const uvs = [];
   for (const point of points) {
     const nx = (point.x - centerX) / width; const ny = (point.y - centerY) / height;
-    const landmarkDepth = clamp(-point.z / width, -0.18, 0.18);
-    const headCurve = 0.08 * (1 - clamp(nx * nx * 3 + ny * ny * 2, 0, 1));
-    positions.push(nx * 1.55, -ny * 2, clamp(landmarkDepth * 0.7 + headCurve, -0.18, 0.2));
+    const depth = facialDepth(point, { x: nx, y: ny }, points, width, height);
+    positions.push(nx * 1.55, -ny * 2, depth);
     uvs.push(point.x, 1 - point.y);
   }
   const geometry = new THREE.BufferGeometry();
