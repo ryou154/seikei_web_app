@@ -69,6 +69,8 @@ function phoneStorageKey(uid) { return `meylon-profile-phone:${uid}`; }
 function renderProfileIcon(dataUrl, displayName = "") {
   const preview = byId("profile-icon-preview");
   const avatar = byId("mypage-avatar");
+  const name = byId("profile-display-name");
+  if (name) name.textContent = displayName.trim() || "ユーザー名";
   for (const target of [preview, avatar]) {
     if (!target) continue;
     target.replaceChildren();
