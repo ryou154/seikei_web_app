@@ -6,8 +6,13 @@ const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 function buildTriangles(landmarks, connections) {
   const neighbors = Array.from({ length: landmarks.length }, () => new Set());
   for (const connection of connections || []) {
-    const a = Array.isArray(connection) ? connection[0] : connection?.start;
-    const b = Array.isArray(connection) ? connection[1] : connection?.end;
+    let a = Array.isArray(connection) ? connection[0] : connection?.start;
+    let b = Array.isArray(connection) ? connection[1] : connection?.end;
+    if (typeof connection === "string") {
+      const pair = connection.split(/[^0-9]+/).filter(Boolean).map(Number);
+      [a, b] = pair;
+    }
+    a = Number(a); b = Number(b);
     if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || !neighbors[a] || !neighbors[b]) continue;
     neighbors[a].add(b); neighbors[b].add(a);
   }
