@@ -1490,7 +1490,9 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
     status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
     tab.disabled = true;
     try {
-      const directionalResult = await createGeminiAfterImage(result, scanImage);
+      // Use the generated front After image as the only visual source so the
+      // identity and requested changes remain consistent across directions.
+      const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
       generated[direction] = directionalResult.image;
       image.src = directionalResult.image;
       image.alt = `シミュレーション後の${labels[direction]}画像`;
@@ -1689,7 +1691,7 @@ function createFaceScanLabels(metrics) {
   ];
 }
 
-async function createGeminiAfterImage(result, sourceImage = selectedImageData) {
+async function createGeminiAfterImage(result, sourceImage = selectedImageData, viewDirection = "front") {
   if (location.protocol === "file:") {
     throw new Error("Gemini生成はローカルサーバー起動時のみ使えます。");
   }
@@ -1704,6 +1706,7 @@ async function createGeminiAfterImage(result, sourceImage = selectedImageData) {
       image: preparedImage.data,
       aspectRatio: preparedImage.aspectRatio,
       requestText: result.requestText,
+      viewDirection,
       profile: result.profile,
       labels: result.designLabels,
       faceAnalysis: result.faceAnalysis?.ok ? result.faceAnalysis.metrics : null
