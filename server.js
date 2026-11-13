@@ -359,6 +359,14 @@ function buildGeminiPrompt(body, options = {}) {
   const strength = body.profile?.strength ?? 50;
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const viewDirectionGuides = {
+    front: "View direction: straight-on front view.",
+    left: "View direction: turn the same person's head slightly to the left.",
+    right: "View direction: turn the same person's head slightly to the right.",
+    up: "View direction: turn the same person's face slightly upward.",
+    down: "View direction: turn the same person's face slightly downward."
+  };
+  const viewDirectionGuide = viewDirectionGuides[body.viewDirection] || viewDirectionGuides.front;
   const detailInstructions = {
     "shorten-face": "make the face look slightly shorter vertically while keeping natural facial proportions",
     "slim-cheeks": "make the cheeks look subtly slimmer",
@@ -426,7 +434,9 @@ function buildGeminiPrompt(body, options = {}) {
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
     genderGuide,
-    "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
+    "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. For a directional view, change only the head direction requested below while keeping the framing consistent. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
+    "The uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view.",
+    viewDirectionGuide,
     "Preserve natural human anatomy and realistic skin texture.",
     "Make the result look like a realistic three-dimensional facial render: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,

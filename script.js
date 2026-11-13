@@ -798,7 +798,12 @@ function completeGuidedScan() {
   const frontView = guidedScan.views.front;
   const scanSummary = {
     completed: true,
-    viewCount: Object.keys(guidedScan.views).length
+    viewCount: Object.keys(guidedScan.views).length,
+    views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
+      imageData: view.imageData,
+      analysis: view.analysis,
+      capture: view.capture
+    }]))
   };
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
@@ -1277,18 +1282,8 @@ async function renderResult(result) {
     }
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
-    renderAfterImageViewer(afterImage, generatedImage);
+    renderDirectionalAfterViewer(afterImage, generatedImage, result);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
-    const mountThreeViewer = (attempt = 0) => {
-      const threeViewer = afterImage.querySelector(".face-3d-viewer");
-      if (!threeViewer) return;
-      if (window.Face3DViewer) {
-        window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, result.afterFaceAnalysis);
-        return;
-      }
-      if (attempt < 20) window.setTimeout(() => mountThreeViewer(attempt + 1), 100);
-    };
-    mountThreeViewer();
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(
@@ -1313,7 +1308,7 @@ async function renderResult(result) {
       </div>
       <div class="after-3d-fallback-image"></div>
     `;
-    renderAfterImageViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage);
+    renderDirectionalAfterViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage, result);
   }
 
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
@@ -1359,6 +1354,47 @@ async function renderResult(result) {
   saveButton.disabled = false;
   // After generation, show the actual Before / After image comparison.
   scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
+}
+
+function renderDirectionalAfterViewer(container, frontImage, result) {
+  const views = result.faceAnalysis?.scan?.views || {};
+  const labels = { front: "正面", left: "左", right: "右", up: "上", down: "下" };
+  const generated = { front: frontImage };
+  container.innerHTML = `<div class="directional-after-viewer"><div class="directional-after-tabs" role="tablist" aria-label="表示方向">${Object.keys(labels).map((key, index) => `<button type="button" class="directional-after-tab${index === 0 ? " is-active" : ""}" data-direction="${key}" role="tab" aria-selected="${index === 0}">${labels[key]}</button>`).join("")}</div><div class="directional-after-stage"><img class="directional-after-image" src="${frontImage}" alt="シミュレーション後の正面画像"><p class="directional-after-status" aria-live="polite">正面のAfter画像</p></div></div>`;
+  const image = container.querySelector(".directional-after-image");
+  const status = container.querySelector(".directional-after-status");
+  container.querySelectorAll(".directional-after-tab").forEach((tab) => tab.addEventListener("click", async () => {
+    const direction = tab.dataset.direction;
+    container.querySelectorAll(".directional-after-tab").forEach((item) => {
+      const active = item === tab;
+      item.classList.toggle("is-active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
+    if (generated[direction]) {
+      image.src = generated[direction];
+      image.alt = `シミュレーション後の${labels[direction]}画像`;
+      status.textContent = `${labels[direction]}のAfter画像`;
+      return;
+    }
+    if (!views[direction]?.imageData) {
+      status.textContent = `${labels[direction]}のスキャン画像がありません。5方向スキャンを完了してから実行してください。`;
+      return;
+    }
+    status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
+    tab.disabled = true;
+    try {
+      const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
+      generated[direction] = directionalResult.image;
+      image.src = directionalResult.image;
+      image.alt = `シミュレーション後の${labels[direction]}画像`;
+      status.textContent = `${labels[direction]}のAfter画像`;
+    } catch (error) {
+      status.textContent = `${labels[direction]}の生成に失敗しました`;
+      console.error("Directional simulation failed", error);
+    } finally {
+      tab.disabled = false;
+    }
+  }));
 }
 
 async function analyzeSelectedFace() {
@@ -1544,12 +1580,12 @@ function createFaceScanLabels(metrics) {
   ];
 }
 
-async function createGeminiAfterImage(result) {
+async function createGeminiAfterImage(result, sourceImage = selectedImageData, viewDirection = "front") {
   if (location.protocol === "file:") {
     throw new Error("Gemini生成はローカルサーバー起動時のみ使えます。");
   }
 
-  const preparedImage = await resizeImageForGemini(selectedImageData);
+  const preparedImage = await resizeImageForGemini(sourceImage);
   const response = await window.AppAuth.fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
@@ -1558,6 +1594,7 @@ async function createGeminiAfterImage(result) {
     body: JSON.stringify({
       image: preparedImage.data,
       aspectRatio: preparedImage.aspectRatio,
+      viewDirection,
       requestText: result.requestText,
       profile: result.profile,
       labels: result.designLabels,
