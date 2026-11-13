@@ -1881,7 +1881,16 @@ button:hover:not(:disabled) {
 .directional-after-controls .direction-right:hover,
 .directional-after-controls .direction-right.is-active,
 .directional-after-controls .direction-down:hover,
-.directional-after-controls .direction-down.is-active { background: #a9d2e1; }
+.directional-after-controls .direction-down.is-active { background: #000; }
+
+.directional-after-controls .direction-up:hover::before,
+.directional-after-controls .direction-up.is-active::before,
+.directional-after-controls .direction-left:hover::before,
+.directional-after-controls .direction-left.is-active::before,
+.directional-after-controls .direction-right:hover::before,
+.directional-after-controls .direction-right.is-active::before,
+.directional-after-controls .direction-down:hover::before,
+.directional-after-controls .direction-down.is-active::before { background: #a9d2e1; }
 
 .directional-after-tab:hover,
 .directional-after-tab.is-active {
@@ -1893,6 +1902,24 @@ button:hover:not(:disabled) {
   cursor: wait;
   opacity: 0.6;
 }
+
+.directional-after-controls .direction-up:hover,
+.directional-after-controls .direction-up.is-active,
+.directional-after-controls .direction-left:hover,
+.directional-after-controls .direction-left.is-active,
+.directional-after-controls .direction-right:hover,
+.directional-after-controls .direction-right.is-active,
+.directional-after-controls .direction-down:hover,
+.directional-after-controls .direction-down.is-active { background: #000; }
+
+.directional-after-controls .direction-up:hover::before,
+.directional-after-controls .direction-up.is-active::before,
+.directional-after-controls .direction-left:hover::before,
+.directional-after-controls .direction-left.is-active::before,
+.directional-after-controls .direction-right:hover::before,
+.directional-after-controls .direction-right.is-active::before,
+.directional-after-controls .direction-down:hover::before,
+.directional-after-controls .direction-down.is-active::before { background: #a9d2e1; }
 
 .directional-after-image {
   display: block;
