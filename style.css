@@ -1710,6 +1710,17 @@ button:hover:not(:disabled) {
 .directional-after-stage { position: relative; min-height: 260px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: #f7e8ee; }
 .directional-after-image { display: block; width: 100%; max-height: 560px; object-fit: contain; }
 .directional-after-status { position: absolute; left: 10px; bottom: 8px; max-width: 58%; margin: 0; padding: 5px 10px; border-radius: 999px; color: #fff; background: rgb(69 26 53 / 72%); font-size: .8rem; }
+.directional-after-controls { position: absolute; right: 14px; bottom: 14px; display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 42px); gap: 5px; padding: 7px; border-radius: 14px; background: rgb(255 255 255 / 78%); box-shadow: 0 4px 14px rgb(35 67 82 / 18%); backdrop-filter: blur(4px); }
+.directional-after-controls .direction-up { grid-column: 2; grid-row: 1; }
+.directional-after-controls .direction-left { grid-column: 1; grid-row: 2; }
+.directional-after-controls .direction-front { grid-column: 2; grid-row: 2; }
+.directional-after-controls .direction-right { grid-column: 3; grid-row: 2; }
+.directional-after-controls .direction-down { grid-column: 2; grid-row: 3; }
+.directional-after-controls .direction-up, .directional-after-controls .direction-left, .directional-after-controls .direction-right, .directional-after-controls .direction-down { width: 56px; height: 42px; border: 0; border-radius: 0; background: #dceef4; clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%); }
+.directional-after-controls .direction-down { clip-path: polygon(28% 0, 72% 0, 72% 75%, 100% 75%, 50% 100%, 0 75%, 28% 75%); }
+.directional-after-controls .direction-left { clip-path: polygon(0 50%, 25% 0, 25% 28%, 100% 28%, 100% 72%, 25% 72%, 25% 100%); }
+.directional-after-controls .direction-right { clip-path: polygon(75% 0, 100% 50%, 75% 100%, 75% 72%, 0 72%, 0 28%, 75% 28%); }
+.directional-after-controls .directional-after-tab:hover, .directional-after-controls .directional-after-tab.is-active { background: #a9d2e1; }
 
 .three-face-viewer {
   position: relative;
