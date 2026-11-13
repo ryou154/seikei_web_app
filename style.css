@@ -1806,6 +1806,7 @@ button:hover:not(:disabled) {
   font-size: 0.875rem;
   font-weight: 700;
   white-space: nowrap;
+  position: relative;
   cursor: pointer;
 }
 
@@ -1839,11 +1840,26 @@ button:hover:not(:disabled) {
   border: 0;
   border-radius: 0;
   width: 68px;
-  background: #a8d2df;
-  -webkit-filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 1px #000);
-  filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 1px #000);
+  background: #000;
   clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%);
 }
+
+.directional-after-controls .direction-up::before,
+.directional-after-controls .direction-left::before,
+.directional-after-controls .direction-right::before,
+.directional-after-controls .direction-down::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  background: #a8d2df;
+}
+
+.directional-after-controls .direction-up::before { clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%); }
+.directional-after-controls .direction-down::before { clip-path: polygon(28% 0, 72% 0, 72% 75%, 100% 75%, 50% 100%, 0 75%, 28% 75%); }
+.directional-after-controls .direction-left::before { clip-path: polygon(0 50%, 25% 0, 25% 18%, 100% 18%, 100% 82%, 25% 82%, 25% 100%); }
+.directional-after-controls .direction-right::before { clip-path: polygon(75% 0, 100% 50%, 75% 100%, 75% 82%, 0 82%, 0 18%, 75% 18%); }
+.directional-after-controls .directional-after-tab span { position: relative; z-index: 1; }
 
 .directional-after-controls .direction-up:hover,
 .directional-after-controls .direction-up.is-active { background: #a9d2e1; }

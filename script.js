@@ -1457,11 +1457,11 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
         <img class="directional-after-image" src="${frontImage}" alt="シミュレーション後の${labels.front}画像">
         <p class="directional-after-status" aria-live="polite">正面のAfter画像</p>
         <div class="directional-after-controls" role="tablist" aria-label="表示方向">
-          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab" aria-selected="false">${labels.up}</button>
-          <button type="button" class="directional-after-tab direction-left" data-direction="left" role="tab" aria-selected="false">${labels.left}</button>
+          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab" aria-selected="false"><span>${labels.up}</span></button>
+          <button type="button" class="directional-after-tab direction-left" data-direction="left" role="tab" aria-selected="false"><span>${labels.left}</span></button>
           <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
-          <button type="button" class="directional-after-tab direction-right" data-direction="right" role="tab" aria-selected="false">${labels.right}</button>
-          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab" aria-selected="false">${labels.down}</button>
+          <button type="button" class="directional-after-tab direction-right" data-direction="right" role="tab" aria-selected="false"><span>${labels.right}</span></button>
+          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab" aria-selected="false"><span>${labels.down}</span></button>
         </div>
       </div>
     </div>`;
