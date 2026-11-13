@@ -1840,7 +1840,7 @@ button:hover:not(:disabled) {
   border-radius: 0;
   width: 68px;
   background: #a8d2df;
-  filter: drop-shadow(1px 0 0 #4f91aa) drop-shadow(-1px 0 0 #4f91aa) drop-shadow(0 1px 0 #4f91aa) drop-shadow(0 -1px 0 #4f91aa);
+  filter: drop-shadow(0 0 1.5px #2f6f85) drop-shadow(0 0 1.5px #2f6f85);
   clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%);
 }
 
@@ -1852,11 +1852,11 @@ button:hover:not(:disabled) {
 }
 
 .directional-after-controls .direction-left {
-  clip-path: polygon(0 50%, 25% 0, 25% 28%, 100% 28%, 100% 72%, 25% 72%, 25% 100%);
+  clip-path: polygon(0 50%, 25% 0, 25% 18%, 100% 18%, 100% 82%, 25% 82%, 25% 100%);
 }
 
 .directional-after-controls .direction-right {
-  clip-path: polygon(75% 0, 100% 50%, 75% 100%, 75% 72%, 0 72%, 0 28%, 75% 28%);
+  clip-path: polygon(75% 0, 100% 50%, 75% 100%, 75% 82%, 0 82%, 0 18%, 75% 18%);
 }
 
 .directional-after-controls .direction-left:hover,
