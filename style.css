@@ -1796,8 +1796,8 @@ button:hover:not(:disabled) {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  width: 64px;
-  height: 42px;
+  width: 68px;
+  height: 44px;
   border: 1px solid #c6dce8;
   border-radius: 10px;
   background: #c4e2ec;
@@ -1814,8 +1814,8 @@ button:hover:not(:disabled) {
   right: 14px;
   bottom: 14px;
   display: grid;
-  grid-template-columns: repeat(3, 64px);
-  grid-template-rows: repeat(3, 42px);
+  grid-template-columns: repeat(3, 68px);
+  grid-template-rows: repeat(3, 44px);
   gap: 5px;
   align-items: center;
   justify-items: center;
@@ -1828,7 +1828,7 @@ button:hover:not(:disabled) {
 
 .directional-after-controls .direction-up { grid-column: 2; grid-row: 1; }
 .directional-after-controls .direction-left { grid-column: 1; grid-row: 2; }
-.directional-after-controls .direction-front { grid-column: 2; grid-row: 2; width: 64px; height: 42px; border-radius: 8px; }
+.directional-after-controls .direction-front { grid-column: 2; grid-row: 2; width: 68px; height: 44px; border-radius: 8px; }
 .directional-after-controls .direction-right { grid-column: 3; grid-row: 2; }
 .directional-after-controls .direction-down { grid-column: 2; grid-row: 3; }
 
@@ -1838,7 +1838,7 @@ button:hover:not(:disabled) {
 .directional-after-controls .direction-down {
   border: 0;
   border-radius: 0;
-  width: 64px;
+  width: 68px;
   background: #a8d2df;
   filter: drop-shadow(1px 0 0 #4f91aa) drop-shadow(-1px 0 0 #4f91aa) drop-shadow(0 1px 0 #4f91aa) drop-shadow(0 -1px 0 #4f91aa);
   clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%);
