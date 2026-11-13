@@ -26,11 +26,12 @@
 .admin-sub-content { width: min(100% - 32px, 1040px); margin: 42px 32px 48px 280px; }
 .admin-sub-content h1 { margin: 6px 0 8px; color: #173c4e; }
 .admin-sub-content .lead { margin: 0 0 28px; color: var(--muted); }
-.usage-metrics-large { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.usage-metrics-large { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .usage-metrics-large div { display: grid; gap: 8px; min-height: 130px; padding: 22px; border: 1px solid #cfe3ea; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); }
 .usage-metrics-large span { color: var(--muted); font-size: 13px; font-weight: 700; }
 .usage-metrics-large strong { color: #285266; font-size: 24px; }
 .usage-metrics-large small { color: var(--muted); }
+.api-usage-note { margin-top: 16px; color: var(--muted); font-size: 12px; line-height: 1.7; }
 .admin-settings-page-card { display: grid; gap: 12px; max-width: 760px; padding: 24px; border: 1px solid #cfe3ea; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); }
 .admin-settings-page-card textarea { width: 100%; box-sizing: border-box; }
 .blocked-word-add { display: flex; gap: 10px; }

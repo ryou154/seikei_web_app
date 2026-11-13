@@ -57,6 +57,7 @@ test("history read, save and deletion reject missing or forged authentication ov
       ["GET", "/api/clinics"],
       ["GET", "/api/clinics/clinic-test"],
       ["GET", "/api/admin/session"],
+      ["GET", "/api/admin/api-usage"],
       ["GET", "/api/admin/settings"],
       ["GET", "/api/admin/inquiries"],
       ["GET", "/api/admin/clinics"],
@@ -78,7 +79,7 @@ test("history read, save and deletion reject missing or forged authentication ov
   }
 });
 test("server source, credentials, Git and dependencies are not public", async () => {
-  for (const url of ["/.env", "/.env.example", "/.git/config", "/server.js", "/server.js?download=1", "/auth-server.js", "/account-store.js", "/image-store.js", "/admin-settings.js", "/inquiry-store.js", "/firestore.rules", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/tests/manual/responsive-preview.cjs", "/%2e%2e%5cserver.js"]) {
+  for (const url of ["/.env", "/.env.example", "/.git/config", "/server.js", "/server.js?download=1", "/auth-server.js", "/account-store.js", "/image-store.js", "/admin-settings.js", "/inquiry-store.js", "/billing-usage.js", "/firestore.rules", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/tests/manual/responsive-preview.cjs", "/%2e%2e%5cserver.js"]) {
     assert.equal((await fetch(base + url)).status, 404, url);
   }
 });
@@ -92,6 +93,9 @@ test("login page starts locked and public assets are available", async () => {
   const adminClinics = await (await fetch(`${base}/admin-clinics.html`)).text();
   const adminClinicsScript = await (await fetch(`${base}/admin-clinics.js`)).text();
   const adminIndex = await (await fetch(`${base}/admin/`)).text();
+  const adminApiUsage = await (await fetch(`${base}/admin/api-usage.html`)).text();
+  const adminApiUsageScript = await (await fetch(`${base}/admin/api-usage.js`)).text();
+  const adminBlockedWords = await (await fetch(`${base}/admin/blocked-words.html`)).text();
   const adminInquiriesScript = await (await fetch(`${base}/admin/inquiries.js`)).text();
   const adminCss = await (await fetch(`${base}/admin/admin.css`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
@@ -105,12 +109,20 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(history, /<main\b[^>]*id="app-content"[^>]*\bhidden\b/);
   assert.match(history, /id="history-list"/);
   assert.match(history, /src="auth-core\.js"/);
-  assert.match(mypage, /<h1>マイページ<\/h1>/);
+  assert.match(mypage, /<title>マイページ \| MEYLON<\/title>/);
+  assert.match(mypage, /id="profile-title">プロフィール<\/h2>/);
   assert.match(mypage, /src="mypage\.js"/);
   assert.match(adminClinics, /id="update-nationwide-clinics"/);
   assert.match(adminClinics, /admin-auth-pending/);
+  assert.match(adminClinics, /id="admin-sidebar"/);
+  assert.match(adminClinics, /href="\/admin\/">ダッシュボード<\/a>/);
   assert.match(adminClinicsScript, /classList\.remove\("admin-auth-pending"\)/);
   assert.match(adminIndex, /id="admin-content"[^>]*hidden/);
+  assert.match(adminApiUsage, /href="inquiries\.html">問い合わせ<\/a>/);
+  assert.match(adminApiUsage, /id="gemini-cost"/);
+  assert.match(adminApiUsage, /id="cloud-run-cost"/);
+  assert.match(adminApiUsageScript, /\/api\/admin\/api-usage/);
+  assert.match(adminBlockedWords, /href="inquiries\.html">問い合わせ<\/a>/);
   assert.match(adminInquiriesScript, /\/api\/admin\/session/);
   assert.match(adminCss, /\.admin-dashboard-page[^}]*visibility:\s*hidden/);
   assert.match(adminClinics, /id="published-prefecture"/);
@@ -128,7 +140,7 @@ test("login page starts locked and public assets are available", async () => {
     assert.match(html, /src="navigation\.js"/);
     assert.match(html, /href="navigation\.css"/);
   }
-  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/face-analysis.js", "/simulation-adjustments.js"]) {
+  for (const file of ["/auth-client.js", "/auth-core.js", "/login-page.js", "/account-data.js", "/home.js", "/home.css", "/history-page.js", "/history-page.css", "/script.js", "/style.css", "/navigation.js", "/navigation.css", "/mypage.js", "/mypage.css", "/mypage-model.js", "/admin-clinics.js", "/admin-clinics.css", "/admin/api-usage.js", "/data/clinics.js", "/face-analysis.js", "/simulation-adjustments.js"]) {
     assert.equal((await fetch(base + file)).status, 200);
   }
   assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);

@@ -1,7 +1,7 @@
 const status = document.getElementById("auth-status") || document.getElementById("mypage-status");
 const main = document.getElementById("app-content");
 const isLoginPage = location.pathname.endsWith("/login.html") ||
-  location.pathname.endsWith("/index.html") || location.pathname === "/";
+  location.pathname === "/index.html" || location.pathname === "/";
 let authorizedUid = null;
 let generation = 0;
 let busy = false;

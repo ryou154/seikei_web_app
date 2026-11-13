@@ -1,4 +1,6 @@
 .admin-auth-pending { visibility: hidden; }
+.admin-clinics-page .app-header,
+.admin-clinics-page #page-transition-content { margin-left: 240px; }
 .admin-layout {
   width: min(1440px, calc(100% - 32px));
   margin: 22px auto 48px;
@@ -44,6 +46,11 @@
 @media (max-width: 900px) {
   .admin-layout { width: min(100% - 20px, 760px); }
   .nationwide-update-panel { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .admin-clinics-page .app-header,
+  .admin-clinics-page #page-transition-content { margin-left: 0; }
+  .admin-clinics-page.sidebar-open .admin-sidebar { transform: translateX(0); }
 }
 @media (max-width: 600px) {
   .published-heading-row { align-items: stretch; flex-direction: column; }
