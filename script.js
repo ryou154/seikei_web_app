@@ -1450,16 +1450,20 @@ async function renderResult(result) {
 function renderDirectionalAfterViewer(container, frontImage, result) {
   const views = result.faceAnalysis?.scan?.views || {};
   const labels = { front: "正面", left: "左", right: "右", up: "上", down: "下" };
+  const arrows = { left: "←", right: "→", up: "↑", down: "↓" };
   const generated = { front: frontImage };
-  const directions = Object.keys(labels).filter((key) => views[key]?.imageData || generated[key]);
   container.innerHTML = `
     <div class="directional-after-viewer">
-      <div class="directional-after-tabs" role="tablist" aria-label="表示方向">
-        ${directions.map((key, index) => `<button type="button" class="directional-after-tab${index === 0 ? " is-active" : ""}" data-direction="${key}" role="tab" aria-selected="${index === 0}">${labels[key]}</button>`).join("")}
-      </div>
       <div class="directional-after-stage">
         <img class="directional-after-image" src="${frontImage}" alt="シミュレーション後の${labels.front}画像">
         <p class="directional-after-status" aria-live="polite">正面のAfter画像</p>
+        <div class="directional-after-controls" role="tablist" aria-label="表示方向">
+          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab" aria-selected="false"><span aria-hidden="true">${arrows.up}</span>${labels.up}</button>
+          <button type="button" class="directional-after-tab direction-left" data-direction="left" role="tab" aria-selected="false"><span aria-hidden="true">${arrows.left}</span>${labels.left}</button>
+          <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
+          <button type="button" class="directional-after-tab direction-right" data-direction="right" role="tab" aria-selected="false">${labels.right}<span aria-hidden="true">${arrows.right}</span></button>
+          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab" aria-selected="false"><span aria-hidden="true">${arrows.down}</span>${labels.down}</button>
+        </div>
       </div>
     </div>`;
 
@@ -1480,7 +1484,10 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
       return;
     }
     const scanImage = views[direction]?.imageData;
-    if (!scanImage) return;
+    if (!scanImage) {
+      status.textContent = `${labels[direction]}のスキャン画像がありません。5方向スキャンを完了してから実行してください。`;
+      return;
+    }
     status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
     tab.disabled = true;
     try {

@@ -1757,19 +1757,27 @@ button:hover:not(:disabled) {
 
 .directional-after-viewer {
   width: 100%;
-  display: grid;
-  gap: 12px;
+  display: block;
 }
 
-.directional-after-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.directional-after-stage {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f7e8ee;
 }
 
 .directional-after-tab {
-  flex: 1 1 72px;
-  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 56px;
+  height: 42px;
   border: 1px solid #c6dce8;
   border-radius: 10px;
   background: #fffefa;
@@ -1777,6 +1785,34 @@ button:hover:not(:disabled) {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.directional-after-controls {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 5px;
+  align-items: center;
+  justify-items: center;
+  padding: 7px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 4px 14px rgb(35 67 82 / 18%);
+  backdrop-filter: blur(4px);
+}
+
+.directional-after-controls .direction-up { grid-column: 2; grid-row: 1; }
+.directional-after-controls .direction-left { grid-column: 1; grid-row: 2; }
+.directional-after-controls .direction-front { grid-column: 2; grid-row: 2; width: 56px; height: 42px; border-radius: 8px; }
+.directional-after-controls .direction-right { grid-column: 3; grid-row: 2; }
+.directional-after-controls .direction-down { grid-column: 2; grid-row: 3; }
+
+.directional-after-controls .directional-after-tab span {
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .directional-after-tab:hover,
@@ -1790,16 +1826,6 @@ button:hover:not(:disabled) {
   opacity: 0.6;
 }
 
-.directional-after-stage {
-  position: relative;
-  min-height: 260px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 12px;
-  background: #f7e8ee;
-}
-
 .directional-after-image {
   display: block;
   width: 100%;
@@ -1811,6 +1837,7 @@ button:hover:not(:disabled) {
   position: absolute;
   left: 10px;
   bottom: 8px;
+  max-width: 58%;
   margin: 0;
   padding: 5px 10px;
   border-radius: 999px;
