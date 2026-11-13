@@ -76,6 +76,9 @@ const downtimeInput = document.getElementById("downtime-select");
 const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
+const simulationStatus = document.getElementById("simulation-status");
+const simulationError = document.getElementById("simulation-error");
+const stepIndicators = [...document.querySelectorAll("[data-step-indicator]")];
 const saveButton = document.getElementById("save-button");
 const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
@@ -108,6 +111,21 @@ let guidedScanBusy = false;
 let privacyGeneration = 0;
 let cropperInstance = null;
 openCropButton.hidden = true;
+
+function setSimulationStep(step) {
+  stepIndicators.forEach((item) => item.classList.toggle("is-active", item.dataset.stepIndicator === step));
+}
+
+function setSimulationStatus(message) {
+  if (simulationStatus) simulationStatus.textContent = message || "";
+  simulationError?.classList.add("hidden");
+}
+
+function showSimulationError(message) {
+  if (!simulationError) return;
+  simulationError.textContent = message;
+  simulationError.classList.remove("hidden");
+}
 
 function escapeText(value) {
   const text = String(value ?? "");
@@ -845,6 +863,7 @@ simulateButton.addEventListener("click", async () => {
   simulateButton.disabled = true;
   const originalLabel = simulateButton.textContent;
   simulateButton.textContent = "シミュレーション準備中…";
+  setSimulationStatus("入力内容を確認しています…");
   try {
     const requestValidation = window.InputGuard?.validateAestheticRequest(requestTextInput.value)
       || { ok: true, sanitized: requestTextInput.value.trim() };
@@ -854,17 +873,19 @@ simulateButton.addEventListener("click", async () => {
     const requestText = requestValidation.sanitized;
 
     if (!selectedImageData) {
-      alert("顔画像を選択してください。");
+      showSimulationError("顔画像を選択するか、カメラで撮影してください。");
       return;
     }
 
     if (!genderSelect.value) {
-      alert("性別を選択してください。");
+      showSimulationError("性別を選択してください。");
       genderSelect.focus();
       return;
     }
 
     latestResult = createSimulationResult(requestText);
+    setSimulationStep("result");
+    setSimulationStatus("顔画像を解析しています…");
     // Move to the result area immediately so progress is visible whether the
     // user started from above or below it.
     scrollToSimulationResult(resultPanel);
@@ -875,7 +896,8 @@ simulateButton.addEventListener("click", async () => {
       message: error?.message,
       stack: error?.stack
     });
-    alert(`シミュレーションを開始できませんでした。${error?.message ? `\\n${error.message}` : ""}`);
+    const detail = error?.message || "入力内容または通信状態を確認してください。";
+    showSimulationError(`シミュレーションを開始できませんでした。${detail}`);
   } finally {
     simulateButton.disabled = false;
     simulateButton.textContent = originalLabel;
@@ -1303,6 +1325,8 @@ async function renderResult(result) {
   const stillCurrent = () => latestResult === result && (!ownerUid || window.AppAuth?.uid === ownerUid);
   emptyResult.classList.add("hidden");
   resultContent.classList.remove("hidden");
+  setSimulationStep("result");
+  setSimulationStatus("顔の特徴を解析しています…");
   saveButton.disabled = true;
 
   result.beforeImage = selectedImageData;
@@ -1318,6 +1342,7 @@ async function renderResult(result) {
   if (!stillCurrent()) return;
 
   try {
+    setSimulationStatus("After画像を生成しています…");
     let generatedImage;
     if (result.profile.imageEngine === "gemini") {
       const generated = await createGeminiAfterImage(result);
@@ -1331,6 +1356,7 @@ async function renderResult(result) {
     }
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
+    setSimulationStatus("正面のAfter画像を表示しています…");
     renderDirectionalAfterViewer(afterImage, generatedImage, result);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     const meshAnalysis = combineAfterShapeWithScanDepth(result.afterFaceAnalysis, result.faceAnalysis);
@@ -1354,6 +1380,7 @@ async function renderResult(result) {
       result.faceAnalysis,
       result.afterFaceAnalysis
     );
+    setSimulationStatus("シミュレーションが完了しました。方向ボタンで画像を切り替えられます。");
   } catch (error) {
     if (!stillCurrent()) return;
     console.error(error);
@@ -1372,6 +1399,7 @@ async function renderResult(result) {
       <div class="after-3d-fallback-image"></div>
     `;
     renderDirectionalAfterViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage, result);
+    showSimulationError(`After画像の生成に失敗しました。${error?.message || "通信状態やAPIの利用状況を確認してください。"}`);
   }
 
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;
