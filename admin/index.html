@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理画面 | MEYLON</title>
   <link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../navigation.css"><link rel="stylesheet" href="admin.css">
-  <script src="../navigation.js" defer></script>
+  <script src="../navigation.js" defer></script><script src="sidebar.js" defer></script>
 </head>
 <body class="admin-dashboard-page">
   <button id="admin-sidebar-toggle" class="admin-sidebar-toggle" type="button" aria-label="管理メニューを開く" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -28,7 +28,6 @@
       <a class="admin-card admin-card-muted" href="api-usage.html"><span class="admin-card-kicker">API USAGE</span><strong>API使用料</strong><span>Gemini・Google Placesの利用状況を確認します。</span></a>
       <a class="admin-card admin-card-muted" href="blocked-words.html"><span class="admin-card-kicker">SAFETY</span><strong>禁止ワード</strong><span>シミュレーション入力で使用できない語句を設定します。</span></a>
     </section>
-    <button id="admin-logout" class="sub-button" type="button">ログアウト</button>
   </main>
   <script type="module" src="../auth-core.js"></script><script type="module" src="admin.js"></script>
 </body>
