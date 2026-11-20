@@ -942,15 +942,20 @@ body.camera-open {
 .camera-direction {
   position: absolute;
   left: 50%;
-  bottom: 14px;
+  top: 14px;
+  bottom: auto;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
   min-width: 88px;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
-  padding: 7px 14px;
+  border-radius: 14px;
+  padding: 12px 18px;
   background: rgba(20, 21, 28, 0.76);
   color: #fff;
-  font-size: 13px;
+  font-size: clamp(18px, 3.5vw, 28px);
+  line-height: 1.4;
+  pointer-events: none;
   font-weight: 700;
   text-align: center;
 }

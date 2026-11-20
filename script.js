@@ -654,13 +654,27 @@ function resetGuidedScan() {
   guidedScanTimer = null;
   guidedScanBusy = false;
   guidedScan = null;
-  cameraDirection.textContent = "正面";
+  cameraDirection.textContent = "正面を向いてください";
   cameraDirection.classList.remove("is-detected");
   cameraScanStatus.textContent = "顔をガイドの中央に合わせてください。";
   cameraScanProgressBar.style.width = "0%";
   cameraScanSteps.querySelectorAll("span").forEach((item) => {
     item.classList.remove("active", "done");
   });
+}
+
+function showCaptureDirection(progress) {
+  const instructions = {
+    front: '◎ 正面を向いてください',
+    left: '← ご自身の左を向いてください',
+    right: '→ ご自身の右を向いてください',
+    up: '↑ 正面に戻して、少し上を向いてください',
+    down: '↓ 少し下を向いてください',
+    finish: '◎ 正面に戻してください'
+  };
+  const text = progress.completed ? '✓ 撮影完了' : progress.expired ? '撮影をやり直してください' : instructions[progress.phase];
+  if (text && cameraDirection.textContent !== text) cameraDirection.textContent = text;
+  cameraDirection.classList.toggle('is-detected', Boolean(progress.completed));
 }
 
 function startGuidedScan() {
@@ -683,7 +697,7 @@ function startGuidedScan() {
   guidedScan.continuous = window.ContinuousFaceScan.create();
   captureButton.disabled = true;
   captureButton.textContent = "スキャン中…";
-  cameraDirection.textContent = "正面";
+  showCaptureDirection({ phase: 'front' });
   cameraScanStatus.textContent = "正面を向いてください。そこから顔をゆっくり動かします。";
   scheduleGuidedScan(100);
 }
@@ -711,7 +725,7 @@ async function processGuidedScanFrame() {
     if (guidedScan.continuous) {
       const progress = guidedScan.continuous.add({ imageData, analysis });
       guidedScan.failures = 0;
-      cameraDirection.textContent = `${progress.count}枚`;
+      showCaptureDirection(progress);
       cameraScanStatus.textContent = `${progress.hint}（採用 ${progress.count}枚）`;
       cameraScanProgressBar.style.width = `${progress.progress}%`;
       const order = ['front','left','right','up','down','finish'];
