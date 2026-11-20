@@ -85,11 +85,60 @@
     const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];for(let i=0;i<surface.positions.length;i++) {const k=i%3;min[k]=Math.min(min[k],surface.positions[i]);max[k]=Math.max(max[k],surface.positions[i]);}
     const gltf={asset:{version:'2.0',generator:'Local After Face 3D Prototype'},scene:0,scenes:[{nodes:[0]}],nodes:[{mesh:0}],meshes:[{primitives:[{attributes:{POSITION:0,NORMAL:1,TEXCOORD_0:2},indices:3,material:0,mode:4}]}],buffers:[{byteLength:0}],bufferViews:views,accessors:[{bufferView:0,componentType:5126,count:surface.positions.length/3,type:'VEC3',min,max},{bufferView:1,componentType:5126,count:surface.normals.length/3,type:'VEC3'},{bufferView:2,componentType:5126,count:surface.uvs.length/2,type:'VEC2'},{bufferView:3,componentType:5123,count:surface.indices.length,type:'SCALAR'}],materials:[{doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[0.76,0.57,0.45,1],metallicFactor:0,roughnessFactor:0.85}}]};
     if(imageBytes){if(!['image/png','image/jpeg'].includes(mimeType))throw Error('GLBの画像はPNGまたはJPEGを使用してください。');const bytes=new Uint8Array(imageBytes);const view=views.length;views.push({buffer:0,byteOffset:total,byteLength:bytes.length});chunks.push({offset:total,bytes});total+=Math.ceil(bytes.length/4)*4;gltf.images=[{bufferView:view,mimeType}];gltf.textures=[{source:0,sampler:0}];gltf.samplers=[{magFilter:9729,minFilter:9729,wrapS:33071,wrapT:33071}];gltf.materials[0].pbrMetallicRoughness.baseColorTexture={index:0};gltf.materials[0].pbrMetallicRoughness.baseColorFactor=[1,1,1,1];}
+    if(surface.inferredParts)gltf.asset.extras={inferredParts:surface.inferredParts,anatomyMeasured:false};
     gltf.buffers[0].byteLength=total;
     const encoded=new TextEncoder().encode(JSON.stringify(gltf)),jsonLength=Math.ceil(encoded.length/4)*4,length=12+8+jsonLength+8+total,buffer=new ArrayBuffer(length),view=new DataView(buffer),bytes=new Uint8Array(buffer);
     view.setUint32(0,0x46546c67,true);view.setUint32(4,2,true);view.setUint32(8,length,true);view.setUint32(12,jsonLength,true);view.setUint32(16,0x4e4f534a,true);bytes.fill(32,20,20+jsonLength);bytes.set(encoded,20);const bin=20+jsonLength;view.setUint32(bin,total,true);view.setUint32(bin+4,0x004e4942,true);for(const chunk of chunks)bytes.set(chunk.bytes,bin+8+chunk.offset);return buffer;
   }
   function sampleAnalysis(){const landmarks=canonical.vertices.map(([x,y,z])=>({x:0.5+x/24,y:0.49-y/24,z:-z/24}));return {ok:true,landmarks,imageSize:{width:1024,height:1024},meshConnections:[]};}
+  function withBust(surface) {
+    const positions=Array.from(surface.positions),uvs=Array.from(surface.uvs),indices=Array.from(surface.indices);
+    const point=i=>positions.slice(i*3,i*3+3);
+    const chin=point(152),top=point(10),left=point(234),right=point(454);
+    const width=Math.abs(right[0]-left[0]),height=Math.abs(top[1]-chin[1]);
+    if(!Number.isFinite(width+height)||width<.01||height<.01)throw Error('顔の大きさを取得できません。');
+    const centerX=(left[0]+right[0])/2;
+    function vertex(p,uv){const id=positions.length/3;positions.push(...p);uvs.push(...uv);return id;}
+    // These are inferred template parts; ear and neck anatomy is not measured.
+    // Sample small cheek patches so the extensions share the photograph's skin tone.
+    const skinLeft=surface.uvs.slice(50*2,50*2+2),skinRight=surface.uvs.slice(280*2,280*2+2);
+    function skinUV(base,u,v){return [clamp(base[0]+u*.012,0,1),clamp(base[1]+v*.012,0,1)];}
+    const neckStart=positions.length/3,rows=20,columns=48;
+    for(let row=0;row<=rows;row++){
+      const t=row/rows,flare=Math.max(0,(t-.63)/.37)**1.7;
+      const radius=width*(.22-.025*Math.sin(t*Math.PI)+flare*.19),depth=width*(.14+flare*.05);
+      for(let col=0;col<=columns;col++){
+        const angle=-Math.PI/2+col/columns*Math.PI;
+        const x=centerX+Math.sin(angle)*radius,y=chin[1]+height*.10-t*height*.55;
+        const z=chin[2]-width*.23+Math.cos(angle)*depth;
+        vertex([x,y,z],skinUV(skinLeft,Math.sin(angle),t-.5));
+      }
+    }
+    for(let row=0;row<rows;row++)for(let col=0;col<columns;col++){
+      const a=neckStart+row*(columns+1)+col,b=a+1,c=a+columns+1,d=c+1;indices.push(a,c,b,b,c,d);
+    }
+    const earsStart=positions.length/3;
+    for(const side of [-1,1]){
+      const attach=side<0?left:right,skin=side<0?skinLeft:skinRight;
+      const cx=attach[0]+side*width*.075,cy=attach[1]+height*.035,cz=attach[2]-width*.035;
+      const earWidth=width*.095,earHeight=height*.145,rings=12,segments=48;
+      const center=vertex([cx,cy,cz-width*.025],skinUV(skin,0,0));
+      const start=positions.length/3;
+      for(let ring=1;ring<=rings;ring++)for(let segment=0;segment<segments;segment++){
+        const r=ring/rings,angle=segment/segments*Math.PI*2;
+        const x=Math.cos(angle)*r,y=Math.sin(angle)*r;
+        const rim=Math.exp(-(((r-.84)/.12)**2))*width*.032;
+        const fold=Math.exp(-(((r-.43)/.17)**2))*width*.012;
+        vertex([cx+side*x*earWidth*(1+.12*y),cy+y*earHeight,cz+rim+fold-width*.025*(1-r)+side*x*width*.02],skinUV(skin,x,y));
+      }
+      for(let segment=0;segment<segments;segment++)indices.push(center,start+segment,start+(segment+1)%segments);
+      for(let ring=0;ring<rings-1;ring++)for(let segment=0;segment<segments;segment++){
+        const a=start+ring*segments+segment,b=start+ring*segments+(segment+1)%segments,c=a+segments,d=b+segments;indices.push(a,c,b,b,c,d);
+      }
+    }
+    const p=new Float32Array(positions),i=new Uint16Array(indices);
+    return {positions:p,uvs:new Float32Array(uvs),indices:i,normals:normals(p,i),inferredParts:['ears','neck'],partRanges:{face:[0,surface.positions.length/3],neck:[neckStart,earsStart],ears:[earsStart,positions.length/3]}};
+  }
   function cameraFit(positions, aspect, fov = 35, padding = 1.18) {
     const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
     for(let i=0;i<positions.length;i++) { const k=i%3;min[k]=Math.min(min[k],positions[i]);max[k]=Math.max(max[k],positions[i]); }
@@ -101,5 +150,5 @@
     const distance=radius*Math.max(padding,1)/Math.sin(Math.min(vertical,horizontal));
     return {center,radius,distance,near:Math.max(.001,distance-radius*2),far:distance+radius*3};
   }
-  return {build,toGLB,sampleAnalysis,align,profileControls,cameraFit};
+  return {build,toGLB,sampleAnalysis,align,profileControls,cameraFit,withBust};
 });

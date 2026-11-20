@@ -33,6 +33,13 @@ combines aligned depths with a median to reduce outliers. After depth changes
 are applied to this fused base instead of replacing it. The viewer reports how
 many additional views were accepted by the fit; a captured view can be excluded.
 
+`withBust(surface)` adds procedural ears and an open-front neck/upper bust,
+scaled and positioned using the facial landmarks. No back of the head is added.
+These additions are inferred templates, not measurements of the user's ears or
+neck. Small cheek texture patches supply their skin color; their appearance is
+not reconstructed from side photographs. The viewer and lab include these parts
+in framing, rotation and GLB exports. Export metadata marks the inferred parts.
+
 Reference mesh: Google MediaPipe canonical face model, Apache-2.0.
 Source: https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/modules/face_geometry/data/canonical_face_model.obj
 The original mesh and license are preserved in `reference/`.
