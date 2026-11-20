@@ -1142,87 +1142,9 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
 
 function renderAfterImageViewer(container, imageData) {
   if (!container || !imageData) return;
-  container.innerHTML = `
-    <div class="face-3d-viewer" data-rotation="0" tabindex="0" aria-label="After画像の3Dビュー。左右にドラッグまたはスワイプして回転できます。">
-      <div class="face-3d-stage">
-        <canvas class="face-3d-canvas" aria-label="顔の近似3Dモデル"></canvas>
-        <img class="face-3d-source" src="${imageData}" alt="シミュレーション後の予測イメージ">
-      </div>
-      <p class="face-3d-help">左右にドラッグ／スワイプして180°回転 <span class="face-3d-angle">0°</span></p>
-    </div>`;
-
-  const viewer = container.querySelector(".face-3d-viewer");
-  const stage = viewer.querySelector(".face-3d-stage");
-  const canvas = viewer.querySelector(".face-3d-canvas");
-  const source = viewer.querySelector(".face-3d-source");
-  const angleLabel = viewer.querySelector(".face-3d-angle");
-  const context = canvas.getContext("2d");
-  const draw = (rotation) => {
-    if (!source.complete || !source.naturalWidth) return;
-    const width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    const height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-    }
-    context.clearRect(0, 0, width, height);
-    const angle = rotation * Math.PI / 180;
-    const scale = Math.min(width / source.naturalWidth, height / source.naturalHeight);
-    const imageWidth = source.naturalWidth * scale;
-    const imageHeight = source.naturalHeight * scale;
-    const left = (width - imageWidth) / 2;
-    const top = (height - imageHeight) / 2;
-    const strips = 96;
-    for (let index = 0; index < strips; index += 1) {
-      const x = index / strips;
-      const nextX = (index + 1) / strips;
-      const depth = Math.sin(x * Math.PI) * imageWidth * 0.16;
-      const nextDepth = Math.sin(nextX * Math.PI) * imageWidth * 0.16;
-      const projectedX = left + (x - 0.5) * imageWidth * Math.cos(angle) + depth * Math.sin(angle) + width / 2 - width / 2;
-      const nextProjectedX = left + (nextX - 0.5) * imageWidth * Math.cos(angle) + nextDepth * Math.sin(angle) + width / 2 - width / 2;
-      const projectedWidth = Math.max(1, Math.abs(nextProjectedX - projectedX) + 1);
-      context.drawImage(source, x * source.naturalWidth, 0, source.naturalWidth / strips + 1, source.naturalHeight, projectedX, top, projectedWidth, imageHeight);
-    }
-  };
-  source.addEventListener("load", () => draw(0));
-  let dragging = false;
-  let startX = 0;
-  let startRotation = 0;
-
-  const applyRotation = (rotation) => {
-    const normalized = Math.max(-180, Math.min(180, rotation));
-    viewer.dataset.rotation = String(normalized);
-    stage.style.transform = "none";
-    draw(normalized);
-    if (angleLabel) angleLabel.textContent = `${Math.round(normalized)}°`;
-  };
-
-  viewer.addEventListener("pointerdown", (event) => {
-    dragging = true;
-    startX = event.clientX;
-    startRotation = Number(viewer.dataset.rotation) || 0;
-    viewer.setPointerCapture?.(event.pointerId);
-    viewer.classList.add("is-dragging");
-  });
-  viewer.addEventListener("pointermove", (event) => {
-    if (!dragging) return;
-    applyRotation(startRotation + (event.clientX - startX) * 0.8);
-  });
-  viewer.addEventListener("mousemove", (event) => {
-    if (!dragging) return;
-    applyRotation(startRotation + (event.clientX - startX) * 0.8);
-  });
-  const stopDragging = () => {
-    dragging = false;
-    viewer.classList.remove("is-dragging");
-  };
-  viewer.addEventListener("pointerup", stopDragging);
-  viewer.addEventListener("pointercancel", stopDragging);
-  viewer.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    applyRotation((Number(viewer.dataset.rotation) || 0) + (event.key === "ArrowLeft" ? -15 : 15));
-  });
+  window.Face3DViewer?.dispose(container);
+  container.innerHTML = '<div class="face-3d-viewer"><img class="three-face-fallback" alt="After画像"><p class="face-3d-help">After画像から3Dモデルを準備しています…</p></div>';
+  container.querySelector('img').src = imageData;
 }
 
 async function renderResult(result) {
@@ -1234,6 +1156,7 @@ async function renderResult(result) {
 
   result.beforeImage = selectedImageData;
   beforeImage.innerHTML = `<img src="${selectedImageData}" alt="シミュレーション前の画像">`;
+  window.Face3DViewer?.disposeAll();
   afterImage.innerHTML = `<div class="loading-state">After画像を生成しています...</div>`;
   result.faceAnalysis = await analyzeSelectedFace();
   const inputValidation = window.InputGuard?.validateFaceInput(result.faceAnalysis);
@@ -1261,6 +1184,27 @@ async function renderResult(result) {
     renderAfterImageViewer(afterImage, generatedImage);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     if (!stillCurrent()) return;
+    if (result.afterFaceAnalysis?.ok) {
+      try {
+        await import('./face-3d-viewer.js');
+        if (!stillCurrent()) return;
+        const mounted = window.Face3DViewer.mount(afterImage, generatedImage, result.afterFaceAnalysis, {
+          beforeAnalysis: result.faceAnalysis,
+          afterAnalysis: result.afterFaceAnalysis
+        });
+        if (!mounted) renderAfterImageViewer(afterImage, generatedImage);
+        const help = afterImage.querySelector('.face-3d-help');
+        if (help && !mounted) help.textContent = 'この端末では3D表示を利用できないためAfter画像を表示しています。';
+      } catch {
+        if (!stillCurrent()) return;
+        renderAfterImageViewer(afterImage, generatedImage);
+        const help = afterImage.querySelector('.face-3d-help');
+        if (help) help.textContent = '3D表示を読み込めないためAfter画像を表示しています。';
+      }
+    } else {
+      const help = afterImage.querySelector('.face-3d-help');
+      if (help) help.textContent = '顔の特徴点を取得できなかったためAfter画像を表示しています。';
+    }
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(
       appendFaceAnalysis(result.analysis, result.faceAnalysis),
@@ -1284,7 +1228,10 @@ async function renderResult(result) {
       </div>
       <div class="after-3d-fallback-image"></div>
     `;
-    renderAfterImageViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage);
+    const localPreview = document.createElement("img");
+    localPreview.src = localImage;
+    localPreview.alt = "確認用のローカル簡易生成画像";
+    afterImage.querySelector(".after-3d-fallback-image").replaceChildren(localPreview);
   }
 
   result.beforeScore = result.faceAnalysis?.ok ? result.faceAnalysis.metrics.balanceScore : null;

@@ -1,0 +1,27 @@
+import * as THREE from '/vendor/three.module.js';
+const $=id=>document.getElementById(id), api=window.Face3DModel;
+const stage=$('stage'),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(32,1,.01,30);
+camera.position.z=4.5;
+let renderer;
+try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});}catch{ $('status').textContent='WebGLを有効にしたブラウザーで開いてください。';throw Error('WebGL unavailable');}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));stage.append(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x635765,2.4));const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(-2,3,5);scene.add(light);
+const geometry=new THREE.BufferGeometry(),material=new THREE.MeshStandardMaterial({color:0xe9bba6,roughness:.8,side:THREE.DoubleSide}),mesh=new THREE.Mesh(geometry,material);scene.add(mesh);
+let before=api.sampleAnalysis(),after=null,model,surface,amount=1,values={},yaw=0,pitch=0,texture=null,image=null,version=0;
+const sliders={};
+for(const [key,label,min,max,value]of [['amount','Afterの反映',0,100,100],['noseHeight','鼻の高さ',-100,100,0],['jawWidth','輪郭の幅',-100,100,0],['chinLength','顎の長さ',-100,100,0]]){
+ const row=document.createElement('label');row.textContent=label;const input=document.createElement('input');input.type='range';input.min=min;input.max=max;input.value=value;input.setAttribute('aria-label',label);row.append(input);$('controls').append(row);sliders[key]=input;input.oninput=()=>{if(key==='amount')amount=+input.value/100;else values[key]=+input.value/100;update();};
+}
+function update(){surface=model.sample(amount,values);for(const [name,data,size]of [['position',surface.positions,3],['normal',surface.normals,3],['uv',surface.uvs,2]])geometry.setAttribute(name,new THREE.BufferAttribute(data,size));geometry.setIndex(new THREE.BufferAttribute(surface.indices,1));geometry.computeBoundingSphere();}
+function rebuild(){model=api.build({before,after,profile:{nose:'high',face:'vline',strength:65}});update();}
+function clearTexture(){texture?.dispose();texture=null;image=null;material.map=null;material.color.set(0xe9bba6);material.needsUpdate=true;}
+async function loadPhoto(event){const file=event.target.files[0];if(!file)return;const token=++version;$('status').textContent='顔を解析しています…';$('before').disabled=$('after').disabled=true;
+try{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});const analysis=await window.FaceBalanceAnalyzer.analyze(data);if(token!==version)return;if(event.target.id==='before')before=analysis;else after=analysis;const next=await new THREE.TextureLoader().loadAsync(data);if(token!==version){next.dispose();return;}clearTexture();texture=next;image=next.image;next.colorSpace=THREE.SRGBColorSpace;material.map=next;material.color.set(0xffffff);material.needsUpdate=true;rebuild();$('status').textContent=after?'After画像から推定した形状を表示しています。':'Before写真から推定しています。スライダーで形状を調整できます。';}catch(error){$('status').textContent=`解析できませんでした：${error.message}`;}finally{$('before').disabled=$('after').disabled=false;}}
+$('before').onchange=loadPhoto;$('after').onchange=loadPhoto;
+$('front').onclick=()=>{yaw=pitch=0;};$('wire').onclick=()=>{material.wireframe=!material.wireframe;};
+$('reset').onclick=()=>{version++;before=api.sampleAnalysis();after=null;values={};amount=1;yaw=pitch=0;clearTexture();for(const [key,input]of Object.entries(sliders))input.value=key==='amount'?100:0;$('before').value=$('after').value='';rebuild();$('status').textContent='写真を消去し、サンプルを表示しています。';};
+$('export').onclick=async()=>{let imageBytes=null;if(image){const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;canvas.getContext('2d').drawImage(image,0,0);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));imageBytes=new Uint8Array(await blob.arrayBuffer());}const blob=new Blob([api.toGLB(surface,{imageBytes})],{type:'model/gltf-binary'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='face-prototype.glb';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='3DモデルをGLB形式で保存しました。';};
+let pointer;stage.onpointerdown=e=>{pointer=[e.clientX,e.clientY];stage.setPointerCapture(e.pointerId);};stage.onpointermove=e=>{if(!pointer)return;yaw=Math.max(-1.22,Math.min(1.22,yaw+(e.clientX-pointer[0])*.01));pitch=Math.max(-.5,Math.min(.5,pitch+(e.clientY-pointer[1])*.01));pointer=[e.clientX,e.clientY];};stage.onpointerup=stage.onpointercancel=()=>pointer=null;
+stage.onkeydown=e=>{if(!e.key.startsWith('Arrow'))return;e.preventDefault();yaw=Math.max(-1.22,Math.min(1.22,yaw+(e.key==='ArrowLeft'?-.1:e.key==='ArrowRight'?.1:0)));pitch=Math.max(-.5,Math.min(.5,pitch+(e.key==='ArrowUp'?-.1:e.key==='ArrowDown'?.1:0)));};
+const observer=new ResizeObserver(()=>{renderer.setSize(stage.clientWidth,stage.clientHeight,false);camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();});observer.observe(stage);rebuild();
+renderer.setAnimationLoop(()=>{mesh.rotation.set(pitch,yaw,0);renderer.render(scene,camera);});window.addEventListener('pagehide',()=>{renderer.setAnimationLoop(null);observer.disconnect();clearTexture();geometry.dispose();material.dispose();renderer.dispose();});

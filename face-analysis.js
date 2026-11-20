@@ -160,6 +160,8 @@
 
     return {
       ok: true,
+      landmarks: landmarks.map(({ x, y, z }) => ({ x, y, z })),
+      imageSize: { width: image.naturalWidth, height: image.naturalHeight },
       metrics: calculateMetrics(landmarks, image.naturalWidth, image.naturalHeight)
     };
   }
