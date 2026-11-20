@@ -2,6 +2,8 @@
 .env.*
 !.env.example
 node_modules/
+.tools/
+.face-reconstruction/
 server-out.log
 server-err.log
 *.log

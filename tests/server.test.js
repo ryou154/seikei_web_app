@@ -43,6 +43,17 @@ test("session and image generation reject unauthenticated requests", async () =>
   assert.equal(response.status, 401);
   assert.match((await response.json()).error, /ログイン/);
 });
+test("photo reconstruction endpoints require authentication and private files stay private", async () => {
+  for (const [method,route] of [["GET","/api/face-reconstruction/capabilities"],["POST","/api/face-reconstruction"],["GET","/api/face-reconstruction/00000000-0000-0000-0000-000000000000/model"]]) {
+    assert.equal((await fetch(base+route,{method})).status,401,route);
+  }
+  for (const route of ["/face-reconstruction.js","/face-reconstruction-engine.js","/face-reconstruction-glb.js","/.face-reconstruction/model.glb","/.tools/reconstruction/colmap/bin/colmap.exe"]) {
+    assert.equal((await fetch(base+route)).status,404,route);
+  }
+  for (const route of ["/face-reconstruction.html","/face-reconstruction-client.js","/photo-reconstruction-viewer.js","/vendor/loaders/GLTFLoader.js","/vendor/utils/SkeletonUtils.js","/vendor/utils/BufferGeometryUtils.js"]) {
+    assert.equal((await fetch(base+route)).status,200,route);
+  }
+});
 test("forged bearer tokens cannot invoke image generation", async () => {
   const response = await fetch(`${base}/api/gemini-edit`, { method: "POST", headers: { Authorization: "Bearer forged" } });
   assert.equal(response.status, 401);
