@@ -10,7 +10,7 @@ const { createAccountDeleteHandler } = require("./account-delete");
 const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = require("./clinic-admin");
 const { createAdminSettingsStore } = require("./admin-settings");
-const { createInquiryStore, clean } = require("./inquiry-store");
+const { INQUIRY_CATEGORIES, createInquiryStore, clean, normalizeCategory } = require("./inquiry-store");
 const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
@@ -99,25 +99,49 @@ const server = http.createServer(async (request, response) => {
       }
       return;
     }
+    if (request.method === "GET" && request.url === "/api/contact") {
+      const identity = await authorize(request);
+      const inquiries = (await inquiryDatabase.listByUser(identity.uid)).map((item) => ({
+        id: item.id,
+        category: item.category,
+        subject: item.subject,
+        message: item.message,
+        status: item.status,
+        createdAt: item.createdAt,
+        answeredAt: item.answeredAt,
+        response: item.status === "answered" ? item.response : ""
+      }));
+      sendJson(response, 200, { inquiries, categories: INQUIRY_CATEGORIES });
+      return;
+    }
     if (request.method === "POST" && request.url === "/api/contact") {
       const identity = await authorize(request);
       const body = await readJsonBody(request);
       if (!clean(body.subject, 120) || !clean(body.message, 4000)) return sendJson(response, 400, { error: "件名と内容を入力してください。" });
-      sendJson(response, 201, { inquiry: await inquiryDatabase.create({ email: identity.email, uid: identity.uid, subject: body.subject, message: body.message }) });
+      if (!Object.hasOwn(INQUIRY_CATEGORIES, body.category)) return sendJson(response, 400, { error: "カテゴリーを選択してください。" });
+      sendJson(response, 201, { inquiry: await inquiryDatabase.create({ email: identity.email, uid: identity.uid, category: body.category, subject: body.subject, message: body.message }) });
       return;
     }
     if ((request.url === "/api/admin/inquiries" || request.url.startsWith("/api/admin/inquiries?")) && request.method === "GET") {
       await requireAdmin(request, authorize);
-      const status = new URL(request.url, `http://localhost:${port}`).searchParams.get("status") || "unanswered";
-      sendJson(response, 200, { inquiries: await inquiryDatabase.list(status) });
+      const params = new URL(request.url, `http://localhost:${port}`).searchParams;
+      const status = params.get("status") || "unanswered";
+      const requestedCategory = params.get("category") || "all";
+      const category = requestedCategory === "all" ? "all" : normalizeCategory(requestedCategory);
+      sendJson(response, 200, { inquiries: await inquiryDatabase.list(status, category), categories: INQUIRY_CATEGORIES });
       return;
     }
     const inquiryMatch = /^\/api\/admin\/inquiries\/([A-Za-z0-9_-]+)$/.exec(request.url);
     if (inquiryMatch && request.method === "PUT") {
-      await requireAdmin(request, authorize);
+      const adminIdentity = await requireAdmin(request, authorize);
       const body = await readJsonBody(request);
       if (!["unanswered", "answered"].includes(body.status)) return sendJson(response, 400, { error: "回答状態が不正です。" });
-      const inquiry = await inquiryDatabase.updateStatus(inquiryMatch[1], body.status);
+      if (body.status === "answered" && !clean(body.response, 4000)) return sendJson(response, 400, { error: "回答内容を入力してください。" });
+      const inquiry = await inquiryDatabase.update(inquiryMatch[1], {
+        status: body.status,
+        response: body.response,
+        answeredBy: adminIdentity.email
+      });
       sendJson(response, inquiry ? 200 : 404, inquiry ? { inquiry } : { error: "問い合わせが見つかりません。" });
       return;
     }
@@ -495,7 +519,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", "/admin-settings.js", "/inquiry-store.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
