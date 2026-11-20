@@ -196,6 +196,12 @@ async function handleGeminiEdit(request, response) {
     return;
   }
   const image = parseDataUrl(body.image);
+  const scanReferences = Array.isArray(body.scanReferences)
+    ? body.scanReferences.slice(0, 7).map((reference) => ({
+      direction: clean(reference?.direction, 20),
+      image: parseDataUrl(reference?.image)
+    })).filter((reference) => reference.image)
+    : [];
   const prompt = buildGeminiPrompt(body);
   const retryPrompt = buildGeminiPrompt(body, { compact: true });
   const aspectRatio = normalizeAspectRatio(body.aspectRatio);
@@ -211,6 +217,7 @@ async function handleGeminiEdit(request, response) {
       model: attempt.model,
       prompt: attempt.prompt,
       image,
+      referenceImages: scanReferences,
       aspectRatio
     });
 
@@ -235,7 +242,7 @@ async function handleGeminiEdit(request, response) {
   });
 }
 
-async function requestGeminiImage({ model, prompt, image, aspectRatio }) {
+async function requestGeminiImage({ model, prompt, image, referenceImages = [], aspectRatio }) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 160000);
 
@@ -252,11 +259,12 @@ async function requestGeminiImage({ model, prompt, image, aspectRatio }) {
           model,
           input: [
             { type: "text", text: prompt },
-            {
+            { type: "image", mime_type: image.mimeType, data: image.base64 },
+            ...referenceImages.map(({ image: reference }) => ({
               type: "image",
-              mime_type: image.mimeType,
-              data: image.base64
-            }
+              mime_type: reference.mimeType,
+              data: reference.base64
+            }))
           ],
           response_format: {
             type: "image",
@@ -459,7 +467,7 @@ function buildGeminiPrompt(body, options = {}) {
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
     genderGuide,
     "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. For a directional view, change only the head direction requested below while keeping the framing consistent. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
-    "The uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view.",
+    "The first uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view. Any following reference images are the user's silent multi-angle scan and must be used only to estimate the same person's head direction, visible contour, nose projection, lips, jawline, and proportions. Never copy their Before appearance over the canonical After image and never change the person.",
     viewDirectionGuide,
     "Preserve natural human anatomy and realistic skin texture.",
     "Make the result look like a realistic three-dimensional facial render: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",

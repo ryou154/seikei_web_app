@@ -1520,6 +1520,7 @@ async function renderResult(result) {
 function renderDirectionalAfterViewer(container, frontImage, result) {
   const views = result.faceAnalysis?.scan?.views || {};
   const labels = { front: "正面", left: "左", right: "右", up: "上", down: "下" };
+  const scanKeys = { front: ["front"], left: ["left45", "left90"], right: ["right45", "right90"], up: ["up"], down: ["down"] };
   const generated = { front: frontImage };
   container.innerHTML = `
     <div class="directional-after-viewer">
@@ -1552,11 +1553,7 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
       status.textContent = `${labels[direction]}のAfter画像`;
       return;
     }
-    const scanImage = views[direction]?.imageData;
-    if (!scanImage) {
-      status.textContent = `${labels[direction]}のスキャン画像がありません。7方向スキャンを完了してから実行してください。`;
-      return;
-    }
+    const scanImage = scanKeys[direction]?.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData;
     status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
     tab.disabled = true;
     try {
@@ -1767,6 +1764,12 @@ async function createGeminiAfterImage(result, sourceImage = selectedImageData, v
   }
 
   const preparedImage = await resizeImageForGemini(sourceImage);
+  const scanViews = result.faceAnalysis?.scan?.views || {};
+  const scanReferences = (await Promise.all(Object.entries(scanViews).map(async ([direction, view]) => {
+    if (!view?.imageData) return null;
+    const prepared = await resizeImageForGemini(view.imageData);
+    return { direction, image: prepared.data };
+  }))).filter(Boolean);
   const response = await window.AppAuth.fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
@@ -1774,6 +1777,7 @@ async function createGeminiAfterImage(result, sourceImage = selectedImageData, v
     },
     body: JSON.stringify({
       image: preparedImage.data,
+      scanReferences,
       aspectRatio: preparedImage.aspectRatio,
       requestText: result.requestText,
       viewDirection,
