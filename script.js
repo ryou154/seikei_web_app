@@ -572,6 +572,7 @@ const guidedScanSteps = [
 // more stable input than relying on one frame captured at a single instant.
 const GUIDED_BURST_DURATION_MS = 1200;
 const GUIDED_BURST_INTERVAL_MS = 200;
+const GUIDED_POSE_SETTLE_MS = 2500;
 
 startCameraButton.addEventListener("click", async () => {
   const cameraGeneration = privacyGeneration;
@@ -687,7 +688,8 @@ function startGuidedScan() {
     views: {},
     horizontalSign: 0,
     verticalSign: 0,
-    failures: 0
+    failures: 0,
+    stepStartedAt: 0
   };
   captureButton.disabled = true;
   captureButton.textContent = "スキャン中…";
@@ -716,12 +718,15 @@ async function processGuidedScanFrame() {
     if (scanGeneration !== privacyGeneration || !guidedScan) return;
     const step = guidedScanSteps[guidedScan.index];
     const accepted = isGuidedScanPoseAccepted(step.key, analysis.metrics);
+    const settleTimedOut = performance.now() - guidedScan.stepStartedAt >= GUIDED_POSE_SETTLE_MS;
     guidedScan.failures = 0;
 
-    if (accepted) {
+    if (accepted || settleTimedOut) {
       guidedScan.stableFrames += 1;
       cameraDirection.classList.add("is-detected");
-      cameraScanStatus.textContent = `${step.label} そのまま少し止まってください。`;
+      cameraScanStatus.textContent = settleTimedOut && !accepted
+        ? `${step.label}を確認しました。連写中…`
+        : `${step.label} そのまま少し止まってください。`;
       if (guidedScan.stableFrames >= 2) {
         await acceptGuidedScanView(step.key, imageData, analysis);
       }
@@ -807,15 +812,13 @@ async function captureGuidedBurst(stepKey, firstImageData, firstAnalysis) {
     if (!imageData) continue;
     try {
       const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
-      if (isGuidedScanPoseAccepted(stepKey, analysis.metrics)) {
-        frames.push({
-          imageData,
-          landmarks: analysis.landmarks,
-          meshConnections: analysis.meshConnections,
-          metrics: analysis.metrics,
-          capturedAt: new Date().toISOString()
-        });
-      }
+      frames.push({
+        imageData,
+        landmarks: analysis.landmarks,
+        meshConnections: analysis.meshConnections,
+        metrics: analysis.metrics,
+        capturedAt: new Date().toISOString()
+      });
     } catch (error) {
       // A single missed frame should not cancel the burst.
     }
@@ -876,6 +879,7 @@ async function acceptGuidedScanView(stepKey, imageData, analysis) {
 function updateGuidedScanUi() {
   if (!guidedScan) return;
   const step = guidedScanSteps[guidedScan.index];
+  guidedScan.stepStartedAt = performance.now();
   cameraDirection.textContent = step.key === "front" ? "正面" : step.label.replace("顔を", "").replace("ください", "");
   cameraScanStatus.textContent = step.label;
   cameraScanSteps.querySelectorAll("span").forEach((item) => item.classList.remove("active"));
