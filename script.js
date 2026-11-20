@@ -574,11 +574,11 @@ const GUIDED_BURST_DURATION_MS = 2000;
 const GUIDED_BURST_INTERVAL_MS = 125;
 const GUIDED_POSE_SETTLE_MS = 2000;
 const scanDirectionAudio = {
-  intro: new Audio("/assets/scan-audio/intro.mp3"),
+  intro: new Audio("/assets/scan-audio/start.mp3"),
   front: new Audio("/assets/scan-audio/front.mp3"),
-  left: new Audio("/assets/scan-audio/left.mp3"),
-  right: new Audio("/assets/scan-audio/right.mp3"),
-  up: new Audio("/assets/scan-audio/up.mp3"),
+  left: new Audio("/assets/scan-audio/left%20(2).mp3"),
+  right: new Audio("/assets/scan-audio/right%20(2).mp3"),
+  up: new Audio("/assets/scan-audio/up%20(2).mp3"),
   down: new Audio("/assets/scan-audio/down.mp3")
 };
 Object.values(scanDirectionAudio).forEach((audio) => {
