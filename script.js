@@ -752,8 +752,13 @@ async function processGuidedScanFrame() {
 }
 
 function isGuidedScanPoseAccepted(stepKey, metrics) {
-  const centered = metrics.frameCenterOffsetX <= 18 && metrics.frameCenterOffsetY <= 24;
-  const suitableSize = metrics.faceWidthInFrame >= 22 && metrics.faceWidthInFrame <= 72;
+  const isSidePose = stepKey === "left45" || stepKey === "right45" || stepKey === "left90" || stepKey === "right90";
+  // A profile face is naturally narrower in the landmark box, so use a more
+  // forgiving framing range for the four horizontal poses.
+  const centered = metrics.frameCenterOffsetX <= (isSidePose ? 30 : 22)
+    && metrics.frameCenterOffsetY <= (isSidePose ? 32 : 28);
+  const suitableSize = metrics.faceWidthInFrame >= (isSidePose ? 10 : 18)
+    && metrics.faceWidthInFrame <= 82;
   if (!centered || !suitableSize) return false;
 
   if (stepKey === "front") {
@@ -764,23 +769,23 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   const yawDifference = metrics.yawRatio - front.yawRatio;
   const leftSign = guidedScan.horizontalSign || 1;
   if (stepKey === "left45") {
-    return Math.abs(yawDifference) >= 10 && Math.abs(yawDifference) < 38;
+    return Math.abs(yawDifference) >= 6 && Math.abs(yawDifference) < 42;
   }
   if (stepKey === "right45") {
-    return Math.abs(yawDifference) >= 10 && Math.abs(yawDifference) < 38 && Math.sign(yawDifference) === -leftSign;
+    return Math.abs(yawDifference) >= 6 && Math.abs(yawDifference) < 42 && Math.sign(yawDifference) === -leftSign;
   }
   if (stepKey === "left90") {
-    return Math.abs(yawDifference) >= 38 && Math.sign(yawDifference) === leftSign;
+    return Math.abs(yawDifference) >= 28 && Math.sign(yawDifference) === leftSign;
   }
   if (stepKey === "right90") {
-    return Math.abs(yawDifference) >= 38 && Math.sign(yawDifference) === -leftSign;
+    return Math.abs(yawDifference) >= 28 && Math.sign(yawDifference) === -leftSign;
   }
   if (stepKey === "up") {
-    return Math.abs(metrics.pitchRatio - front.pitchRatio) >= 4;
+    return Math.abs(metrics.pitchRatio - front.pitchRatio) >= 2;
   }
   if (stepKey === "down") {
     const difference = metrics.pitchRatio - front.pitchRatio;
-    return Math.abs(difference) >= 4 && Math.sign(difference) === -guidedScan.verticalSign;
+    return Math.abs(difference) >= 2 && Math.sign(difference) === -guidedScan.verticalSign;
   }
   return false;
 }
