@@ -90,5 +90,16 @@
     view.setUint32(0,0x46546c67,true);view.setUint32(4,2,true);view.setUint32(8,length,true);view.setUint32(12,jsonLength,true);view.setUint32(16,0x4e4f534a,true);bytes.fill(32,20,20+jsonLength);bytes.set(encoded,20);const bin=20+jsonLength;view.setUint32(bin,total,true);view.setUint32(bin+4,0x004e4942,true);for(const chunk of chunks)bytes.set(chunk.bytes,bin+8+chunk.offset);return buffer;
   }
   function sampleAnalysis(){const landmarks=canonical.vertices.map(([x,y,z])=>({x:0.5+x/24,y:0.49-y/24,z:-z/24}));return {ok:true,landmarks,imageSize:{width:1024,height:1024},meshConnections:[]};}
-  return {build,toGLB,sampleAnalysis,align,profileControls};
+  function cameraFit(positions, aspect, fov = 35, padding = 1.18) {
+    const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
+    for(let i=0;i<positions.length;i++) { const k=i%3;min[k]=Math.min(min[k],positions[i]);max[k]=Math.max(max[k],positions[i]); }
+    const center=min.map((v,k)=>(v+max[k])/2);
+    let radius=0;
+    for(let i=0;i<positions.length;i+=3) radius=Math.max(radius,Math.hypot(positions[i]-center[0],positions[i+1]-center[1],positions[i+2]-center[2]));
+    radius=Math.max(radius,.01);
+    const vertical=fov*Math.PI/360,horizontal=Math.atan(Math.tan(vertical)*Math.max(aspect,.01));
+    const distance=radius*Math.max(padding,1)/Math.sin(Math.min(vertical,horizontal));
+    return {center,radius,distance,near:Math.max(.001,distance-radius*2),far:distance+radius*3};
+  }
+  return {build,toGLB,sampleAnalysis,align,profileControls,cameraFit};
 });
