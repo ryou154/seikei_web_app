@@ -559,10 +559,8 @@ imageCropDialog.addEventListener("close", () => {
 
 const guidedScanSteps = [
   { key: "front", label: "正面を向いてください" },
-  { key: "left45", label: "顔を左へ45度向けてください" },
-  { key: "right45", label: "顔を右へ45度向けてください" },
-  { key: "left90", label: "顔を左へ真横（90度）向けてください" },
-  { key: "right90", label: "顔を右へ真横（90度）向けてください" },
+  { key: "left", label: "顔を左へ向けてください" },
+  { key: "right", label: "顔を右へ向けてください" },
   { key: "up", label: "顔を少し上へ向けてください" },
   { key: "down", label: "顔を少し下へ向けてください" }
 ];
@@ -570,9 +568,11 @@ const guidedScanSteps = [
 // The burst is silent because the stream is opened with audio disabled.
 // Keeping several landmark samples per pose gives later reconstruction code
 // more stable input than relying on one frame captured at a single instant.
-const GUIDED_BURST_DURATION_MS = 1200;
-const GUIDED_BURST_INTERVAL_MS = 200;
-const GUIDED_POSE_SETTLE_MS = 2500;
+const GUIDED_FRONT_FRAME_COUNT = 1;
+const GUIDED_DIRECTION_FRAME_COUNT = 15;
+const GUIDED_BURST_DURATION_MS = 2000;
+const GUIDED_BURST_INTERVAL_MS = 125;
+const GUIDED_POSE_SETTLE_MS = 2000;
 
 startCameraButton.addEventListener("click", async () => {
   const cameraGeneration = privacyGeneration;
@@ -727,7 +727,7 @@ async function processGuidedScanFrame() {
       cameraScanStatus.textContent = settleTimedOut && !accepted
         ? `${step.label}を確認しました。連写中…`
         : `${step.label} そのまま少し止まってください。`;
-      if (guidedScan.stableFrames >= 2) {
+      if (settleTimedOut && guidedScan.stableFrames >= 2) {
         await acceptGuidedScanView(step.key, imageData, analysis);
       }
     } else {
@@ -757,7 +757,7 @@ async function processGuidedScanFrame() {
 }
 
 function isGuidedScanPoseAccepted(stepKey, metrics) {
-  const isSidePose = stepKey === "left45" || stepKey === "right45" || stepKey === "left90" || stepKey === "right90";
+  const isSidePose = stepKey === "left" || stepKey === "right";
   // A profile face is naturally narrower in the landmark box, so use a more
   // forgiving framing range for the four horizontal poses.
   const centered = metrics.frameCenterOffsetX <= (isSidePose ? 30 : 22)
@@ -773,17 +773,11 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   const front = guidedScan.views.front.analysis.metrics;
   const yawDifference = metrics.yawRatio - front.yawRatio;
   const leftSign = guidedScan.horizontalSign || 1;
-  if (stepKey === "left45") {
-    return Math.abs(yawDifference) >= 6 && Math.abs(yawDifference) < 42;
+  if (stepKey === "left") {
+    return Math.abs(yawDifference) >= 6;
   }
-  if (stepKey === "right45") {
-    return Math.abs(yawDifference) >= 6 && Math.abs(yawDifference) < 42 && Math.sign(yawDifference) === -leftSign;
-  }
-  if (stepKey === "left90") {
-    return Math.abs(yawDifference) >= 28 && Math.sign(yawDifference) === leftSign;
-  }
-  if (stepKey === "right90") {
-    return Math.abs(yawDifference) >= 28 && Math.sign(yawDifference) === -leftSign;
+  if (stepKey === "right") {
+    return Math.abs(yawDifference) >= 6 && Math.sign(yawDifference) === -leftSign;
   }
   if (stepKey === "up") {
     return Math.abs(metrics.pitchRatio - front.pitchRatio) >= 2;
@@ -804,9 +798,11 @@ async function captureGuidedBurst(stepKey, firstImageData, firstAnalysis) {
     capturedAt: new Date().toISOString()
   }];
   const startedAt = performance.now();
+  const targetFrameCount = stepKey === "front" ? GUIDED_FRONT_FRAME_COUNT : GUIDED_DIRECTION_FRAME_COUNT;
+  if (targetFrameCount === 1) return { imageData: firstImageData, analysis: firstAnalysis, frames };
   cameraScanStatus.textContent = `${guidedScanSteps.find((step) => step.key === stepKey)?.label || "この方向"}を連写中…`;
 
-  while (performance.now() - startedAt < GUIDED_BURST_DURATION_MS && cameraStream && guidedScan) {
+  while (performance.now() - startedAt < GUIDED_BURST_DURATION_MS && frames.length < targetFrameCount && cameraStream && guidedScan) {
     await new Promise((resolve) => setTimeout(resolve, GUIDED_BURST_INTERVAL_MS));
     const imageData = captureCameraFrame(480, 0.72);
     if (!imageData) continue;
@@ -856,7 +852,7 @@ async function acceptGuidedScanView(stepKey, imageData, analysis) {
       burstDurationMs: GUIDED_BURST_DURATION_MS
     }
   };
-  if (stepKey === "left45") {
+  if (stepKey === "left") {
     guidedScan.horizontalSign = Math.sign(burst.analysis.metrics.yawRatio - front.yawRatio) || 1;
   }
   if (stepKey === "up") {
@@ -909,21 +905,21 @@ function completeGuidedScan() {
       landmarks: view.analysis.landmarks,
       meshConnections: view.analysis.meshConnections,
       metrics: view.analysis.metrics,
-      burstFrames: view.burstFrames.map(({ imageData: _imageData, ...frame }) => frame),
+      burstFrames: view.burstFrames,
       capture: view.capture
     }]))
   };
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
   cameraDirection.classList.add("is-detected");
-  cameraScanStatus.textContent = "7方向の確認が完了しました。正面写真を登録します。";
+  cameraScanStatus.textContent = "5方向の確認が完了しました。正面写真を登録します。";
   setSelectedImage(frontView.imageData);
   latestFaceAnalysis = { ...frontView.analysis, scan: scanSummary };
   analyzedImageData = selectedImageData;
   guidedScan = null;
   clearTimeout(guidedScanTimer);
   guidedScanTimer = null;
-  setTimeout(() => stopCamera("7方向の顔スキャンと無音連写が完了し、最適な正面写真を登録しました。"), 700);
+  setTimeout(() => stopCamera("5方向の顔スキャンと無音撮影が完了し、正面写真を登録しました。"), 700);
 }
 
 stopCameraButton.addEventListener("click", () => stopCamera());
@@ -1520,7 +1516,7 @@ async function renderResult(result) {
 function renderDirectionalAfterViewer(container, frontImage, result) {
   const views = result.faceAnalysis?.scan?.views || {};
   const labels = { front: "正面", left: "左", right: "右", up: "上", down: "下" };
-  const scanKeys = { front: ["front"], left: ["left45", "left90"], right: ["right45", "right90"], up: ["up"], down: ["down"] };
+  const scanKeys = { front: ["front"], left: ["left"], right: ["right"], up: ["up"], down: ["down"] };
   const generated = { front: frontImage };
   container.innerHTML = `
     <div class="directional-after-viewer">
@@ -1765,9 +1761,14 @@ async function createGeminiAfterImage(result, sourceImage = selectedImageData, v
 
   const preparedImage = await resizeImageForGemini(sourceImage);
   const scanViews = result.faceAnalysis?.scan?.views || {};
-  const scanReferences = (await Promise.all(Object.entries(scanViews).map(async ([direction, view]) => {
-    if (!view?.imageData) return null;
-    const prepared = await resizeImageForGemini(view.imageData);
+  const scanReferenceEntries = Object.entries(scanViews).flatMap(([direction, view]) => {
+    const frames = Array.isArray(view?.burstFrames) && view.burstFrames.length
+      ? view.burstFrames
+      : [{ imageData: view?.imageData }];
+    return frames.filter((frame) => frame?.imageData).map((frame) => ({ direction, imageData: frame.imageData }));
+  });
+  const scanReferences = (await Promise.all(scanReferenceEntries.map(async ({ direction, imageData }) => {
+    const prepared = await resizeImageForGemini(imageData);
     return { direction, image: prepared.data };
   }))).filter(Boolean);
   const response = await window.AppAuth.fetch("/api/gemini-edit", {

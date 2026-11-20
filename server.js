@@ -197,7 +197,7 @@ async function handleGeminiEdit(request, response) {
   }
   const image = parseDataUrl(body.image);
   const scanReferences = Array.isArray(body.scanReferences)
-    ? body.scanReferences.slice(0, 7).map((reference) => ({
+    ? body.scanReferences.slice(0, 61).map((reference) => ({
       direction: clean(reference?.direction, 20),
       image: parseDataUrl(reference?.image)
     })).filter((reference) => reference.image)
