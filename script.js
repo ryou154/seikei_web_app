@@ -730,6 +730,7 @@ function startGuidedScan() {
   };
   captureButton.disabled = true;
   captureButton.textContent = "スキャン中…";
+  cameraScanStatus.textContent = "これから音声案内が流れます。音声に従って顔を動かしてください。";
   updateGuidedScanUi();
   scheduleGuidedScan(100);
 }
@@ -921,7 +922,9 @@ function updateGuidedScanUi() {
   guidedScan.stepStartedAt = performance.now();
   playScanDirectionAudio(step.key);
   cameraDirection.textContent = step.key === "front" ? "正面" : step.label.replace("顔を", "").replace("ください", "");
-  cameraScanStatus.textContent = step.label;
+  cameraScanStatus.textContent = guidedScan.index === 0
+    ? `これから音声案内が流れます。音声に従ってください。${step.label}`
+    : `音声案内に従ってください。${step.label}`;
   cameraScanSteps.querySelectorAll("span").forEach((item) => item.classList.remove("active"));
   cameraScanSteps.querySelector(`[data-scan-step="${step.key}"]`)?.classList.add("active");
   cameraScanProgressBar.style.width = `${guidedScan.index / guidedScanSteps.length * 100}%`;
