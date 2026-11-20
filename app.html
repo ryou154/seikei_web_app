@@ -94,6 +94,11 @@
         <canvas id="capture-canvas" class="hidden"></canvas>
         <p id="camera-message" class="notice">カメラ撮影でも顔画像を登録できます。</p>
       </div>
+      <div id="scan-model-panel" hidden>
+        <h3>撮影した顔の3Dモデル</h3>
+        <div id="scan-model-preview" class="scan-model-preview"></div>
+        <p class="notice">ドラッグで回転できます。複数方向の撮影を土台に、シミュレーションのAfterを反映します。奥行きは推定です。</p>
+      </div>
       <div class="step-navigation">
         <span class="step-progress" aria-current="step">1 / 2　画像を準備</span>
         <button id="to-conditions-button" type="button" class="main-action">次へ：希望条件を入力</button>
@@ -468,6 +473,8 @@
           <span data-scan-step="front">正面</span>
           <span data-scan-step="left">左</span>
           <span data-scan-step="right">右</span>
+          <span data-scan-step="left-profile">左・深め</span>
+          <span data-scan-step="right-profile">右・深め</span>
           <span data-scan-step="up">上</span>
           <span data-scan-step="down">下</span>
         </div>
@@ -475,7 +482,7 @@
           <span id="camera-scan-progress-bar"></span>
         </div>
       </div>
-      <p class="camera-help">動画は保存せず、端末内で顔の向きを確認します。最適な正面写真だけを登録します。</p>
+      <p class="camera-help">正面・左右・左右の深め・上下の7方向を撮影します。表情と距離を保ち、各方向で少し止まってください。正面写真と各方向の特徴点を端末内で3D推定に使います。動画と横向きの写真は保存しません。</p>
       <div class="camera-screen-actions">
         <button id="capture-button" type="button" class="main-action" disabled>顔スキャンを開始</button>
         <button id="manual-capture-button" type="button" class="sub-button" disabled>通常撮影を使う</button>

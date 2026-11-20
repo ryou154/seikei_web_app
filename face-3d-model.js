@@ -71,7 +71,7 @@
     base.forEach((p,i)=>{const values=depths[i].sort((a,b)=>a-b),median=values[Math.floor(values.length/2)];p[2]=p[2]*0.4+median*0.6;});
     const observed=Boolean(after?.ok&&after.landmarks?.length>=468);
     const generated=observed?normalized(after):null;
-    let target=generated?generated.points.map((p,i)=>[p[0],p[1],p[2]*0.85+base[i][2]*0.15]):morph(base,profileControls(profile));
+    let target=generated?generated.points.map((p,i)=>[p[0],p[1],base[i][2]+clamp(p[2]-original.points[i][2],-.3,.3)]):morph(base,profileControls(profile));
     const low=Math.min(...base.map(p=>p[1]),...target.map(p=>p[1])),high=Math.max(...base.map(p=>p[1]),...target.map(p=>p[1])),centerY=(low+high)/2;
     const beforePoints=base.map(p=>[p[0],p[1]-centerY,p[2]]);target=target.map(p=>[p[0],p[1]-centerY,p[2]]);
     const triangles=canonical.triangles.map(([a,b,c])=>{const p=beforePoints[a],q=beforePoints[b],r=beforePoints[c];return (q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0])<0?[a,c,b]:[a,b,c];});

@@ -1896,3 +1896,6 @@ body[data-auth-page="register"] .auth-buttons { align-items: center; }
 .three-face-fallback-layer { position:absolute; inset:0; z-index:2; }
 .three-face-fallback[hidden] { display:none; }
 .three-face-viewer .face-3d-help { position:absolute; bottom:8px; left:8px; right:8px; z-index:3; margin:0; padding:6px; background:#ffffffdf; color:#294657; font-size:12px; text-align:center; }
+
+.scan-model-preview { position:relative; height:360px; width:100%; overflow:hidden; border-radius:12px; }
+#scan-model-panel[hidden] { display:none; }

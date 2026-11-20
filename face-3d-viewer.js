@@ -6,11 +6,12 @@ function dispose(container){viewers.get(container)?.();}
 function disposeAll(){for(const cleanup of [...viewers.values()])cleanup();}
 function mount(container,imageData,analysis,options={}){
   if(!container||!imageData||!analysis?.ok)return false;
-  let surface;
-  try{surface=window.Face3DModel.build({before:options.beforeAnalysis?.ok?options.beforeAnalysis:analysis,after:options.afterAnalysis||analysis}).sample(1);}catch{return false;}
+  let surface,model;
+  try{model=window.Face3DModel.build({before:options.beforeAnalysis?.ok?options.beforeAnalysis:analysis,after:options.scanPreview?null:(options.afterAnalysis||analysis)});surface=model.sample(options.scanPreview?0:1);}catch{return false;}
   dispose(container);container.replaceChildren();
   const root=document.createElement('div');root.className='three-face-viewer';root.tabIndex=0;root.setAttribute('aria-label','Afterの3Dモデル。ドラッグまたは矢印キーで回転');
   const help=document.createElement('p');help.className='face-3d-help';help.textContent='Afterを3Dに反映・ドラッグで回転（奥行きは推定）';
+  if (analysis.scan?.completed || options.beforeAnalysis?.scan?.completed) help.textContent=`${options.scanPreview?'撮影した顔':'After'}の3D・正面＋${model.scanViewsUsed}方向を統合（奥行きは推定）`;
   const fallback=document.createElement('img');fallback.src=imageData;fallback.alt='シミュレーション後のAfter画像';fallback.className='three-face-fallback three-face-fallback-layer';root.append(fallback);container.append(root);
   let renderer;
   try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});}catch{return false;}
