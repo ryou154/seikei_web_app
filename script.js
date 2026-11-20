@@ -573,6 +573,43 @@ const GUIDED_DIRECTION_FRAME_COUNT = 15;
 const GUIDED_BURST_DURATION_MS = 2000;
 const GUIDED_BURST_INTERVAL_MS = 125;
 const GUIDED_POSE_SETTLE_MS = 2000;
+const scanDirectionAudio = {
+  front: new Audio("/assets/scan-audio/front.mp3"),
+  left: new Audio("/assets/scan-audio/left.mp3"),
+  right: new Audio("/assets/scan-audio/right.mp3"),
+  up: new Audio("/assets/scan-audio/up.mp3"),
+  down: new Audio("/assets/scan-audio/down.mp3")
+};
+Object.values(scanDirectionAudio).forEach((audio) => {
+  audio.preload = "auto";
+});
+let scanAudioContext = null;
+
+function playScanDirectionAudio(stepKey) {
+  const audio = scanDirectionAudio[stepKey];
+  if (!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function playScanBeep() {
+  try {
+    scanAudioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (scanAudioContext.state === "suspended") scanAudioContext.resume();
+    const oscillator = scanAudioContext.createOscillator();
+    const gain = scanAudioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, scanAudioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, scanAudioContext.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, scanAudioContext.currentTime + 0.09);
+    oscillator.connect(gain).connect(scanAudioContext.destination);
+    oscillator.start();
+    oscillator.stop(scanAudioContext.currentTime + 0.1);
+  } catch (error) {
+    // Audio guidance is optional; scanning must continue if the browser blocks it.
+  }
+}
 
 startCameraButton.addEventListener("click", async () => {
   const cameraGeneration = privacyGeneration;
@@ -801,23 +838,29 @@ async function captureGuidedBurst(stepKey, firstImageData, firstAnalysis) {
   const targetFrameCount = stepKey === "front" ? GUIDED_FRONT_FRAME_COUNT : GUIDED_DIRECTION_FRAME_COUNT;
   if (targetFrameCount === 1) return { imageData: firstImageData, analysis: firstAnalysis, frames };
   cameraScanStatus.textContent = `${guidedScanSteps.find((step) => step.key === stepKey)?.label || "この方向"}を連写中…`;
+  playScanBeep();
+  const beepTimer = setInterval(playScanBeep, 500);
 
-  while (performance.now() - startedAt < GUIDED_BURST_DURATION_MS && frames.length < targetFrameCount && cameraStream && guidedScan) {
-    await new Promise((resolve) => setTimeout(resolve, GUIDED_BURST_INTERVAL_MS));
-    const imageData = captureCameraFrame(480, 0.72);
-    if (!imageData) continue;
-    try {
-      const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
-      frames.push({
-        imageData,
-        landmarks: analysis.landmarks,
-        meshConnections: analysis.meshConnections,
-        metrics: analysis.metrics,
-        capturedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      // A single missed frame should not cancel the burst.
+  try {
+    while (performance.now() - startedAt < GUIDED_BURST_DURATION_MS && frames.length < targetFrameCount && cameraStream && guidedScan) {
+      await new Promise((resolve) => setTimeout(resolve, GUIDED_BURST_INTERVAL_MS));
+      const imageData = captureCameraFrame(480, 0.72);
+      if (!imageData) continue;
+      try {
+        const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
+        frames.push({
+          imageData,
+          landmarks: analysis.landmarks,
+          meshConnections: analysis.meshConnections,
+          metrics: analysis.metrics,
+          capturedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        // A single missed frame should not cancel the burst.
+      }
     }
+  } finally {
+    clearInterval(beepTimer);
   }
 
   const representative = frames[Math.floor(frames.length / 2)] || frames[0];
@@ -876,6 +919,7 @@ function updateGuidedScanUi() {
   if (!guidedScan) return;
   const step = guidedScanSteps[guidedScan.index];
   guidedScan.stepStartedAt = performance.now();
+  playScanDirectionAudio(step.key);
   cameraDirection.textContent = step.key === "front" ? "正面" : step.label.replace("顔を", "").replace("ください", "");
   cameraScanStatus.textContent = step.label;
   cameraScanSteps.querySelectorAll("span").forEach((item) => item.classList.remove("active"));
