@@ -57,6 +57,11 @@ const downtimeInput = document.getElementById("downtime-select");
 const clinicPriorityInput = document.getElementById("clinic-priority");
 const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
+const capturePanel = document.querySelector(".capture-panel");
+const conditionsPanel = document.querySelector(".conditions-panel");
+const toConditionsButton = document.getElementById("to-conditions-button");
+const backToCaptureButton = document.getElementById("back-to-capture-button");
+const stepIndicators = [...document.querySelectorAll("[data-step-indicator]")];
 const saveButton = document.getElementById("save-button");
 const clearHistoryButton = document.getElementById("clear-history-button");
 const emptyResult = document.getElementById("empty-result");
@@ -89,6 +94,32 @@ let guidedScanBusy = false;
 let privacyGeneration = 0;
 let cropperInstance = null;
 openCropButton.hidden = true;
+
+function setSimulationStep(step) {
+  stepIndicators.forEach(item => item.classList.toggle("is-active", item.dataset.stepIndicator === step));
+}
+
+function setInputStep(step, { focus = true } = {}) {
+  capturePanel?.classList.toggle("step-hidden", step !== "capture");
+  conditionsPanel?.classList.toggle("step-hidden", step === "capture");
+  setSimulationStep(step);
+  if (!focus) return;
+  const heading = document.getElementById(step === "capture" ? "capture-title" : "input-title");
+  window.requestAnimationFrame(() => {
+    heading?.scrollIntoView({ behavior: "smooth", block: "start" });
+    heading?.focus?.({ preventScroll: true });
+  });
+}
+
+toConditionsButton?.addEventListener("click", () => {
+  if (!selectedImageData) {
+    cameraMessage.textContent = "顔画像を選択するか、カメラで撮影してから次へ進んでください。";
+    faceImageInput.focus();
+    return;
+  }
+  setInputStep("conditions");
+});
+backToCaptureButton?.addEventListener("click", () => setInputStep("capture"));
 
 function escapeText(value) {
   const text = String(value ?? "");
@@ -821,6 +852,7 @@ simulateButton.addEventListener("click", async () => {
     }
 
     latestResult = createSimulationResult(requestText);
+    setSimulationStep("result");
     // Move to the result area immediately so progress is visible whether the
     // user started from above or below it.
     scrollToSimulationResult(resultPanel);
@@ -1864,6 +1896,7 @@ window.AccountData.init({
 });
 
 window.addEventListener("app-locked", () => {
+  setInputStep("capture", { focus: false });
   privacyGeneration++;
   stopCamera();
   resetGuidedScan();

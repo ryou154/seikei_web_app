@@ -604,8 +604,8 @@ button:disabled {
   border-top: 1px solid var(--line);
 }
 .step-progress { color: var(--muted); font-size: 13px; font-weight: 700; }
-.conditions-panel.step-hidden { display: none; }
-.capture-panel.step-hidden { display: none; }
+.app-page .conditions-panel.step-hidden { display: none; }
+.app-page .capture-panel.step-hidden { display: none; }
 .safety-notice {
   margin: 0 0 18px;
   padding: 14px 16px;
