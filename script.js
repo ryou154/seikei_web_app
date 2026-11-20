@@ -559,11 +559,19 @@ imageCropDialog.addEventListener("close", () => {
 
 const guidedScanSteps = [
   { key: "front", label: "正面を向いてください" },
-  { key: "left", label: "顔をゆっくり左へ向けてください" },
-  { key: "right", label: "顔をゆっくり右へ向けてください" },
+  { key: "left45", label: "顔を左へ45度向けてください" },
+  { key: "right45", label: "顔を右へ45度向けてください" },
+  { key: "left90", label: "顔を左へ真横（90度）向けてください" },
+  { key: "right90", label: "顔を右へ真横（90度）向けてください" },
   { key: "up", label: "顔を少し上へ向けてください" },
   { key: "down", label: "顔を少し下へ向けてください" }
 ];
+
+// The burst is silent because the stream is opened with audio disabled.
+// Keeping several landmark samples per pose gives later reconstruction code
+// more stable input than relying on one frame captured at a single instant.
+const GUIDED_BURST_DURATION_MS = 1200;
+const GUIDED_BURST_INTERVAL_MS = 200;
 
 startCameraButton.addEventListener("click", async () => {
   const cameraGeneration = privacyGeneration;
@@ -715,7 +723,7 @@ async function processGuidedScanFrame() {
       cameraDirection.classList.add("is-detected");
       cameraScanStatus.textContent = `${step.label} そのまま少し止まってください。`;
       if (guidedScan.stableFrames >= 2) {
-        acceptGuidedScanView(step.key, imageData, analysis);
+        await acceptGuidedScanView(step.key, imageData, analysis);
       }
     } else {
       guidedScan.stableFrames = 0;
@@ -753,12 +761,19 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   }
 
   const front = guidedScan.views.front.analysis.metrics;
-  if (stepKey === "left") {
-    return Math.abs(metrics.yawRatio - front.yawRatio) >= 12;
+  const yawDifference = metrics.yawRatio - front.yawRatio;
+  const leftSign = guidedScan.horizontalSign || 1;
+  if (stepKey === "left45") {
+    return Math.abs(yawDifference) >= 10 && Math.abs(yawDifference) < 38;
   }
-  if (stepKey === "right") {
-    const difference = metrics.yawRatio - front.yawRatio;
-    return Math.abs(difference) >= 12 && Math.sign(difference) === -guidedScan.horizontalSign;
+  if (stepKey === "right45") {
+    return Math.abs(yawDifference) >= 10 && Math.abs(yawDifference) < 38 && Math.sign(yawDifference) === -leftSign;
+  }
+  if (stepKey === "left90") {
+    return Math.abs(yawDifference) >= 38 && Math.sign(yawDifference) === leftSign;
+  }
+  if (stepKey === "right90") {
+    return Math.abs(yawDifference) >= 38 && Math.sign(yawDifference) === -leftSign;
   }
   if (stepKey === "up") {
     return Math.abs(metrics.pitchRatio - front.pitchRatio) >= 4;
@@ -770,30 +785,74 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   return false;
 }
 
-function acceptGuidedScanView(stepKey, imageData, analysis) {
+async function captureGuidedBurst(stepKey, firstImageData, firstAnalysis) {
+  const frames = [{
+    imageData: firstImageData,
+    landmarks: firstAnalysis.landmarks,
+    meshConnections: firstAnalysis.meshConnections,
+    metrics: firstAnalysis.metrics,
+    capturedAt: new Date().toISOString()
+  }];
+  const startedAt = performance.now();
+  cameraScanStatus.textContent = `${guidedScanSteps.find((step) => step.key === stepKey)?.label || "この方向"}を連写中…`;
+
+  while (performance.now() - startedAt < GUIDED_BURST_DURATION_MS && cameraStream && guidedScan) {
+    await new Promise((resolve) => setTimeout(resolve, GUIDED_BURST_INTERVAL_MS));
+    const imageData = captureCameraFrame(480, 0.72);
+    if (!imageData) continue;
+    try {
+      const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
+      if (isGuidedScanPoseAccepted(stepKey, analysis.metrics)) {
+        frames.push({
+          imageData,
+          landmarks: analysis.landmarks,
+          meshConnections: analysis.meshConnections,
+          metrics: analysis.metrics,
+          capturedAt: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      // A single missed frame should not cancel the burst.
+    }
+  }
+
+  const representative = frames[Math.floor(frames.length / 2)] || frames[0];
+  return { imageData: representative.imageData, analysis: {
+    ok: true,
+    landmarks: representative.landmarks,
+    meshConnections: representative.meshConnections,
+    metrics: representative.metrics
+  }, frames };
+}
+
+async function acceptGuidedScanView(stepKey, imageData, analysis) {
+  const burst = await captureGuidedBurst(stepKey, imageData, analysis);
   const front = guidedScan.views.front?.analysis.metrics;
   guidedScan.views[stepKey] = {
-    imageData,
-    analysis,
+    imageData: burst.imageData,
+    analysis: burst.analysis,
+    burstFrames: burst.frames,
     capture: {
       capturedAt: new Date().toISOString(),
       sourceWidth: cameraPreview.videoWidth,
       sourceHeight: cameraPreview.videoHeight,
       imageWidth: captureCanvas.width,
       imageHeight: captureCanvas.height,
-      faceWidthInFrame: analysis.metrics.faceWidthInFrame,
-      faceHeightInFrame: analysis.metrics.faceHeightInFrame,
-      frameCenterOffsetX: analysis.metrics.frameCenterOffsetX,
-      frameCenterOffsetY: analysis.metrics.frameCenterOffsetY,
-      yawRatio: analysis.metrics.yawRatio,
-      pitchRatio: analysis.metrics.pitchRatio
+      faceWidthInFrame: burst.analysis.metrics.faceWidthInFrame,
+      faceHeightInFrame: burst.analysis.metrics.faceHeightInFrame,
+      frameCenterOffsetX: burst.analysis.metrics.frameCenterOffsetX,
+      frameCenterOffsetY: burst.analysis.metrics.frameCenterOffsetY,
+      yawRatio: burst.analysis.metrics.yawRatio,
+      pitchRatio: burst.analysis.metrics.pitchRatio,
+      burstFrameCount: burst.frames.length,
+      burstDurationMs: GUIDED_BURST_DURATION_MS
     }
   };
-  if (stepKey === "left") {
-    guidedScan.horizontalSign = Math.sign(analysis.metrics.yawRatio - front.yawRatio) || 1;
+  if (stepKey === "left45") {
+    guidedScan.horizontalSign = Math.sign(burst.analysis.metrics.yawRatio - front.yawRatio) || 1;
   }
   if (stepKey === "up") {
-    guidedScan.verticalSign = Math.sign(analysis.metrics.pitchRatio - front.pitchRatio) || 1;
+    guidedScan.verticalSign = Math.sign(burst.analysis.metrics.pitchRatio - front.pitchRatio) || 1;
   }
 
   const completedItem = cameraScanSteps.querySelector(`[data-scan-step="${stepKey}"]`);
@@ -834,26 +893,28 @@ function completeGuidedScan() {
     completed: true,
     viewCount: Object.keys(guidedScan.views).length,
     // Keep landmark data from every accepted direction for 3D reconstruction.
-    // Camera images remain private to the scan and are not needed here.
+    // Camera images remain in memory for the current simulation. Landmark
+    // samples from each silent burst are retained for reconstruction.
     views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
       imageData: view.imageData,
       landmarks: view.analysis.landmarks,
       meshConnections: view.analysis.meshConnections,
       metrics: view.analysis.metrics,
+      burstFrames: view.burstFrames.map(({ imageData: _imageData, ...frame }) => frame),
       capture: view.capture
     }]))
   };
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
   cameraDirection.classList.add("is-detected");
-  cameraScanStatus.textContent = "5方向の確認が完了しました。正面写真を登録します。";
+  cameraScanStatus.textContent = "7方向の確認が完了しました。正面写真を登録します。";
   setSelectedImage(frontView.imageData);
   latestFaceAnalysis = { ...frontView.analysis, scan: scanSummary };
   analyzedImageData = selectedImageData;
   guidedScan = null;
   clearTimeout(guidedScanTimer);
   guidedScanTimer = null;
-  setTimeout(() => stopCamera("5方向の顔スキャンが完了し、最適な正面写真を登録しました。"), 700);
+  setTimeout(() => stopCamera("7方向の顔スキャンと無音連写が完了し、最適な正面写真を登録しました。"), 700);
 }
 
 stopCameraButton.addEventListener("click", () => stopCamera());
@@ -1484,7 +1545,7 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
     }
     const scanImage = views[direction]?.imageData;
     if (!scanImage) {
-      status.textContent = `${labels[direction]}のスキャン画像がありません。5方向スキャンを完了してから実行してください。`;
+      status.textContent = `${labels[direction]}のスキャン画像がありません。7方向スキャンを完了してから実行してください。`;
       return;
     }
     status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
