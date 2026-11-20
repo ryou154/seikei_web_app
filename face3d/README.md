@@ -12,12 +12,21 @@ prediction of a surgical outcome. No additional image-generation API call is
 made to rotate the model. `/face-3d-lab.html` provides a standalone sample and
 browser-only photo analysis preview, including optional GLB export.
 
-Camera capture guides seven poses: front, left, right, deeper left, deeper right,
-up and down. Each accepted pose requires three detected frames. Captured image
-dimensions and landmarks are retained in browser memory, while side photographs
-are discarded after capture. A preview of the fused personal surface appears
-before the preference step. Replacing the image or locking the app clears it.
-This remains landmark-based estimation, not calibrated photogrammetry.
+Camera capture continuously samples while the user moves from front to left,
+right, up, down and back to front. `continuous-face-scan.js` selects distinct
+pose cells instead of requiring a stop at each pose. It requires coverage on
+both sides and above/below, with at least 18 selected frames, a cap of 48 and a
+two-minute timeout. Centering, face size and roll checks reject unsuitable
+frames. Camera mirroring is handled by relative pose signs. Frame sampling is
+serial; actual rate depends on browser inference speed.
+
+Captured photographs stay in browser memory during capture. After completion,
+only the front photograph and each selected frame's dimensions and landmarks
+are retained; side photographs are discarded. A preview of the fused personal
+surface appears before the preference step. Replacing the image or locking the
+app clears it. No new upload or cloud reconstruction service is used. This
+remains landmark-based estimation, not calibrated photogrammetry or a complete
+ear/neck reconstruction. The texture still comes from the front/After image.
 
 The model removes pose using a similarity fit, rejects large residuals, and
 combines aligned depths with a median to reduce outliers. After depth changes

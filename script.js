@@ -594,7 +594,7 @@ startCameraButton.addEventListener("click", async () => {
     manualCaptureButton.disabled = true;
     stopCameraButton.disabled = false;
     startCameraButton.disabled = true;
-    captureButton.textContent = "顔スキャンを開始";
+    captureButton.textContent = "連続撮影を開始";
     cameraMessage.textContent = "専用画面で写真を撮影してください。";
   } catch (error) {
     cameraMessage.textContent = "カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。";
@@ -665,7 +665,7 @@ function resetGuidedScan() {
 
 function startGuidedScan() {
   if (!cameraStream || guidedScan) return;
-  if (!window.FaceBalanceAnalyzer) {
+  if (!window.FaceBalanceAnalyzer || !window.ContinuousFaceScan) {
     cameraScanStatus.textContent = "顔解析を読み込めません。通常撮影を使用してください。";
     captureButton.disabled = false;
     captureButton.textContent = "顔スキャンを再試行";
@@ -680,9 +680,11 @@ function startGuidedScan() {
     verticalSign: 0,
     failures: 0
   };
+  guidedScan.continuous = window.ContinuousFaceScan.create();
   captureButton.disabled = true;
   captureButton.textContent = "スキャン中…";
-  updateGuidedScanUi();
+  cameraDirection.textContent = "正面";
+  cameraScanStatus.textContent = "正面を向いてください。そこから顔をゆっくり動かします。";
   scheduleGuidedScan(100);
 }
 
@@ -706,6 +708,28 @@ async function processGuidedScanFrame() {
 
     const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
     if (scanGeneration !== privacyGeneration || guidedScan !== activeScan) return;
+    if (guidedScan.continuous) {
+      const progress = guidedScan.continuous.add({ imageData, analysis });
+      guidedScan.failures = 0;
+      cameraDirection.textContent = `${progress.count}枚`;
+      cameraScanStatus.textContent = `${progress.hint}（採用 ${progress.count}枚）`;
+      cameraScanProgressBar.style.width = `${progress.progress}%`;
+      const order = ['front','left','right','up','down','finish'];
+      cameraScanSteps.querySelectorAll('span').forEach(item => {
+        item.classList.toggle('active', item.dataset.scanStep === progress.phase);
+        item.classList.toggle('done', order.indexOf(item.dataset.scanStep) < order.indexOf(progress.phase));
+      });
+      if (progress.completed) {
+        guidedScan.views = guidedScan.continuous.views();
+        completeGuidedScan();
+      } else if (progress.expired) {
+        guidedScan.continuous.clear();
+        guidedScan = null;
+        captureButton.disabled = false;
+        captureButton.textContent = '連続撮影を再試行';
+      }
+      return;
+    }
     const step = guidedScanSteps[guidedScan.index];
     const accepted = isGuidedScanPoseAccepted(step.key, analysis.metrics);
     guidedScan.failures = 0;
@@ -725,12 +749,14 @@ async function processGuidedScanFrame() {
   } catch (error) {
     if (scanGeneration !== privacyGeneration || guidedScan !== activeScan) return;
     guidedScan.failures += 1;
+    const failureLimit = guidedScan.continuous ? 25 : 5;
     guidedScan.stableFrames = 0;
     cameraDirection.classList.remove("is-detected");
-    cameraScanStatus.textContent = guidedScan.failures > 5
+    cameraScanStatus.textContent = guidedScan.failures > failureLimit
       ? "顔を検出できません。明るい場所でガイド中央に合わせるか、通常撮影を使用してください。"
       : "顔を探しています。ガイドの中央に合わせてください。";
-    if (guidedScan.failures > 5) {
+    if (guidedScan.failures > failureLimit) {
+      guidedScan.continuous?.clear();
       clearTimeout(guidedScanTimer);
       guidedScanTimer = null;
       guidedScan = null;
@@ -823,6 +849,7 @@ function completeGuidedScan() {
   const frontView = guidedScan.views.front;
   const scanSummary = {
     completed: true,
+    mode: guidedScan.continuous ? 'continuous' : 'guided',
     viewCount: Object.keys(guidedScan.views).length,
     views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
       landmarks: view.analysis.landmarks,
@@ -830,10 +857,11 @@ function completeGuidedScan() {
       capture: view.analysis.metrics
     }]))
   };
+  const captureLabel = scanSummary.mode === 'continuous' ? `${scanSummary.viewCount}枚の連続撮影` : `${scanSummary.viewCount}方向の撮影`;
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
   cameraDirection.classList.add("is-detected");
-  cameraScanStatus.textContent = `${scanSummary.viewCount}方向の撮影が完了しました。3Dモデルを準備します。`;
+  cameraScanStatus.textContent = `${captureLabel}が完了しました。3Dモデルを準備します。`;
   setSelectedImage(frontView.imageData);
   latestFaceAnalysis = { ...frontView.analysis, scan: scanSummary };
   void showScanModel(frontView.imageData, latestFaceAnalysis);
@@ -841,7 +869,7 @@ function completeGuidedScan() {
   guidedScan = null;
   clearTimeout(guidedScanTimer);
   guidedScanTimer = null;
-  stopCamera(`${scanSummary.viewCount}方向を撮影しました。正面写真と各方向の特徴点を3Dモデルに使用します。`);
+  stopCamera(`${captureLabel}が完了しました。正面写真と各画像の特徴点を3Dモデルに使用します。`);
 }
 
 async function showScanModel(imageData, analysis) {
@@ -1450,7 +1478,7 @@ function appendFaceAnalysis(text, faceAnalysis) {
   }
 
   const metrics = faceAnalysis.metrics;
-  const scanText = faceAnalysis.scan?.completed ? `${faceAnalysis.scan.viewCount}方向の特徴点を3D形状の推定に使用しました。` : "";
+  const scanText = faceAnalysis.scan?.completed ? `${faceAnalysis.scan.viewCount}${faceAnalysis.scan.mode === 'continuous' ? '枚の連続撮影画像' : '方向'}の特徴点を3D形状の推定に使用しました。` : "";
   return `${text} ${scanText}顔ランドマーク${metrics.landmarkCount}点を検出しました。顔の縦横比は${metrics.faceAspect}（${metrics.faceAspectLabel}）、目幅比${metrics.eyeWidthRatio}%、鼻幅比${metrics.noseWidthRatio}%、口幅比${metrics.mouthWidthRatio}%です。これらは2D写真上の参考値であり、骨格測定や医療診断ではありません。`;
 }
 

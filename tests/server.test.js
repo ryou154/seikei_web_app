@@ -80,7 +80,7 @@ test("server source, credentials, Git and dependencies are not public", async ()
   }
 });
 test("3D assets expose only the two allowlisted Three builds", async () => {
-  for (const url of ["/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/vendor/three.module.js", "/vendor/three.core.js"]) {
+  for (const url of ["/continuous-face-scan.js", "/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/vendor/three.module.js", "/vendor/three.core.js"]) {
     const response = await fetch(base + url);
     assert.equal(response.status, 200, url);
     assert.match(response.headers.get("content-type"), /javascript/);

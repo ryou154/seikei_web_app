@@ -473,18 +473,17 @@
           <span data-scan-step="front">正面</span>
           <span data-scan-step="left">左</span>
           <span data-scan-step="right">右</span>
-          <span data-scan-step="left-profile">左・深め</span>
-          <span data-scan-step="right-profile">右・深め</span>
           <span data-scan-step="up">上</span>
           <span data-scan-step="down">下</span>
+          <span data-scan-step="finish">正面へ戻る</span>
         </div>
         <div class="camera-scan-progress" aria-hidden="true">
           <span id="camera-scan-progress-bar"></span>
         </div>
       </div>
-      <p class="camera-help">正面・左右・左右の深め・上下の7方向を撮影します。表情と距離を保ち、各方向で少し止まってください。正面写真と各方向の特徴点を端末内で3D推定に使います。動画と横向きの写真は保存しません。</p>
+      <p class="camera-help">正面から左右、上下へ、表情と距離を保ってゆっくり動いてください。途中で止まる必要はありません。角度の異なる写真を最大48枚まで自動選択し、その特徴点を3D推定に使用します。動画や横向きの写真はクラウドに保存しません。顔表面の推定を行う試作で、写真から頭全体を復元する機能ではありません。</p>
       <div class="camera-screen-actions">
-        <button id="capture-button" type="button" class="main-action" disabled>顔スキャンを開始</button>
+        <button id="capture-button" type="button" class="main-action" disabled>連続撮影を開始</button>
         <button id="manual-capture-button" type="button" class="sub-button" disabled>通常撮影を使う</button>
       </div>
     </div>
@@ -492,6 +491,7 @@
   <script src="data/clinics.js"></script>
   <script src="data/clinic-details.js"></script>
   <script src="face-analysis.js"></script>
+  <script src="continuous-face-scan.js"></script>
   <script src="input-guard.js"></script>
   <script src="simulation-adjustments.js"></script>
   <script src="account-data.js"></script>
