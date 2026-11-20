@@ -1515,8 +1515,8 @@ async function renderResult(result) {
 
 function renderDirectionalAfterViewer(container, frontImage, result) {
   const views = result.faceAnalysis?.scan?.views || {};
-  const labels = { front: "正面", left: "左", right: "右", up: "上", down: "下" };
-  const scanKeys = { front: ["front"], left: ["left"], right: ["right"], up: ["up"], down: ["down"] };
+  const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
+  const scanKeys = { front: ["front"], left45: ["left"], right45: ["right"], left90: ["left"], right90: ["right"], up: ["up"], down: ["down"] };
   const generated = { front: frontImage };
   container.innerHTML = `
     <div class="directional-after-viewer">
@@ -1525,9 +1525,11 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
         <p class="directional-after-status" aria-live="polite">正面のAfter画像</p>
         <div class="directional-after-controls" role="tablist" aria-label="表示方向">
           <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab" aria-selected="false"><span>${labels.up}</span></button>
-          <button type="button" class="directional-after-tab direction-left" data-direction="left" role="tab" aria-selected="false"><span>${labels.left}</span></button>
+          <button type="button" class="directional-after-tab direction-left90" data-direction="left90" role="tab" aria-selected="false"><span>${labels.left90}</span></button>
+          <button type="button" class="directional-after-tab direction-left45" data-direction="left45" role="tab" aria-selected="false"><span>${labels.left45}</span></button>
           <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
-          <button type="button" class="directional-after-tab direction-right" data-direction="right" role="tab" aria-selected="false"><span>${labels.right}</span></button>
+          <button type="button" class="directional-after-tab direction-right45" data-direction="right45" role="tab" aria-selected="false"><span>${labels.right45}</span></button>
+          <button type="button" class="directional-after-tab direction-right90" data-direction="right90" role="tab" aria-selected="false"><span>${labels.right90}</span></button>
           <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab" aria-selected="false"><span>${labels.down}</span></button>
         </div>
       </div>

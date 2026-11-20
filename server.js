@@ -393,8 +393,10 @@ function buildGeminiPrompt(body, options = {}) {
   const requestText = body.requestText || "選択された理想イメージを反映";
   const viewDirectionGuides = {
     front: "View direction: straight-on front view.",
-    left: "View direction: turn the same person's head slightly to the left, showing a natural left three-quarter/profile view.",
-    right: "View direction: turn the same person's head slightly to the right, showing a natural right three-quarter/profile view.",
+    left45: "View direction: turn the same person's head about 45 degrees to the left, showing a natural left three-quarter view.",
+    right45: "View direction: turn the same person's head about 45 degrees to the right, showing a natural right three-quarter view.",
+    left90: "View direction: turn the same person's head fully to the left, showing a natural true left side profile at about 90 degrees.",
+    right90: "View direction: turn the same person's head fully to the right, showing a natural true right side profile at about 90 degrees.",
     up: "View direction: keep the same person and turn the face slightly upward, showing a natural upward-looking view.",
     down: "View direction: keep the same person and turn the face slightly downward, showing a natural downward-looking view."
   };
