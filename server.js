@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Firestore } = require("@google-cloud/firestore");
+const { BigQuery } = require("@google-cloud/bigquery");
 const { authorize } = require("./auth-server");
 const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
@@ -10,6 +11,7 @@ const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = require("./clinic-admin");
 const { createAdminSettingsStore } = require("./admin-settings");
 const { createInquiryStore, clean } = require("./inquiry-store");
+const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
@@ -22,6 +24,9 @@ const handleAccount = createAccountHandler({ getStore: () => accountDatabase, de
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
 const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
 const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdminDatabase });
+const billingUsage = createBillingUsageService({
+  createClient: (config) => new BigQuery({ projectId: config.billingProjectId })
+});
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -65,6 +70,19 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/api/admin/session") {
       const identity = await requireAdmin(request, authorize);
       sendJson(response, 200, { admin: true, uid: identity.uid, email: identity.email });
+      return;
+    }
+    if (request.method === "GET" && request.url === "/api/admin/api-usage") {
+      await requireAdmin(request, authorize);
+      try {
+        sendJson(response, 200, await billingUsage.getMonthUsage());
+      } catch (error) {
+        if (error instanceof BillingUsageError) {
+          sendJson(response, error.status, { error: error.message, code: error.code });
+          return;
+        }
+        throw error;
+      }
       return;
     }
     if (request.url === "/api/admin/settings" && (request.method === "GET" || request.method === "PUT")) {
