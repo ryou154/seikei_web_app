@@ -574,6 +574,7 @@ const GUIDED_BURST_DURATION_MS = 2000;
 const GUIDED_BURST_INTERVAL_MS = 125;
 const GUIDED_POSE_SETTLE_MS = 2000;
 const scanDirectionAudio = {
+  intro: new Audio("/assets/scan-audio/intro.mp3"),
   front: new Audio("/assets/scan-audio/front.mp3"),
   left: new Audio("/assets/scan-audio/left.mp3"),
   right: new Audio("/assets/scan-audio/right.mp3"),
@@ -613,6 +614,7 @@ function playScanBeep() {
 
 startCameraButton.addEventListener("click", async () => {
   const cameraGeneration = privacyGeneration;
+  playScanDirectionAudio("intro");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     cameraMessage.textContent = "このブラウザではカメラを使用できません。";
     return;
