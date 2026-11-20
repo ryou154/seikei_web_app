@@ -19,6 +19,11 @@
       <div class="step-panel-heading">
         <p class="section-kicker">STEP 01</p>
         <h2 id="step-title">シミュレーション入力</h2>
+        <ol class="step-indicator" aria-label="入力ステップ">
+          <li class="is-active" data-step-indicator="capture"><span>1</span>画像を準備</li>
+          <li data-step-indicator="conditions"><span>2</span>希望条件を入力</li>
+          <li data-step-indicator="result"><span>3</span>結果を確認</li>
+        </ol>
       </div>
       <div class="step-workspace">
     <section class="panel capture-panel" aria-labelledby="capture-title">
@@ -327,6 +332,8 @@
       </label>
 
       <button id="simulate-button" type="button" class="main-action">AIシミュレーションを実行</button>
+      <p id="simulation-status" class="simulation-status" role="status" aria-live="polite"></p>
+      <p id="simulation-error" class="simulation-error hidden" role="alert"></p>
       <div class="step-navigation">
         <button id="back-to-capture-button" type="button" class="sub-button">戻る：画像を確認</button>
         <span class="step-progress" aria-current="step">2 / 2　希望条件</span>

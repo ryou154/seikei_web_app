@@ -2,7 +2,6 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Firestore } = require("@google-cloud/firestore");
-const { BigQuery } = require("@google-cloud/bigquery");
 const { authorize } = require("./auth-server");
 const { createStore, createAccountHandler } = require("./account-store");
 const { createImageService } = require("./image-store");
@@ -11,7 +10,6 @@ const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = require("./clinic-admin");
 const { createAdminSettingsStore } = require("./admin-settings");
 const { createInquiryStore, clean } = require("./inquiry-store");
-const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
@@ -24,9 +22,6 @@ const handleAccount = createAccountHandler({ getStore: () => accountDatabase, de
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
 const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
 const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdminDatabase });
-const billingUsage = createBillingUsageService({
-  createClient: (config) => new BigQuery({ projectId: config.billingProjectId })
-});
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -70,19 +65,6 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/api/admin/session") {
       const identity = await requireAdmin(request, authorize);
       sendJson(response, 200, { admin: true, uid: identity.uid, email: identity.email });
-      return;
-    }
-    if (request.method === "GET" && request.url === "/api/admin/api-usage") {
-      await requireAdmin(request, authorize);
-      try {
-        sendJson(response, 200, await billingUsage.getMonthUsage());
-      } catch (error) {
-        if (error instanceof BillingUsageError) {
-          sendJson(response, error.status, { error: error.message, code: error.code });
-          return;
-        }
-        throw error;
-      }
       return;
     }
     if (request.url === "/api/admin/settings" && (request.method === "GET" || request.method === "PUT")) {
@@ -359,6 +341,14 @@ function buildGeminiPrompt(body, options = {}) {
   const strength = body.profile?.strength ?? 50;
   const generationPriority = body.profile?.priority || "natural";
   const requestText = body.requestText || "選択された理想イメージを反映";
+  const viewDirectionGuides = {
+    front: "View direction: straight-on front view.",
+    left: "View direction: turn the same person's head slightly to the left, showing a natural left three-quarter/profile view.",
+    right: "View direction: turn the same person's head slightly to the right, showing a natural right three-quarter/profile view.",
+    up: "View direction: keep the same person and turn the face slightly upward, showing a natural upward-looking view.",
+    down: "View direction: keep the same person and turn the face slightly downward, showing a natural downward-looking view."
+  };
+  const viewDirectionGuide = viewDirectionGuides[body.viewDirection] || viewDirectionGuides.front;
   const detailInstructions = {
     "shorten-face": "make the face look slightly shorter vertically while keeping natural facial proportions",
     "slim-cheeks": "make the cheeks look subtly slimmer",
@@ -426,7 +416,9 @@ function buildGeminiPrompt(body, options = {}) {
     "Create one realistic aesthetic after-simulation image from the uploaded face photo.",
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
     genderGuide,
-    "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, pose, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
+    "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. For a directional view, change only the head direction requested below while keeping the framing consistent. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
+    "The uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view.",
+    viewDirectionGuide,
     "Preserve natural human anatomy and realistic skin texture.",
     "Make the result look like a realistic three-dimensional facial render: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
@@ -485,7 +477,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", "/admin-settings.js", "/inquiry-store.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
