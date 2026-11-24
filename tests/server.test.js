@@ -96,8 +96,11 @@ test("login page starts locked and public assets are available", async () => {
   const adminApiUsage = await (await fetch(`${base}/admin/api-usage.html`)).text();
   const adminApiUsageScript = await (await fetch(`${base}/admin/api-usage.js`)).text();
   const adminBlockedWords = await (await fetch(`${base}/admin/blocked-words.html`)).text();
+  const adminInquiries = await (await fetch(`${base}/admin/inquiries.html`)).text();
   const adminInquiriesScript = await (await fetch(`${base}/admin/inquiries.js`)).text();
   const adminCss = await (await fetch(`${base}/admin/admin.css`)).text();
+  const adminClinicsCss = await (await fetch(`${base}/admin-clinics.css`)).text();
+  const adminSidebarScript = await (await fetch(`${base}/admin/sidebar.js`)).text();
   assert.match(index, /location\.replace\("\/login\.html"\)/);
   assert.match(login, /id="google-login"/);
   assert.match(login, /id="password-reset"/);
@@ -125,6 +128,15 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(adminBlockedWords, /href="inquiries\.html">問い合わせ<\/a>/);
   assert.match(adminInquiriesScript, /\/api\/admin\/session/);
   assert.match(adminCss, /\.admin-dashboard-page[^}]*visibility:\s*hidden/);
+  assert.match(adminCss, /body\.sidebar-open \.admin-sidebar\s*{[^}]*translateX\(0\)/);
+  assert.doesNotMatch(adminClinicsCss, /margin-left:\s*240px/);
+  assert.match(adminSidebarScript, /classList\.toggle\("sidebar-open"/);
+  for (const adminPage of [adminIndex, adminClinics, adminApiUsage, adminBlockedWords, adminInquiries]) {
+    assert.match(adminPage, /id="admin-sidebar-toggle"/);
+    assert.match(adminPage, /class="admin-sidebar"/);
+    assert.match(adminPage, /id="admin-sidebar-overlay"/);
+    assert.match(adminPage, /sidebar\.js/);
+  }
   assert.match(adminClinics, /id="published-prefecture"/);
   assert.match(adminClinics, /公開済みクリニック/);
   assert.doesNotMatch(adminClinics, /id="discover-clinics"/);
