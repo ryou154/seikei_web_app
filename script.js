@@ -1009,6 +1009,8 @@ function updateGuidedScanUi() {
   if (!guidedScan) return;
   const step = guidedScanSteps[guidedScan.index];
   guidedScan.stepStartedAt = performance.now();
+  // Retry allowance is per direction, not shared across the whole scan.
+  guidedScan.retryAttempts = 0;
   playScanDirectionAudio(step.key);
   cameraDirection.textContent = step.key === "front" ? "正面" : step.label.replace("顔を", "").replace("ください", "");
   cameraScanStatus.textContent = guidedScan.index === 0
@@ -1675,15 +1677,25 @@ async function generateDirectionalAfterImages(result, frontImage) {
   const generated = { front: frontImage };
   if (result.profile.imageEngine !== "gemini") return generated;
 
-  const entries = await Promise.all(directions.slice(1).map(async (direction) => {
+  const entries = [];
+  for (const direction of directions.slice(1)) {
     try {
       const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
-      return [direction, directionalResult.image];
+      entries.push([direction, directionalResult.image]);
     } catch (error) {
       console.error(`Directional simulation failed (${direction})`, error);
-      return [direction, null];
+      // Avoid losing a side view because several large Gemini requests were
+      // sent at once. Retry once after the previous request has settled.
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const retryResult = await createGeminiAfterImage(result, frontImage, direction);
+        entries.push([direction, retryResult.image]);
+      } catch (retryError) {
+        console.error(`Directional simulation retry failed (${direction})`, retryError);
+        entries.push([direction, null]);
+      }
     }
-  }));
+  }
   entries.forEach(([direction, image]) => {
     if (image) generated[direction] = image;
   });
