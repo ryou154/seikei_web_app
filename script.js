@@ -559,8 +559,10 @@ imageCropDialog.addEventListener("close", () => {
 
 const guidedScanSteps = [
   { key: "front", label: "正面を向いてください" },
-  { key: "left", label: "顔を左へ向けてください" },
-  { key: "right", label: "顔を右へ向けてください" },
+  { key: "left45", label: "顔を左斜め45度へ向けてください" },
+  { key: "right45", label: "顔を右斜め45度へ向けてください" },
+  { key: "left90", label: "顔を左真横へ向けてください" },
+  { key: "right90", label: "顔を右真横へ向けてください" },
   { key: "up", label: "顔を少し上へ向けてください" },
   { key: "down", label: "顔を少し下へ向けてください" }
 ];
@@ -605,7 +607,8 @@ let lastScanFeedbackAt = 0;
 let scanAudioSequence = 0;
 
 function playScanDirectionAudio(stepKey) {
-  const audio = scanDirectionAudio[stepKey];
+  const audio = scanDirectionAudio[stepKey]
+    || scanDirectionAudio[stepKey.startsWith("left") ? "left" : stepKey.startsWith("right") ? "right" : stepKey];
   if (!audio) return;
   Object.values(scanDirectionAudio).forEach((item) => {
     if (item !== audio) {
@@ -875,7 +878,7 @@ async function processGuidedScanFrame() {
 }
 
 function isGuidedScanPoseAccepted(stepKey, metrics) {
-  const isSidePose = stepKey === "left" || stepKey === "right";
+  const isSidePose = stepKey.startsWith("left") || stepKey.startsWith("right");
   // A profile face is naturally narrower in the landmark box, so use a more
   // forgiving framing range for the four horizontal poses.
   const centered = metrics.frameCenterOffsetX <= (isSidePose ? 30 : 22)
@@ -894,10 +897,10 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   // on mirroring and browser implementation. For scanning, prioritize a
   // sufficient turn from the front over the sign so a valid left/right pose
   // is not rejected solely because of that implementation detail.
-  if (stepKey === "left") {
+  if (stepKey.startsWith("left")) {
     return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD;
   }
-  if (stepKey === "right") {
+  if (stepKey.startsWith("right")) {
     return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD;
   }
   const pitchDifference = metrics.pitchRatio - front.pitchRatio;
@@ -909,7 +912,7 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
 }
 
 function getGuidedDistanceIssue(stepKey, metrics) {
-  const isSidePose = stepKey === "left" || stepKey === "right";
+  const isSidePose = stepKey.startsWith("left") || stepKey.startsWith("right");
   const minimum = isSidePose ? 10 : 18;
   if (metrics.faceWidthInFrame < minimum) return "closer";
   if (metrics.faceWidthInFrame > 82) return "away";
@@ -1039,8 +1042,8 @@ function createGuidedScanHint(stepKey, metrics, allowDirectionFeedback = true) {
     playScanFeedbackAudio(metrics.frameCenterOffsetY > 0 ? "down" : "up", stepKey);
     return "顔をガイドの中央へ移動してください。";
   }
-  if (allowDirectionFeedback && stepKey === "left") playScanFeedbackAudio("left", stepKey);
-  if (allowDirectionFeedback && stepKey === "right") playScanFeedbackAudio("right", stepKey);
+  if (allowDirectionFeedback && stepKey.startsWith("left")) playScanFeedbackAudio("left", stepKey);
+  if (allowDirectionFeedback && stepKey.startsWith("right")) playScanFeedbackAudio("right", stepKey);
   if (allowDirectionFeedback && stepKey === "up") playScanFeedbackAudio("up", stepKey);
   if (allowDirectionFeedback && stepKey === "down") playScanFeedbackAudio("down", stepKey);
   return guidedScanSteps.find((step) => step.key === stepKey)?.label || "顔をゆっくり動かしてください。";
@@ -1066,14 +1069,14 @@ function completeGuidedScan() {
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
   cameraDirection.classList.add("is-detected");
-  cameraScanStatus.textContent = "5方向の確認が完了しました。正面写真を登録します。";
+  cameraScanStatus.textContent = "7方向の確認が完了しました。正面写真を登録します。";
   setSelectedImage(frontView.imageData);
   latestFaceAnalysis = { ...frontView.analysis, scan: scanSummary };
   analyzedImageData = selectedImageData;
   guidedScan = null;
   clearTimeout(guidedScanTimer);
   guidedScanTimer = null;
-  setTimeout(() => stopCamera("5方向の顔スキャンと無音撮影が完了し、正面写真を登録しました。"), 700);
+  setTimeout(() => stopCamera("7方向の顔スキャンと無音撮影が完了し、正面写真を登録しました。"), 700);
 }
 
 stopCameraButton.addEventListener("click", () => stopCamera());
@@ -1705,7 +1708,7 @@ async function generateDirectionalAfterImages(result, frontImage) {
 function renderDirectionalAfterViewer(container, frontImage, result, generated = { front: frontImage }) {
   const views = result.faceAnalysis?.scan?.views || {};
   const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
-  const scanKeys = { front: ["front"], left45: ["left"], right45: ["right"], left90: ["left"], right90: ["right"], up: ["up"], down: ["down"] };
+  const scanKeys = { front: ["front"], left45: ["left45"], right45: ["right45"], left90: ["left90"], right90: ["right90"], up: ["up"], down: ["down"] };
   container.innerHTML = `
     <div class="directional-after-viewer">
       <div class="directional-after-stage">
@@ -1751,7 +1754,7 @@ function renderDirectionalAfterViewer(container, frontImage, result, generated =
 function renderDirectionalBeforeViewer(container, result) {
   const views = result.faceAnalysis?.scan?.views || {};
   const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
-  const scanKeys = { front: ["front"], left45: ["left"], right45: ["right"], left90: ["left"], right90: ["right"], up: ["up"], down: ["down"] };
+  const scanKeys = { front: ["front"], left45: ["left45"], right45: ["right45"], left90: ["left90"], right90: ["right90"], up: ["up"], down: ["down"] };
   const imageMap = Object.fromEntries(Object.entries(scanKeys).map(([direction, keys]) => [
     direction,
     keys.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData || result.beforeImage
