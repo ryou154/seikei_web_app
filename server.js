@@ -9,8 +9,6 @@ const { createAccountDeleteHandler } = require("./account-delete");
 const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const { createClinicAdminStore, createClinicAdminHandler } = require("./clinic-admin");
 const firebaseConfig = require("./firebase-config");
-const { createReconstructionHandler } = require("./face-reconstruction");
-const handleReconstruction = createReconstructionHandler();
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
@@ -36,10 +34,6 @@ const mimeTypes = {
 
 const server = http.createServer(async (request, response) => {
   try {
-    if (request.url === "/api/face-reconstruction" || request.url.startsWith("/api/face-reconstruction/")) {
-      await handleReconstruction(request, response);
-      return;
-    }
     if (imageService.matches(request.url)) {
       sendResult(response, await imageService.handle(request));
       return;
@@ -419,8 +413,6 @@ function serveStatic(request, response) {
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
-    "/face-reconstruction.html", "/face-reconstruction.css", "/face-reconstruction-client.js", "/photo-reconstruction-viewer.js",
-    "/vendor/loaders/GLTFLoader.js", "/vendor/utils/BufferGeometryUtils.js", "/vendor/utils/SkeletonUtils.js",
     "/continuous-face-scan.js",
     "/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/face-3d-lab.html", "/face-3d-lab.js", "/face-3d-lab.css", "/vendor/three.module.js", "/vendor/three.core.js",
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
@@ -432,12 +424,7 @@ function serveStatic(request, response) {
     response.end("Not found");
     return;
   }
-  const vendorFiles = {
-    "/vendor/three.module.js": "node_modules/three/build/three.module.js", "/vendor/three.core.js": "node_modules/three/build/three.core.js",
-    "/vendor/loaders/GLTFLoader.js": "node_modules/three/examples/jsm/loaders/GLTFLoader.js",
-    "/vendor/utils/BufferGeometryUtils.js": "node_modules/three/examples/jsm/utils/BufferGeometryUtils.js",
-    "/vendor/utils/SkeletonUtils.js": "node_modules/three/examples/jsm/utils/SkeletonUtils.js"
-  };
+  const vendorFiles = { "/vendor/three.module.js": "node_modules/three/build/three.module.js", "/vendor/three.core.js": "node_modules/three/build/three.core.js" };
   const relativePath = vendorFiles[urlPath] || (urlPath === "/"
     ? "index.html"
     : urlPath.replace(/^[/\\]+/, ""));
