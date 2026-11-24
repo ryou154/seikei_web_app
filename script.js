@@ -573,6 +573,7 @@ const GUIDED_DIRECTION_FRAME_COUNT = 15;
 const GUIDED_BURST_DURATION_MS = 2000;
 const GUIDED_BURST_INTERVAL_MS = 125;
 const GUIDED_POSE_SETTLE_MS = 2000;
+const GUIDED_DIRECTION_GRACE_MS = 1800;
 const scanDirectionAudio = {
   intro: new Audio("/assets/scan-audio/start.mp3"),
   front: new Audio("/assets/scan-audio/front.mp3"),
@@ -805,15 +806,24 @@ async function processGuidedScanFrame() {
     if (scanGeneration !== privacyGeneration || !guidedScan) return;
     const step = guidedScanSteps[guidedScan.index];
     const accepted = isGuidedScanPoseAccepted(step.key, analysis.metrics);
+    const distanceIssue = getGuidedDistanceIssue(step.key, analysis.metrics);
     guidedScan.failures = 0;
 
-    if (accepted) {
+    if (distanceIssue) {
+      guidedScan.stableFrames = 0;
+      cameraDirection.classList.remove("is-detected");
+      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics);
+    } else if (accepted) {
       guidedScan.stableFrames += 1;
       cameraDirection.classList.add("is-detected");
       cameraScanStatus.textContent = `${step.label} そのまま少し止まってください。`;
       if (guidedScan.stableFrames >= 2 && performance.now() - guidedScan.stepStartedAt >= GUIDED_POSE_SETTLE_MS) {
         await acceptGuidedScanView(step.key, imageData, analysis);
       }
+    } else if (performance.now() - guidedScan.stepStartedAt < GUIDED_DIRECTION_GRACE_MS) {
+      guidedScan.stableFrames = 0;
+      cameraDirection.classList.remove("is-detected");
+      cameraScanStatus.textContent = `${step.label}に合わせています…`;
     } else {
       guidedScan.stableFrames = 0;
       cameraDirection.classList.remove("is-detected");
@@ -869,6 +879,14 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
     return pitchDifference >= 2;
   }
   return false;
+}
+
+function getGuidedDistanceIssue(stepKey, metrics) {
+  const isSidePose = stepKey === "left" || stepKey === "right";
+  const minimum = isSidePose ? 10 : 18;
+  if (metrics.faceWidthInFrame < minimum) return "closer";
+  if (metrics.faceWidthInFrame > 82) return "away";
+  return "";
 }
 
 async function captureGuidedBurst(stepKey, firstImageData, firstAnalysis) {
@@ -975,11 +993,12 @@ function updateGuidedScanUi() {
 }
 
 function createGuidedScanHint(stepKey, metrics) {
-  if (metrics.faceWidthInFrame < 22) {
+  const distanceIssue = getGuidedDistanceIssue(stepKey, metrics);
+  if (distanceIssue === "closer") {
     playScanFeedbackAudio("closer", stepKey);
     return "カメラへ少し近づいてください。";
   }
-  if (metrics.faceWidthInFrame > 72) {
+  if (distanceIssue === "away") {
     playScanFeedbackAudio("away", stepKey);
     return "カメラから少し離れてください。";
   }
