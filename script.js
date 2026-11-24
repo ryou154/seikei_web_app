@@ -1698,12 +1698,14 @@ function renderDirectionalAfterViewer(container, frontImage, result, generated =
       image.src = generated[direction];
       image.alt = `シミュレーション後の${labels[direction]}画像`;
       status.textContent = `${labels[direction]}のAfter画像`;
+      document.dispatchEvent(new CustomEvent("after-direction-change", { detail: { direction } }));
       return;
     }
     const scanImage = scanKeys[direction]?.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData;
     image.src = scanImage;
     image.alt = `${labels[direction]}のスキャン画像`;
     status.textContent = `${labels[direction]}の生成に失敗したためスキャン画像を表示しています`;
+    document.dispatchEvent(new CustomEvent("after-direction-change", { detail: { direction } }));
   }));
 }
 
@@ -1720,31 +1722,20 @@ function renderDirectionalBeforeViewer(container, result) {
     <div class="directional-after-viewer directional-before-viewer">
       <div class="directional-after-stage">
         <img class="directional-after-image" src="${initialImage}" alt="シミュレーション前の${labels.front}画像">
-        <p class="directional-after-status" aria-live="polite">正面のBefore画像</p>
-        <div class="directional-after-controls" role="tablist" aria-label="Before表示方向">
-          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab"><span>${labels.up}</span></button>
-          <button type="button" class="directional-after-tab direction-left90" data-direction="left90" role="tab"><span>${labels.left90}</span></button>
-          <button type="button" class="directional-after-tab direction-left45" data-direction="left45" role="tab"><span>${labels.left45}</span></button>
-          <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
-          <button type="button" class="directional-after-tab direction-right45" data-direction="right45" role="tab"><span>${labels.right45}</span></button>
-          <button type="button" class="directional-after-tab direction-right90" data-direction="right90" role="tab"><span>${labels.right90}</span></button>
-          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab"><span>${labels.down}</span></button>
-        </div>
+        <p class="directional-after-status" aria-live="polite">正面のBefore画像（スキャン画像）</p>
       </div>
     </div>`;
   const image = container.querySelector(".directional-after-image");
   const status = container.querySelector(".directional-after-status");
-  container.querySelectorAll(".directional-after-tab").forEach((tab) => tab.addEventListener("click", () => {
-    const direction = tab.dataset.direction;
-    container.querySelectorAll(".directional-after-tab").forEach((item) => {
-      const active = item === tab;
-      item.classList.toggle("is-active", active);
-      item.setAttribute("aria-selected", String(active));
-    });
+  const setDirection = (direction) => {
     image.src = imageMap[direction] || initialImage;
     image.alt = `シミュレーション前の${labels[direction]}画像`;
     status.textContent = `${labels[direction]}のBefore画像（スキャン画像）`;
-  }));
+  };
+  container._beforeDirectionHandler?.();
+  const syncHandler = (event) => setDirection(event.detail?.direction || "front");
+  document.addEventListener("after-direction-change", syncHandler);
+  container._beforeDirectionHandler = () => document.removeEventListener("after-direction-change", syncHandler);
 }
 
 async function analyzeSelectedFace() {
