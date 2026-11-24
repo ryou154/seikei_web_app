@@ -85,7 +85,7 @@ const server = http.createServer(async (request, response) => {
       }
       return;
     }
-    if (request.url === "/api/admin/users" || request.url.startsWith("/api/admin/users?")) {
+    if (/^\/api\/admin\/users(?:\?|\/|$)/.test(request.url)) {
       const result = await handleAdminUsers(request);
       sendJson(response, result.status, result.data);
       return;
