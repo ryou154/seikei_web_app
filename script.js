@@ -838,17 +838,15 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   const yawDifference = metrics.yawRatio - front.yawRatio;
   const leftSign = guidedScan.horizontalSign || 1;
   if (stepKey === "left") {
-    return Math.abs(yawDifference) >= 6;
+    return yawDifference >= 6 * leftSign;
   }
   if (stepKey === "right") {
     return Math.abs(yawDifference) >= 6 && Math.sign(yawDifference) === -leftSign;
   }
-  if (stepKey === "up") {
-    return Math.abs(metrics.pitchRatio - front.pitchRatio) >= 2;
-  }
+  const pitchDifference = metrics.pitchRatio - front.pitchRatio;
+  if (stepKey === "up") return pitchDifference <= -2;
   if (stepKey === "down") {
-    const difference = metrics.pitchRatio - front.pitchRatio;
-    return Math.abs(difference) >= 2 && Math.sign(difference) === -guidedScan.verticalSign;
+    return pitchDifference >= 2;
   }
   return false;
 }
