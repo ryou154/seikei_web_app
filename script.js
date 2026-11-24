@@ -1471,8 +1471,11 @@ async function renderResult(result) {
     }
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
+    setSimulationStatus("全方向のAfter画像を生成しています…");
+    const generatedViews = await generateDirectionalAfterImages(result, generatedImage);
+    if (!stillCurrent()) return;
     setSimulationStatus("正面のAfter画像を表示しています…");
-    renderDirectionalAfterViewer(afterImage, generatedImage, result);
+    renderDirectionalAfterViewer(afterImage, generatedImage, result, generatedViews);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     const meshAnalysis = combineAfterShapeWithScanDepth(result.afterFaceAnalysis, result.faceAnalysis);
     const mountThreeViewer = (attempt = 0) => {
@@ -1513,7 +1516,7 @@ async function renderResult(result) {
       </div>
       <div class="after-3d-fallback-image"></div>
     `;
-    renderDirectionalAfterViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage, result);
+    renderDirectionalAfterViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage, result, { front: localImage });
     showSimulationError(`After画像の生成に失敗しました。${error?.message || "通信状態やAPIの利用状況を確認してください。"}`);
   }
 
@@ -1562,11 +1565,30 @@ async function renderResult(result) {
   scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
 }
 
-function renderDirectionalAfterViewer(container, frontImage, result) {
+async function generateDirectionalAfterImages(result, frontImage) {
+  const directions = ["front", "left45", "right45", "left90", "right90", "up", "down"];
+  const generated = { front: frontImage };
+  if (result.profile.imageEngine !== "gemini") return generated;
+
+  const entries = await Promise.all(directions.slice(1).map(async (direction) => {
+    try {
+      const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
+      return [direction, directionalResult.image];
+    } catch (error) {
+      console.error(`Directional simulation failed (${direction})`, error);
+      return [direction, null];
+    }
+  }));
+  entries.forEach(([direction, image]) => {
+    if (image) generated[direction] = image;
+  });
+  return generated;
+}
+
+function renderDirectionalAfterViewer(container, frontImage, result, generated = { front: frontImage }) {
   const views = result.faceAnalysis?.scan?.views || {};
   const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
   const scanKeys = { front: ["front"], left45: ["left"], right45: ["right"], left90: ["left"], right90: ["right"], up: ["up"], down: ["down"] };
-  const generated = { front: frontImage };
   container.innerHTML = `
     <div class="directional-after-viewer">
       <div class="directional-after-stage">
@@ -1601,24 +1623,9 @@ function renderDirectionalAfterViewer(container, frontImage, result) {
       return;
     }
     const scanImage = scanKeys[direction]?.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData;
-    status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
-    tab.disabled = true;
-    try {
-      // Use the generated front After image as the only visual source so the
-      // identity and requested changes remain consistent across directions.
-      const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
-      generated[direction] = directionalResult.image;
-      image.src = directionalResult.image;
-      image.alt = `シミュレーション後の${labels[direction]}画像`;
-      status.textContent = `${labels[direction]}のAfter画像`;
-    } catch (error) {
-      image.src = scanImage;
-      image.alt = `${labels[direction]}のスキャン画像`;
-      status.textContent = `${labels[direction]}の生成に失敗したためスキャン画像を表示しています`;
-      console.error("Directional simulation failed", error);
-    } finally {
-      tab.disabled = false;
-    }
+    image.src = scanImage;
+    image.alt = `${labels[direction]}のスキャン画像`;
+    status.textContent = `${labels[direction]}の生成に失敗したためスキャン画像を表示しています`;
   }));
 }
 
