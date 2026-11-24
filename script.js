@@ -819,10 +819,12 @@ async function processGuidedScanFrame() {
 
     if (distanceIssue) {
       guidedScan.stableFrames = 0;
+      guidedScan.invalidPoseSince = null;
       cameraDirection.classList.remove("is-detected");
-      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics);
+      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics, false);
     } else if (accepted) {
       guidedScan.stableFrames += 1;
+      guidedScan.invalidPoseSince = null;
       cameraDirection.classList.add("is-detected");
       cameraScanStatus.textContent = `${step.label} そのまま少し止まってください。`;
       if (guidedScan.stableFrames >= 2 && performance.now() - guidedScan.stepStartedAt >= GUIDED_POSE_SETTLE_MS) {
@@ -834,9 +836,11 @@ async function processGuidedScanFrame() {
       cameraScanStatus.textContent = `${step.label}に合わせています…`;
     } else {
       guidedScan.stableFrames = 0;
+      guidedScan.invalidPoseSince ||= performance.now();
       cameraDirection.classList.remove("is-detected");
       const feedbackStartedAt = lastScanFeedbackAt;
-      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics);
+      const wrongPoseSustained = performance.now() - guidedScan.invalidPoseSince >= GUIDED_POSE_SETTLE_MS;
+      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics, wrongPoseSustained);
       if (lastScanFeedbackAt !== feedbackStartedAt) {
         guidedScan.retryAttempts += 1;
         if (guidedScan.retryAttempts > 3) {
@@ -1015,7 +1019,7 @@ function updateGuidedScanUi() {
   cameraScanProgressBar.style.width = `${guidedScan.index / guidedScanSteps.length * 100}%`;
 }
 
-function createGuidedScanHint(stepKey, metrics) {
+function createGuidedScanHint(stepKey, metrics, allowDirectionFeedback = true) {
   const distanceIssue = getGuidedDistanceIssue(stepKey, metrics);
   if (distanceIssue === "closer") {
     playScanFeedbackAudio("closer", stepKey);
@@ -1033,10 +1037,10 @@ function createGuidedScanHint(stepKey, metrics) {
     playScanFeedbackAudio(metrics.frameCenterOffsetY > 0 ? "down" : "up", stepKey);
     return "顔をガイドの中央へ移動してください。";
   }
-  if (stepKey === "left") playScanFeedbackAudio("left", stepKey);
-  if (stepKey === "right") playScanFeedbackAudio("right", stepKey);
-  if (stepKey === "up") playScanFeedbackAudio("up", stepKey);
-  if (stepKey === "down") playScanFeedbackAudio("down", stepKey);
+  if (allowDirectionFeedback && stepKey === "left") playScanFeedbackAudio("left", stepKey);
+  if (allowDirectionFeedback && stepKey === "right") playScanFeedbackAudio("right", stepKey);
+  if (allowDirectionFeedback && stepKey === "up") playScanFeedbackAudio("up", stepKey);
+  if (allowDirectionFeedback && stepKey === "down") playScanFeedbackAudio("down", stepKey);
   return guidedScanSteps.find((step) => step.key === stepKey)?.label || "顔をゆっくり動かしてください。";
 }
 
