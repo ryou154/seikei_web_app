@@ -413,8 +413,6 @@ function serveStatic(request, response) {
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
-    "/continuous-face-scan.js",
-    "/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/face-3d-lab.html", "/face-3d-lab.js", "/face-3d-lab.css", "/vendor/three.module.js", "/vendor/three.core.js",
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
     "/navigation.js", "/navigation.css", logoFile, latestLogoFile
@@ -424,10 +422,9 @@ function serveStatic(request, response) {
     response.end("Not found");
     return;
   }
-  const vendorFiles = { "/vendor/three.module.js": "node_modules/three/build/three.module.js", "/vendor/three.core.js": "node_modules/three/build/three.core.js" };
-  const relativePath = vendorFiles[urlPath] || (urlPath === "/"
+  const relativePath = urlPath === "/"
     ? "index.html"
-    : urlPath.replace(/^[/\\]+/, ""));
+    : urlPath.replace(/^[/\\]+/, "");
   const safePath = path.normalize(relativePath).replace(/^(\.\.[/\\])+/, "");
   const filePath = path.join(root, safePath);
 

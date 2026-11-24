@@ -29,6 +29,11 @@ before(async () => {
   });
 });
 after(() => child?.kill());
+test("removed 3D model pages and reconstruction routes are unavailable", async () => {
+  for (const route of ["/face-3d-lab.html", "/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/continuous-face-scan.js", "/face-reconstruction.html", "/api/face-reconstruction/capabilities", "/vendor/three.module.js"]) {
+    assert.equal((await fetch(base + route)).status, 404, route);
+  }
+});
 test("public configuration has only the four browser fields", async () => {
   const response = await fetch(`${base}/api/firebase-config`);
   assert.equal(response.status, 200);
@@ -76,16 +81,6 @@ test("history read, save and deletion reject missing or forged authentication ov
 });
 test("server source, credentials, Git and dependencies are not public", async () => {
   for (const url of ["/.env", "/.env.example", "/.git/config", "/server.js", "/server.js?download=1", "/auth-server.js", "/account-store.js", "/image-store.js", "/firestore.rules", "/firebase-config.js", "/package.json", "/node_modules/firebase-admin/package.json", "/tests/auth.test.js", "/tests/manual/responsive-preview.cjs", "/%2e%2e%5cserver.js"]) {
-    assert.equal((await fetch(base + url)).status, 404, url);
-  }
-});
-test("3D assets expose only the two allowlisted Three builds", async () => {
-  for (const url of ["/continuous-face-scan.js", "/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/vendor/three.module.js", "/vendor/three.core.js"]) {
-    const response = await fetch(base + url);
-    assert.equal(response.status, 200, url);
-    assert.match(response.headers.get("content-type"), /javascript/);
-  }
-  for (const url of ["/vendor/three.cjs", "/node_modules/three/package.json", "/node_modules/three/build/three.core.js"]) {
     assert.equal((await fetch(base + url)).status, 404, url);
   }
 });
