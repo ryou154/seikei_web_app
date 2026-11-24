@@ -574,6 +574,8 @@ const GUIDED_BURST_DURATION_MS = 2000;
 const GUIDED_BURST_INTERVAL_MS = 125;
 const GUIDED_POSE_SETTLE_MS = 2000;
 const GUIDED_DIRECTION_GRACE_MS = 1800;
+const GUIDED_YAW_THRESHOLD = 4;
+const GUIDED_PITCH_THRESHOLD = 1;
 const scanDirectionAudio = {
   intro: new Audio("/assets/scan-audio/start.mp3"),
   front: new Audio("/assets/scan-audio/front.mp3"),
@@ -870,15 +872,15 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   // enabled, so the landmark yaw sign must follow that same setting.
   const leftSign = cameraFlipFixInput?.checked ? -1 : 1;
   if (stepKey === "left") {
-    return yawDifference >= 6 * leftSign;
+    return yawDifference >= GUIDED_YAW_THRESHOLD * leftSign;
   }
   if (stepKey === "right") {
-    return Math.abs(yawDifference) >= 6 && Math.sign(yawDifference) === -leftSign;
+    return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD && Math.sign(yawDifference) === -leftSign;
   }
   const pitchDifference = metrics.pitchRatio - front.pitchRatio;
-  if (stepKey === "up") return pitchDifference <= -2;
+  if (stepKey === "up") return pitchDifference <= -GUIDED_PITCH_THRESHOLD;
   if (stepKey === "down") {
-    return pitchDifference >= 2;
+    return pitchDifference >= GUIDED_PITCH_THRESHOLD;
   }
   return false;
 }
