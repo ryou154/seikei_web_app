@@ -76,6 +76,10 @@ body.sidebar-open .admin-sidebar { transform: translateX(0); }
 .admin-user-detail { display: grid; gap: 12px; margin-top: 24px; padding: 20px; border: 1px solid #cfe3ea; border-radius: 10px; background: #fff; }
 .admin-user-detail h2 { margin: 0; color: #173c4e; }
 .admin-user-detail p, .admin-user-detail dl { margin: 0; color: var(--muted); }
+.admin-user-detail h3 { margin: 8px 0 0; color: #173c4e; font-size: 15px; }
+.admin-user-detail ul { display: grid; gap: 6px; margin: 0; padding-left: 20px; color: var(--muted); }
+.admin-user-filters { display: flex; gap: 14px; margin-top: 10px; }
+.admin-user-filters label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
 @media (max-width: 760px) {
   .admin-card-grid { grid-template-columns: 1fr; }
   .usage-metrics { grid-template-columns: 1fr; }
