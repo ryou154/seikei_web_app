@@ -886,14 +886,15 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
 
   const front = guidedScan.views.front.analysis.metrics;
   const yawDifference = metrics.yawRatio - front.yawRatio;
-  // captureCameraFrame flips the image when the front-camera correction is
-  // enabled, so the landmark yaw sign must follow that same setting.
-  const leftSign = cameraFlipFixInput?.checked ? -1 : 1;
+  // The camera preview/capture can report the yaw sign differently depending
+  // on mirroring and browser implementation. For scanning, prioritize a
+  // sufficient turn from the front over the sign so a valid left/right pose
+  // is not rejected solely because of that implementation detail.
   if (stepKey === "left") {
-    return yawDifference >= GUIDED_YAW_THRESHOLD * leftSign;
+    return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD;
   }
   if (stepKey === "right") {
-    return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD && Math.sign(yawDifference) === -leftSign;
+    return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD;
   }
   const pitchDifference = metrics.pitchRatio - front.pitchRatio;
   if (stepKey === "up") return pitchDifference <= -GUIDED_PITCH_THRESHOLD;
