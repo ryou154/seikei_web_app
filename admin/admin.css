@@ -63,9 +63,21 @@ body.sidebar-open .admin-sidebar { transform: translateX(0); }
 .admin-sidebar > .sub-button { margin: auto 14px 0; }
 .admin-sidebar-overlay { position: fixed; z-index: 10; inset: 0; background: rgba(23,60,78,.35); }
 .admin-sidebar-overlay:not([hidden]) { display: block; }
+.admin-user-tools { display: grid; gap: 10px; max-width: 760px; margin: 24px 0; padding: 20px; border: 1px solid #cfe3ea; border-radius: 12px; background: #fff; }
+.admin-user-tools label { color: var(--muted); font-size: 13px; font-weight: 700; }
+.admin-user-tools > div { display: flex; gap: 8px; }
+.admin-user-tools input { flex: 1; min-width: 0; }
+.admin-user-list { display: grid; gap: 10px; }
+.admin-user-row { display: grid; grid-template-columns: 1.2fr .8fr 1.6fr; gap: 18px; padding: 18px; border: 1px solid #cfe3ea; border-radius: 10px; background: #fff; }
+.admin-user-row div { display: grid; gap: 5px; align-content: center; }
+.admin-user-row strong { color: #173c4e; overflow-wrap: anywhere; }
+.admin-user-row span { color: #285266; font-weight: 700; }
+.admin-user-row small { color: var(--muted); font-size: 12px; }
 @media (max-width: 760px) {
   .admin-card-grid { grid-template-columns: 1fr; }
   .usage-metrics { grid-template-columns: 1fr; }
   .admin-sub-content { width: min(100% - 32px, 1040px); margin: 32px auto 48px; }
   .usage-metrics-large { grid-template-columns: 1fr; }
+  .admin-user-tools > div { flex-wrap: wrap; }
+  .admin-user-row { grid-template-columns: 1fr; }
 }
