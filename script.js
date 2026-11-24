@@ -585,6 +585,7 @@ const scanDirectionAudio = {
   down: new Audio("/assets/scan-audio/down.mp3")
 };
 const scanFeedbackAudio = {
+  retry: new Audio("/assets/scan-audio/retry.mp3"),
   closer: new Audio("/assets/scan-audio/move-closer.mp3"),
   away: new Audio("/assets/scan-audio/move-away.mp3"),
   left: new Audio("/assets/scan-audio/adjust-left.mp3"),
@@ -635,9 +636,13 @@ function playScanFeedbackAudio(feedbackKey, stepKey) {
     }
   });
   audio.onended = () => {
-    if (sequence === scanAudioSequence && guidedScan && guidedScanSteps[guidedScan.index]?.key === stepKey) {
-      playScanDirectionAudio(stepKey);
-    }
+    if (sequence !== scanAudioSequence || !guidedScan || guidedScanSteps[guidedScan.index]?.key !== stepKey) return;
+    const retryAudio = scanFeedbackAudio.retry;
+    retryAudio.onended = () => {
+      if (sequence === scanAudioSequence && guidedScan && guidedScanSteps[guidedScan.index]?.key === stepKey) playScanDirectionAudio(stepKey);
+    };
+    retryAudio.currentTime = 0;
+    retryAudio.play().catch(() => playScanDirectionAudio(stepKey));
   };
   audio.currentTime = 0;
   audio.play().catch(() => {});
@@ -775,6 +780,7 @@ function startGuidedScan() {
     index: 0,
     stableFrames: 0,
     views: {},
+    retryAttempts: 0,
     horizontalSign: 0,
     verticalSign: 0,
     failures: 0,
@@ -829,7 +835,19 @@ async function processGuidedScanFrame() {
     } else {
       guidedScan.stableFrames = 0;
       cameraDirection.classList.remove("is-detected");
+      const feedbackStartedAt = lastScanFeedbackAt;
       cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics);
+      if (lastScanFeedbackAt !== feedbackStartedAt) {
+        guidedScan.retryAttempts += 1;
+        if (guidedScan.retryAttempts > 3) {
+          clearTimeout(guidedScanTimer);
+          guidedScanTimer = null;
+          guidedScan = null;
+          captureButton.disabled = false;
+          captureButton.textContent = "顔スキャンを再試行";
+          cameraScanStatus.textContent = "スキャンに何度も失敗しました。再試行ボタンを押してください。";
+        }
+      }
     }
   } catch (error) {
     if (scanGeneration !== privacyGeneration || !guidedScan) return;
