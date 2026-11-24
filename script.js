@@ -581,14 +581,38 @@ const scanDirectionAudio = {
   up: new Audio("/assets/scan-audio/up%20(2).mp3"),
   down: new Audio("/assets/scan-audio/down.mp3")
 };
+const scanFeedbackAudio = {
+  closer: new Audio("/assets/scan-audio/move-closer.mp3"),
+  away: new Audio("/assets/scan-audio/move-away.mp3"),
+  left: new Audio("/assets/scan-audio/adjust-left.mp3"),
+  right: new Audio("/assets/scan-audio/adjust-right.mp3"),
+  up: new Audio("/assets/scan-audio/adjust-up.mp3"),
+  down: new Audio("/assets/scan-audio/adjust-down.mp3")
+};
 Object.values(scanDirectionAudio).forEach((audio) => {
   audio.preload = "auto";
 });
+Object.values(scanFeedbackAudio).forEach((audio) => {
+  audio.preload = "auto";
+});
 let scanAudioContext = null;
+let lastScanFeedbackKey = "";
+let lastScanFeedbackAt = 0;
 
 function playScanDirectionAudio(stepKey) {
   const audio = scanDirectionAudio[stepKey];
   if (!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function playScanFeedbackAudio(feedbackKey) {
+  const audio = scanFeedbackAudio[feedbackKey];
+  if (!audio) return;
+  const now = performance.now();
+  if (lastScanFeedbackKey === feedbackKey && now - lastScanFeedbackAt < 1800) return;
+  lastScanFeedbackKey = feedbackKey;
+  lastScanFeedbackAt = now;
   audio.currentTime = 0;
   audio.play().catch(() => {});
 }
@@ -933,11 +957,26 @@ function updateGuidedScanUi() {
 }
 
 function createGuidedScanHint(stepKey, metrics) {
-  if (metrics.frameCenterOffsetX > 18 || metrics.frameCenterOffsetY > 24) {
+  if (metrics.faceWidthInFrame < 22) {
+    playScanFeedbackAudio("closer");
+    return "カメラへ少し近づいてください。";
+  }
+  if (metrics.faceWidthInFrame > 72) {
+    playScanFeedbackAudio("away");
+    return "カメラから少し離れてください。";
+  }
+  if (metrics.frameCenterOffsetX > 18) {
+    playScanFeedbackAudio(metrics.frameCenterOffsetX > 0 ? "right" : "left");
     return "顔をガイドの中央へ移動してください。";
   }
-  if (metrics.faceWidthInFrame < 22) return "カメラへ少し近づいてください。";
-  if (metrics.faceWidthInFrame > 72) return "カメラから少し離れてください。";
+  if (metrics.frameCenterOffsetY > 24) {
+    playScanFeedbackAudio(metrics.frameCenterOffsetY > 0 ? "down" : "up");
+    return "顔をガイドの中央へ移動してください。";
+  }
+  if (stepKey === "left") playScanFeedbackAudio("left");
+  if (stepKey === "right") playScanFeedbackAudio("right");
+  if (stepKey === "up") playScanFeedbackAudio("up");
+  if (stepKey === "down") playScanFeedbackAudio("down");
   return guidedScanSteps.find((step) => step.key === stepKey)?.label || "顔をゆっくり動かしてください。";
 }
 
@@ -1476,6 +1515,7 @@ async function renderResult(result) {
     if (!stillCurrent()) return;
     setSimulationStatus("正面のAfter画像を表示しています…");
     renderDirectionalAfterViewer(afterImage, generatedImage, result, generatedViews);
+    renderDirectionalBeforeViewer(beforeImage, result);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     const meshAnalysis = combineAfterShapeWithScanDepth(result.afterFaceAnalysis, result.faceAnalysis);
     const mountThreeViewer = (attempt = 0) => {
@@ -1517,6 +1557,7 @@ async function renderResult(result) {
       <div class="after-3d-fallback-image"></div>
     `;
     renderDirectionalAfterViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage, result, { front: localImage });
+    renderDirectionalBeforeViewer(beforeImage, result);
     showSimulationError(`After画像の生成に失敗しました。${error?.message || "通信状態やAPIの利用状況を確認してください。"}`);
   }
 
@@ -1626,6 +1667,46 @@ function renderDirectionalAfterViewer(container, frontImage, result, generated =
     image.src = scanImage;
     image.alt = `${labels[direction]}のスキャン画像`;
     status.textContent = `${labels[direction]}の生成に失敗したためスキャン画像を表示しています`;
+  }));
+}
+
+function renderDirectionalBeforeViewer(container, result) {
+  const views = result.faceAnalysis?.scan?.views || {};
+  const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
+  const scanKeys = { front: ["front"], left45: ["left"], right45: ["right"], left90: ["left"], right90: ["right"], up: ["up"], down: ["down"] };
+  const imageMap = Object.fromEntries(Object.entries(scanKeys).map(([direction, keys]) => [
+    direction,
+    keys.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData || result.beforeImage
+  ]));
+  const initialImage = imageMap.front || result.beforeImage;
+  container.innerHTML = `
+    <div class="directional-after-viewer directional-before-viewer">
+      <div class="directional-after-stage">
+        <img class="directional-after-image" src="${initialImage}" alt="シミュレーション前の${labels.front}画像">
+        <p class="directional-after-status" aria-live="polite">正面のBefore画像</p>
+        <div class="directional-after-controls" role="tablist" aria-label="Before表示方向">
+          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab"><span>${labels.up}</span></button>
+          <button type="button" class="directional-after-tab direction-left90" data-direction="left90" role="tab"><span>${labels.left90}</span></button>
+          <button type="button" class="directional-after-tab direction-left45" data-direction="left45" role="tab"><span>${labels.left45}</span></button>
+          <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
+          <button type="button" class="directional-after-tab direction-right45" data-direction="right45" role="tab"><span>${labels.right45}</span></button>
+          <button type="button" class="directional-after-tab direction-right90" data-direction="right90" role="tab"><span>${labels.right90}</span></button>
+          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab"><span>${labels.down}</span></button>
+        </div>
+      </div>
+    </div>`;
+  const image = container.querySelector(".directional-after-image");
+  const status = container.querySelector(".directional-after-status");
+  container.querySelectorAll(".directional-after-tab").forEach((tab) => tab.addEventListener("click", () => {
+    const direction = tab.dataset.direction;
+    container.querySelectorAll(".directional-after-tab").forEach((item) => {
+      const active = item === tab;
+      item.classList.toggle("is-active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
+    image.src = imageMap[direction] || initialImage;
+    image.alt = `シミュレーション前の${labels[direction]}画像`;
+    status.textContent = `${labels[direction]}のBefore画像（スキャン画像）`;
   }));
 }
 
