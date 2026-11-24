@@ -23,7 +23,7 @@ const handleAccount = createAccountHandler({ getStore: () => accountDatabase, de
 const handleAccountDelete = createAccountDeleteHandler({ getStore: () => accountDatabase });
 const handleClinics = createClinicHandler({ getStore: () => clinicDatabase });
 const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdminDatabase });
-const handleAdminUsers = createAdminUsersHandler({ authenticate: (request) => requireAdmin(request, authorize), firestore });
+const handleAdminUsers = createAdminUsersHandler({ authenticate: (request) => requireAdmin(request, authorize), firestore, inquiries: inquiryDatabase });
 const billingUsage = createBillingUsageService({
   createClient: (config) => new BigQuery({ projectId: config.billingProjectId })
 });

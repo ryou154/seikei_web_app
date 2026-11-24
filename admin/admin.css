@@ -73,6 +73,9 @@ body.sidebar-open .admin-sidebar { transform: translateX(0); }
 .admin-user-row strong { color: #173c4e; overflow-wrap: anywhere; }
 .admin-user-row span { color: #285266; font-weight: 700; }
 .admin-user-row small { color: var(--muted); font-size: 12px; }
+.admin-user-detail { display: grid; gap: 12px; margin-top: 24px; padding: 20px; border: 1px solid #cfe3ea; border-radius: 10px; background: #fff; }
+.admin-user-detail h2 { margin: 0; color: #173c4e; }
+.admin-user-detail p, .admin-user-detail dl { margin: 0; color: var(--muted); }
 @media (max-width: 760px) {
   .admin-card-grid { grid-template-columns: 1fr; }
   .usage-metrics { grid-template-columns: 1fr; }
