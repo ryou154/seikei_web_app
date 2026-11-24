@@ -598,21 +598,44 @@ Object.values(scanFeedbackAudio).forEach((audio) => {
 let scanAudioContext = null;
 let lastScanFeedbackKey = "";
 let lastScanFeedbackAt = 0;
+let scanAudioSequence = 0;
 
 function playScanDirectionAudio(stepKey) {
   const audio = scanDirectionAudio[stepKey];
   if (!audio) return;
+  Object.values(scanDirectionAudio).forEach((item) => {
+    if (item !== audio) {
+      item.pause();
+      item.currentTime = 0;
+    }
+  });
   audio.currentTime = 0;
   audio.play().catch(() => {});
 }
 
-function playScanFeedbackAudio(feedbackKey) {
+function playScanFeedbackAudio(feedbackKey, stepKey) {
   const audio = scanFeedbackAudio[feedbackKey];
   if (!audio) return;
   const now = performance.now();
   if (lastScanFeedbackKey === feedbackKey && now - lastScanFeedbackAt < 1800) return;
   lastScanFeedbackKey = feedbackKey;
   lastScanFeedbackAt = now;
+  const sequence = ++scanAudioSequence;
+  Object.values(scanDirectionAudio).forEach((item) => {
+    item.pause();
+    item.currentTime = 0;
+  });
+  Object.values(scanFeedbackAudio).forEach((item) => {
+    if (item !== audio) {
+      item.pause();
+      item.currentTime = 0;
+    }
+  });
+  audio.onended = () => {
+    if (sequence === scanAudioSequence && guidedScan && guidedScanSteps[guidedScan.index]?.key === stepKey) {
+      playScanDirectionAudio(stepKey);
+    }
+  };
   audio.currentTime = 0;
   audio.play().catch(() => {});
 }
@@ -782,16 +805,13 @@ async function processGuidedScanFrame() {
     if (scanGeneration !== privacyGeneration || !guidedScan) return;
     const step = guidedScanSteps[guidedScan.index];
     const accepted = isGuidedScanPoseAccepted(step.key, analysis.metrics);
-    const settleTimedOut = performance.now() - guidedScan.stepStartedAt >= GUIDED_POSE_SETTLE_MS;
     guidedScan.failures = 0;
 
-    if (accepted || settleTimedOut) {
+    if (accepted) {
       guidedScan.stableFrames += 1;
       cameraDirection.classList.add("is-detected");
-      cameraScanStatus.textContent = settleTimedOut && !accepted
-        ? `${step.label}を確認しました。連写中…`
-        : `${step.label} そのまま少し止まってください。`;
-      if (settleTimedOut && guidedScan.stableFrames >= 2) {
+      cameraScanStatus.textContent = `${step.label} そのまま少し止まってください。`;
+      if (guidedScan.stableFrames >= 2 && performance.now() - guidedScan.stepStartedAt >= GUIDED_POSE_SETTLE_MS) {
         await acceptGuidedScanView(step.key, imageData, analysis);
       }
     } else {
@@ -956,25 +976,25 @@ function updateGuidedScanUi() {
 
 function createGuidedScanHint(stepKey, metrics) {
   if (metrics.faceWidthInFrame < 22) {
-    playScanFeedbackAudio("closer");
+    playScanFeedbackAudio("closer", stepKey);
     return "カメラへ少し近づいてください。";
   }
   if (metrics.faceWidthInFrame > 72) {
-    playScanFeedbackAudio("away");
+    playScanFeedbackAudio("away", stepKey);
     return "カメラから少し離れてください。";
   }
   if (metrics.frameCenterOffsetX > 18) {
-    playScanFeedbackAudio(metrics.frameCenterOffsetX > 0 ? "right" : "left");
+    playScanFeedbackAudio(metrics.frameCenterOffsetX > 0 ? "right" : "left", stepKey);
     return "顔をガイドの中央へ移動してください。";
   }
   if (metrics.frameCenterOffsetY > 24) {
-    playScanFeedbackAudio(metrics.frameCenterOffsetY > 0 ? "down" : "up");
+    playScanFeedbackAudio(metrics.frameCenterOffsetY > 0 ? "down" : "up", stepKey);
     return "顔をガイドの中央へ移動してください。";
   }
-  if (stepKey === "left") playScanFeedbackAudio("left");
-  if (stepKey === "right") playScanFeedbackAudio("right");
-  if (stepKey === "up") playScanFeedbackAudio("up");
-  if (stepKey === "down") playScanFeedbackAudio("down");
+  if (stepKey === "left") playScanFeedbackAudio("left", stepKey);
+  if (stepKey === "right") playScanFeedbackAudio("right", stepKey);
+  if (stepKey === "up") playScanFeedbackAudio("up", stepKey);
+  if (stepKey === "down") playScanFeedbackAudio("down", stepKey);
   return guidedScanSteps.find((step) => step.key === stepKey)?.label || "顔をゆっくり動かしてください。";
 }
 
