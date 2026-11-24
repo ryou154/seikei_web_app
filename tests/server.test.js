@@ -58,7 +58,6 @@ test("history read, save and deletion reject missing or forged authentication ov
       ["GET", "/api/clinics/clinic-test"],
       ["GET", "/api/admin/session"],
       ["GET", "/api/admin/api-usage"],
-      ["GET", "/api/admin/settings"],
       ["GET", "/api/admin/inquiries"],
       ["GET", "/api/admin/clinics"],
       ["POST", "/api/admin/clinics/discover"],
@@ -95,7 +94,6 @@ test("login page starts locked and public assets are available", async () => {
   const adminIndex = await (await fetch(`${base}/admin/`)).text();
   const adminApiUsage = await (await fetch(`${base}/admin/api-usage.html`)).text();
   const adminApiUsageScript = await (await fetch(`${base}/admin/api-usage.js`)).text();
-  const adminBlockedWords = await (await fetch(`${base}/admin/blocked-words.html`)).text();
   const adminInquiries = await (await fetch(`${base}/admin/inquiries.html`)).text();
   const adminInquiriesScript = await (await fetch(`${base}/admin/inquiries.js`)).text();
   const adminCss = await (await fetch(`${base}/admin/admin.css`)).text();
@@ -125,13 +123,14 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(adminApiUsage, /id="gemini-cost"/);
   assert.match(adminApiUsage, /id="cloud-run-cost"/);
   assert.match(adminApiUsageScript, /\/api\/admin\/api-usage/);
-  assert.match(adminBlockedWords, /href="inquiries\.html">問い合わせ<\/a>/);
   assert.match(adminInquiriesScript, /\/api\/admin\/session/);
+  assert.equal((await fetch(`${base}/admin/blocked-words.html`)).status, 404);
+  assert.equal((await fetch(`${base}/api/admin/settings`)).status, 404);
   assert.match(adminCss, /\.admin-dashboard-page[^}]*visibility:\s*hidden/);
   assert.match(adminCss, /body\.sidebar-open \.admin-sidebar\s*{[^}]*translateX\(0\)/);
   assert.doesNotMatch(adminClinicsCss, /margin-left:\s*240px/);
   assert.match(adminSidebarScript, /classList\.toggle\("sidebar-open"/);
-  for (const adminPage of [adminIndex, adminClinics, adminApiUsage, adminBlockedWords, adminInquiries]) {
+  for (const adminPage of [adminIndex, adminClinics, adminApiUsage, adminInquiries]) {
     assert.match(adminPage, /id="admin-sidebar-toggle"/);
     assert.match(adminPage, /class="admin-sidebar"/);
     assert.match(adminPage, /id="admin-sidebar-overlay"/);

@@ -9,7 +9,6 @@ const { createImageService } = require("./image-store");
 const { createAccountDeleteHandler } = require("./account-delete");
 const { createClinicStore, createClinicHandler } = require("./clinic-store");
 const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = require("./clinic-admin");
-const { createAdminSettingsStore } = require("./admin-settings");
 const { INQUIRY_CATEGORIES, createInquiryStore, clean, normalizeCategory } = require("./inquiry-store");
 const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
 const firebaseConfig = require("./firebase-config");
@@ -17,7 +16,6 @@ const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || 
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
 const clinicAdminDatabase = createClinicAdminStore(firestore);
-const adminSettingsDatabase = createAdminSettingsStore(firestore);
 const inquiryDatabase = createInquiryStore(firestore);
 const imageService = createImageService({ historyStore: accountDatabase });
 const handleAccount = createAccountHandler({ getStore: () => accountDatabase, deleteImages: imageService.deleteHistories });
@@ -82,20 +80,6 @@ const server = http.createServer(async (request, response) => {
           return;
         }
         throw error;
-      }
-      return;
-    }
-    if (request.url === "/api/admin/settings" && (request.method === "GET" || request.method === "PUT")) {
-      const adminIdentity = await requireAdmin(request, authorize);
-      if (request.method === "GET") {
-        sendJson(response, 200, await adminSettingsDatabase.get());
-      } else {
-        const body = await readJsonBody(request);
-        if (!Array.isArray(body.blockedWords)) return sendJson(response, 400, { error: "禁止ワードを確認してください。" });
-        if (body.blockedWords.length > 200 || body.blockedWords.some((word) => typeof word !== "string" || word.trim().length > 100)) {
-          return sendJson(response, 400, { error: "禁止ワードは200件以内、1件100文字以内で入力してください。" });
-        }
-        sendJson(response, 200, await adminSettingsDatabase.saveBlockedWords(body.blockedWords, adminIdentity.email));
       }
       return;
     }
@@ -188,13 +172,6 @@ async function handleGeminiEdit(request, response) {
   }
 
   const body = await readJsonBody(request);
-  const blockedWords = (await adminSettingsDatabase.get()).blockedWords || [];
-  const requestText = JSON.stringify(body).toLocaleLowerCase("ja-JP");
-  const blockedWord = blockedWords.find((word) => requestText.includes(String(word).toLocaleLowerCase("ja-JP")));
-  if (blockedWord) {
-    sendJson(response, 400, { error: "入力内容に使用できない言葉が含まれています。" });
-    return;
-  }
   const image = parseDataUrl(body.image);
   const prompt = buildGeminiPrompt(body);
   const retryPrompt = buildGeminiPrompt(body, { compact: true });
@@ -519,7 +496,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
@@ -532,7 +509,7 @@ function serveStatic(request, response) {
       ? "admin/index.html"
       : urlPath === "/admin/clinics.html"
         ? "admin-clinics.html"
-        : urlPath === "/admin/api-usage.html" || urlPath === "/admin/blocked-words.html"
+        : urlPath === "/admin/api-usage.html"
           ? urlPath.replace(/^[/\\]+/, "")
       : urlPath.replace(/^[/\\]+/, "");
   const safePath = path.normalize(relativePath).replace(/^(\.\.[/\\])+/, "");
