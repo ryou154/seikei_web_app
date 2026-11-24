@@ -560,8 +560,8 @@ imageCropDialog.addEventListener("close", () => {
 const guidedScanSteps = [
   { key: "front", label: "正面を向いてください" },
   { key: "left45", label: "顔を左斜め45度へ向けてください" },
-  { key: "right45", label: "顔を右斜め45度へ向けてください" },
   { key: "left90", label: "顔を左真横へ向けてください" },
+  { key: "right45", label: "顔を右斜め45度へ向けてください" },
   { key: "right90", label: "顔を右真横へ向けてください" },
   { key: "up", label: "顔を少し上へ向けてください" },
   { key: "down", label: "顔を少し下へ向けてください" }
@@ -783,7 +783,7 @@ function startGuidedScan() {
     index: 0,
     stableFrames: 0,
     views: {},
-    retryAttempts: 0,
+    retryAttemptsByStep: {},
     horizontalSign: 0,
     verticalSign: 0,
     failures: 0,
@@ -845,8 +845,9 @@ async function processGuidedScanFrame() {
       const wrongPoseSustained = performance.now() - guidedScan.invalidPoseSince >= GUIDED_POSE_SETTLE_MS;
       cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics, wrongPoseSustained);
       if (lastScanFeedbackAt !== feedbackStartedAt) {
-        guidedScan.retryAttempts += 1;
-        if (guidedScan.retryAttempts > 3) {
+        const stepRetryCount = (guidedScan.retryAttemptsByStep[step.key] || 0) + 1;
+        guidedScan.retryAttemptsByStep[step.key] = stepRetryCount;
+        if (stepRetryCount > 3) {
           clearTimeout(guidedScanTimer);
           guidedScanTimer = null;
           guidedScan = null;
@@ -1012,8 +1013,6 @@ function updateGuidedScanUi() {
   if (!guidedScan) return;
   const step = guidedScanSteps[guidedScan.index];
   guidedScan.stepStartedAt = performance.now();
-  // Retry allowance is per direction, not shared across the whole scan.
-  guidedScan.retryAttempts = 0;
   playScanDirectionAudio(step.key);
   cameraDirection.textContent = step.key === "front" ? "正面" : step.label.replace("顔を", "").replace("ください", "");
   cameraScanStatus.textContent = guidedScan.index === 0
