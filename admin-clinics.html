@@ -26,9 +26,9 @@
         <div>
           <p class="eyebrow">Nationwide update</p>
           <h2 id="nationwide-update-heading">全国のクリニックデータを自動更新</h2>
-          <p>47都道府県それぞれ最大10院をGoogleから登録・更新し、続けて公式サイトの情報を「施術・料金」「医師・症例」「リスク・保証」に分けて更新します。</p>
-          <p class="format-note">保存済みデータの閲覧には更新操作は不要です。Googleや公式サイトから最新情報を取り直したい時だけ、このボタンを使用します。</p>
-          <p class="format-note">公式情報は1院につきGemini APIを3回使用します。全国最大470院を更新する場合は最大1,410回です。</p>
+          <p>登録済みの全国のクリニックを対象に、公式サイトから施術・料金・診療時間・医師情報などを取得して更新します。公開中・下書きの院を対象にします。</p>
+          <p class="format-note">保存済みデータの閲覧には更新操作は不要です。公式サイトから情報を取り直したい時に、このボタンを使用します。</p>
+          <p class="format-note">Gemini API・Google Places APIは使用しません。取得できない項目は既存情報を保持し、手動確認済みの情報は更新候補として保存します。画像・JavaScriptのみで掲載されている情報などは取得できない場合があります。</p>
         </div>
         <div class="nationwide-update-action">
           <button id="update-nationwide-clinics" type="button" class="main-button">全国データを更新</button>
@@ -67,7 +67,7 @@
               <code id="clinic-place-id"></code>
             </div>
             <div>
-              <span class="field-label">Google候補名（一時表示）</span>
+              <span class="field-label">登録済みのクリニック</span>
               <strong id="place-preview-name">未取得</strong>
               <a id="place-preview-map" href="#" target="_blank" rel="noopener" hidden>Google Mapsで確認</a>
               <a id="place-preview-official" href="#" target="_blank" rel="noopener" hidden>公式サイト候補を確認</a>

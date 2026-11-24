@@ -1,3 +1,6 @@
+const { createHtmlExtractor } = require('./clinic-html-sync');
+const { createClinicInformationExtractor } = require('./clinic-information-sync');
+const { createHtmlSyncStore } = require('./clinic-html-admin');
 const { FieldPath } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
 const { PREFECTURES } = require("./account-store");
@@ -210,6 +213,10 @@ function adminClinic(id, value) {
       total: Array.isArray(extractionJob.groups) ? extractionJob.groups.length : 0
     } : null,
     detectedData: source.detectedData && typeof source.detectedData === "object" ? source.detectedData : null,
+    detectedHtmlData: source.detectedHtmlData || null,
+    htmlExtractionStatus: source.htmlExtractionStatus || "",
+    htmlExtractionError: source.htmlExtractionError || "",
+    officialHtmlCheckedAt: source.officialHtmlCheckedAt || "",
     updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : ""
   };
 }
@@ -217,6 +224,7 @@ function adminClinic(id, value) {
 function createClinicAdminStore(db) {
   const collection = db.collection("clinics");
   return {
+    ...createHtmlSyncStore(db),
     async list({ status, limit, cursor, prefectures = [] }) {
       if (prefectures.length) {
         const snapshots = await Promise.all(prefectures.flatMap((prefecture) => [
@@ -410,11 +418,13 @@ function createClinicAdminHandler({
   checkOfficial = checkOfficialExtraction,
   placesApiKey = process.env.GOOGLE_PLACES_API_KEY,
   geminiApiKey = process.env.GEMINI_API_KEY,
-  geminiTextModel = process.env.GEMINI_TEXT_MODEL
+  geminiTextModel = process.env.GEMINI_TEXT_MODEL,
+  extractHtml
 } = {}) {
   if (typeof getStore !== "function") throw new TypeError("getStore is required");
   let discoveryRunning = false;
   let officialSyncRunning = false;
+  let htmlBatch = null;
   return async (request) => {
     try {
       const identity = await requireAdmin(request, authenticate);
@@ -423,6 +433,65 @@ function createClinicAdminHandler({
       const extractMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/extract-official$/.exec(requestUrl.pathname);
       const detailMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})$/.exec(requestUrl.pathname);
       const store = getStore();
+      const htmlMatch = /^\/api\/admin\/clinics\/([a-zA-Z0-9_-]{1,200})\/extract-html$/.exec(requestUrl.pathname);
+      if (htmlMatch || requestUrl.pathname === "/api/admin/clinics/extract-html") {
+        if (request.method !== "POST" || requestUrl.search) return { status: 404, data: { error: "Not found" } };
+        if (!/^application\/json(?:;|$)/i.test(request.headers["content-type"] || "")) throw new ClinicAdminError("Content-Typeをapplication/jsonにしてください。", 415);
+        const body = await parseBody(request);
+        if (body?.confirmed !== true) throw new ClinicAdminError("公式HTML取得の確認が必要です。", 400);
+        if (body.autoApply !== undefined && typeof body.autoApply !== "boolean") throw new ClinicAdminError("自動反映の指定を確認してください。", 400);
+        if (officialSyncRunning) throw new ClinicAdminError("公式情報の抽出はすでに実行中です。", 409);
+        officialSyncRunning = true;
+        try {
+          if (typeof store.saveHtmlExtraction !== 'function') throw new ClinicAdminError("公式HTML情報を保存できません。", 503);
+          let clinics;
+          if (htmlMatch) {
+            const clinic = await store.get(htmlMatch[1]);
+            if (!clinic) return { status: 404, data: { error: "候補が見つかりません。" } };
+            if (!clinic.officialUrl) throw new ClinicAdminError("公式サイトURLを登録してください。", 400);
+            clinics = [clinic];
+          } else {
+            const prefectures = [...new Set(Array.isArray(body.prefectures) ? body.prefectures : [])];
+            const limit = Number(body.limit ?? 5);
+            if (!prefectures.length || prefectures.length > ADMIN_MAX_PREFECTURES || prefectures.some(p => !PREFECTURES.includes(p))) throw new ClinicAdminError("都道府県の指定を確認してください。", 400);
+            if (!Number.isInteger(limit) || limit < 1 || limit > ADMIN_MAX_OFFICIAL_SYNC) throw new ClinicAdminError("抽出件数は1〜10で指定してください。", 400);
+            const before = body.before || '';
+            if (before && (typeof before !== 'string' || !Number.isFinite(Date.parse(before)) || new Date(before).toISOString() !== before)) throw new ClinicAdminError("更新開始日時を確認してください。", 400);
+            if (typeof store.listForHtmlSync !== 'function') throw new ClinicAdminError("登録情報を取得できません。", 503);
+            clinics = await store.listForHtmlSync({ prefectures, limit, before });
+          }
+          const results = [];
+          const batchKey = htmlMatch ? '' : body.before || '';
+          if (!htmlBatch || !batchKey || htmlBatch.key !== batchKey || Date.now() - htmlBatch.createdAt > 30 * 60 * 1000) {
+            htmlBatch = { key: batchKey, createdAt: Date.now(), extract: createHtmlExtractor({ maxPages: 8, maxPdfPages: 2, maxMedia: 1,
+              renderJs: false, ocr: process.env.CLINIC_HTML_OCR === 'yes' }) };
+          }
+          const htmlExtractor = extractHtml || htmlBatch.extract;
+          for (const clinic of clinics) {
+            const skipReason = !clinic.name ? '登録院名がありません' : !/^https:\/\//.test(clinic.officialUrl || '') ? 'HTTPSの公式サイトURLが未登録です' : '';
+            if (skipReason) {
+              if (typeof store.markHtmlSyncFailed === 'function') await store.markHtmlSyncFailed(clinic.id, skipReason, clinic.officialUrl, { skipped: true });
+              results.push({ id: clinic.id, ok: false, skipped: true, error: skipReason });
+              continue;
+            }
+            try {
+              // The admin route conservatively treats uninspected domains as shared.
+              const extract = htmlExtractor.readPage ? createClinicInformationExtractor({ read: htmlExtractor }) : htmlExtractor;
+              const extracted = await extract({ sourceOfficialUrl: clinic.officialUrl, sharedDomain: true, clinic });
+              const saved = await store.saveHtmlExtraction(clinic.id, extracted.extraction, { model: extracted.model, autoApply: body.autoApply === true });
+              results.push({ id: clinic.id, ok: Boolean(saved), changed: Boolean(saved?.changed), autoApplied: Boolean(saved?.autoApplied), prices: extracted.extraction.pricing.length,
+                protected: clinic.verificationStatus === 'verified' || Boolean(clinic.reviewedBy),
+                treatments: extracted.extraction.information?.treatmentDetails.length || 0, doctors: extracted.extraction.doctors?.length || 0,
+                openingHours: Boolean(extracted.extraction.information?.openingHours), informationErrors: extracted.extraction.information?.errors || [] });
+            } catch (error) {
+              if (typeof store.markHtmlSyncFailed === 'function') await store.markHtmlSyncFailed(clinic.id, error.message, clinic.officialUrl);
+              results.push({ id: clinic.id, ok: false, error: error.message });
+            }
+          }
+          return { status: 200, data: { status: 'completed', requested: clinics.length, succeeded: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok && !r.skipped).length, skipped: results.filter(r => r.skipped).length, protected: results.filter(r => r.protected).length, changed: results.filter(r => r.changed).length, autoApplied: results.filter(r => r.autoApplied).length, results, ...(htmlMatch ? { clinic: await store.get(htmlMatch[1]) } : {}) } };
+        } finally { officialSyncRunning = false; }
+      }
+
       if (extractMatch) {
         if (!(["GET", "POST"].includes(request.method)) || requestUrl.search) return { status: 404, data: { error: "Not found" } };
         if (!geminiApiKey) throw new ClinicAdminError("GEMINI_API_KEYが設定されていません。", 503);

@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 node_modules/
+data/clinic-html-report*
 server-out.log
 server-err.log
 *.log
