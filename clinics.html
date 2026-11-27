@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>クリニック検索 | MEYLON</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="clinic-search.css">
+  <script src="navigation.js" defer></script>
+</head>
+<body class="app-page clinic-page">
+  <div id="common-navigation"></div>
+  <div id="page-transition-content">
+    <p id="auth-status" role="status" aria-live="polite"></p>
+    <main id="app-content" class="layout" hidden>
+      <section class="panel clinic-panel" aria-labelledby="clinic-title">
+        <h1 id="clinic-title" tabindex="-1">クリニック検索</h1>
+        <p>シミュレーションとは別に、地域・部位・予算・ダウンタイムを指定して公開済みのクリニックを探せます。</p>
+        <p id="collection-status" class="note"></p>
+        <form id="clinic-search-form" class="search-panel">
+        <div class="filters">
+          <label>都道府県<select name="prefecture"><option value="">全国</option></select></label>
+          <label>市区町村・駅名<input name="area" placeholder="例：新宿駅、梅田、横浜市" maxlength="80"></label>
+          <label>希望部位<select name="part"><option value="">指定なし</option><option>二重</option><option>目元</option><option>鼻</option><option>輪郭</option><option>肌</option><option>胸</option><option>体</option></select></label>
+          <label>施術名<input name="treatment" placeholder="例：二重埋没法、糸リフト" maxlength="80"></label>
+          <label>料金情報<select name="hasPricing"><option value="">指定なし</option><option value="true">料金情報あり</option><option value="false">料金情報なし</option></select></label>
+          <label>確認状態<select name="verificationStatus"><option value="">すべて</option><option value="verified">確認済みのみ</option><option value="needs_review">要確認（自動取得を含む）</option><option value="automated">自動取得</option><option value="unverified">未確認</option></select></label>
+          <label>予算上限（円）<input name="budget" type="number" min="0" step="1" placeholder="例：100000"></label>
+          <label>許容ダウンタイム（選択日数以下）<select name="days"><option value="">指定なし</option><option value="3">3日以内</option><option value="7">7日以内</option><option value="14">14日以内</option><option value="30">30日以内</option></select></label>
+          <input type="hidden" name="dataMode" value="backend">
+        </div>
+        <div class="actions"><button type="submit">この条件で検索</button><button type="reset" class="secondary">条件をリセット</button></div>
+        <p class="note">ダウンタイムは選択した日数以下の施術を含みます。例：30日以内を選ぶと、14日・7日・3日以内の施術も対象です。予算は掲載施術料金、ダウンタイムは腫れ・痛み・内出血の掲載目安の上限で判定します。回復日や支払総額を保証するものではありません。不明な情報は指定条件に一致する候補として扱いません。</p>
+      </form>
+        <h2>条件に合うクリニック</h2>
+        <p id="clinic-summary" class="clinic-summary" role="status" aria-live="polite"></p>
+        <div id="hospital-list" class="results"></div>
+        <div id="clinic-pagination" class="actions" aria-label="検索結果のページ"></div>
+        <section id="clinic-detail" class="clinic-detail" aria-labelledby="clinic-detail-title" hidden></section>
+        <p class="note">掲載情報は各クリニックの公式サイト等を確認した参考情報です。料金・施術内容・リスク・保証条件は変更される場合があります。最新情報は必ず公式サイトまたはカウンセリングで確認してください。本サービスは医療機関や施術効果を保証するものではありません。</p>
+      </section>
+    </main>
+  </div>
+  <script src="clinic-search.js"></script>
+  <script type="module" src="auth-core.js"></script>
+</body>
+</html>

@@ -29,6 +29,11 @@ before(async () => {
   });
 });
 after(() => child?.kill());
+test("removed 3D model pages and reconstruction routes are unavailable", async () => {
+  for (const route of ["/face-3d-lab.html", "/face-3d-viewer.js", "/face-3d-model.js", "/face-3d-canonical.js", "/continuous-face-scan.js", "/face-reconstruction.html", "/api/face-reconstruction/capabilities", "/vendor/three.module.js"]) {
+    assert.equal((await fetch(base + route)).status, 404, route);
+  }
+});
 test("public configuration has only the four browser fields", async () => {
   const response = await fetch(`${base}/api/firebase-config`);
   assert.equal(response.status, 200);
@@ -145,11 +150,8 @@ test("login page starts locked and public assets are available", async () => {
   assert.match(adminClinics, /公開済みクリニック/);
   assert.doesNotMatch(adminClinics, /id="discover-clinics"/);
   assert.match(adminClinicsScript, /if \(initialized \|\| !window\.AppAuth\?\.uid\) return;/);
-  assert.match(adminClinicsScript, /NATIONWIDE_CONCURRENCY = 5/);
-  assert.match(adminClinicsScript, /updateOneClinic/);
-  assert.match(adminClinicsScript, /isBillingError/);
-  assert.match(adminClinicsScript, /HTTP 402/);
-  assert.match(adminClinicsScript, /serviceFailures >= NATIONWIDE_CONCURRENCY/);
+  assert.match(adminClinicsScript, /api\/admin\/clinics\/extract-html/);
+  assert.doesNotMatch(adminClinicsScript, /extract-official/);
   assert.doesNotMatch(adminClinicsScript, /!content\.hidden/);
   for (const html of [login, home, app, history, mypage]) {
     assert.match(html, /id="common-navigation"/);

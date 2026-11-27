@@ -12,7 +12,8 @@ const projectRoot = path.join(__dirname, "..");
 
 test("loads the existing verified clinic source files", () => {
   const clinics = loadLegacyClinics(projectRoot);
-  assert.equal(clinics.length, 21);
+  assert.equal(clinics.length, 3);
+  assert.deepEqual(clinics.map(clinic => clinic.id).sort(), ["shinagawa-shinjuku", "shinagawa-umeda", "shinagawa-yokohama"]);
   assert.ok(clinics.every((clinic) => clinic.name && clinic.sourceUrl));
 });
 

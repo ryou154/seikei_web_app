@@ -73,14 +73,15 @@ test("navigation keeps the menu still, slides page content and resets scroll for
     assert.equal(slides.at(-1)[0].transform, "translateX(100vw)");
   }
   assert.equal(cancelled, 3);
+  assert.equal(menuAnchors()[4].href, "/clinics.html");
   let prevented = 0;
-  const event = { target: { closest: () => menuAnchors()[4] }, button: 0,
+  const event = { target: { closest: () => menuAnchors()[2] }, button: 0,
     preventDefault() { prevented++; } };
   click(event);
   assert.equal(prevented, 1);
   assert.equal(pushed, 1);
-  assert.equal(location.hash, "#clinic-title");
-  assert.equal(current(), menuAnchors()[4].textContent);
+  assert.equal(location.hash, "#input-title");
+  assert.equal(current(), menuAnchors()[2].textContent);
   click(event);
   assert.equal(pushed, 1, "same menu returns to top without duplicate history");
   click({ ...event, ctrlKey: true });

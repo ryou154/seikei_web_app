@@ -1,8 +1,5 @@
 (() => {
   const PAGE_SIZE = 10;
-  const NATIONWIDE_CONCURRENCY = 5;
-  const EXTRACTION_POLL_MS = 5000;
-  const EXTRACTION_RETRY_MS = 60000;
   const PREFECTURES = [
     "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
     "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
@@ -18,15 +15,13 @@
   let currentCandidates = [];
   let busy = false;
   let initialized = false;
-  let activeExtractionClinicId = "";
-  const pollingClinicIds = new Set();
 
   function lines(value) {
     return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
   }
 
   function commaList(value) {
-    return String(value || "").split(/[、,]/).map((item) => item.trim()).filter(Boolean);
+    return String(value || "").split(/、|(?<![0-9]),|,(?![0-9])/).map((item) => item.trim()).filter(Boolean);
   }
 
   function rowParts(value, count) {
@@ -79,7 +74,7 @@
       list.append(button);
     }
     byId("update-nationwide-clinics").disabled = busy;
-    byId("extract-selected-clinic").disabled = busy || !currentClinicId || activeExtractionClinicId === currentClinicId;
+    byId("extract-selected-clinic").disabled = busy || !currentClinicId;
     byId("apply-detected-data").disabled = busy || !currentDetectedData;
   }
 
@@ -108,141 +103,51 @@
     return groups;
   }
 
-  function isBillingError(error) {
-    return /\b402\b|payment required|insufficient (?:credit|balance)|no (?:credit|balance)/i.test(error?.message || "");
-  }
-
-  function isRetryableServiceError(error) {
-    return /429|resource.exhausted|quota|rate.?limit|http 50[234]/i.test(error?.message || "");
-  }
-
-  async function publishedClinicIds(status) {
-    const ids = [];
-    const groups = prefectureGroups(5);
-    for (const [index, prefectures] of groups.entries()) {
-      setStatus(status, `2/3 公開済みクリニックを確認しています… 地域グループ${index + 1}/${groups.length}`);
-      const pages = await Promise.all(prefectures.map(async (prefecture) => {
-        const params = new URLSearchParams({ status: "published", limit: String(PAGE_SIZE), prefecture });
-        return api(`/api/admin/clinics?${params}`);
-      }));
-      for (const page of pages) {
-        for (const clinic of page.clinics || []) if (clinic.id) ids.push(clinic.id);
-      }
-    }
-    return [...new Set(ids)];
-  }
-
-  async function startClinicExtraction(id) {
-    let lastError;
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try {
-        return await api(`/api/admin/clinics/${encodeURIComponent(id)}/extract-official`, {
-          method: "POST",
-          body: JSON.stringify({ confirmed: true })
-        });
-      } catch (error) {
-        lastError = error;
-        if (!isRetryableServiceError(error) || attempt === 3) throw error;
-        await wait(EXTRACTION_RETRY_MS * attempt);
-      }
-    }
-    throw lastError;
-  }
-
-  async function updateOneClinic(id) {
-    await startClinicExtraction(id);
-    while (true) {
-      await wait(EXTRACTION_POLL_MS);
-      const data = await api(`/api/admin/clinics/${encodeURIComponent(id)}/extract-official`);
-      if (data.status === "running") continue;
-      if (data.status === "completed") return data;
-      throw new Error(data.clinic?.extractionError || "公式情報の抽出に失敗しました。");
-    }
-  }
-
   async function updateNationwideClinics() {
     if (busy) return;
-    const confirmed = confirm(
-      "全国47都道府県を対象に、各都道府県最大10院の登録・更新と、公開済みクリニックの公式情報更新を実行します。Google Places APIとGemini APIを使用し、完了まで長時間かかる場合があります。実行しますか？"
-    );
-    if (!confirmed) return;
-
     busy = true;
     renderCandidates();
     const status = byId("nationwide-update-status");
-    const totals = { published: 0, succeeded: 0, failed: 0, changed: 0, autoApplied: 0 };
+    const startedAt = new Date().toISOString();
+    const totals = { succeeded: 0, failed: 0, changed: 0, autoApplied: 0, skipped: 0, protected: 0 };
     try {
-      const discoveryGroups = prefectureGroups(5);
-      for (const [index, prefectures] of discoveryGroups.entries()) {
-        setStatus(
-          status,
-          `1/2 Googleから登録・更新しています… 地域グループ${index + 1}/${discoveryGroups.length}（新規公開${totals.published}院）`
-        );
-        try {
-          const places = await api("/api/admin/clinics/auto-publish", {
+      const groups = prefectureGroups();
+      let processed = 0;
+      const maximumClinics = 10000;
+      let reachedSafetyLimit = false;
+      for (const [groupIndex, prefectures] of groups.entries()) {
+        while (true) {
+          if (processed >= maximumClinics) {
+            reachedSafetyLimit = true;
+            break;
+          }
+          setStatus(
+            status,
+            `公式HTMLから取得しています… ${processed}院完了（地域グループ${groupIndex + 1}/${groups.length}）`
+          );
+          const data = await api("/api/admin/clinics/extract-html", {
             method: "POST",
             body: JSON.stringify({
               prefectures,
-              limitPerPrefecture: 10,
-              maxPages: 1,
+              limit: 1,
+              autoApply: true,
+              before: startedAt,
               confirmed: true
             })
           });
-          totals.published += Number(places.published || 0);
-        } catch (error) {
-          throw new Error(`Google収集 地域グループ${index + 1}/${discoveryGroups.length}で失敗: ${error.message}`);
-        }
-      }
-
-      const clinicIds = await publishedClinicIds(status);
-      let cursor = 0;
-      let processed = 0;
-      let running = 0;
-      let serviceFailures = 0;
-      let abortReason = "";
-      const failureSamples = [];
-      const updateProgress = () => setStatus(
-        status,
-        `3/3 公式情報を並列更新しています… ${processed}/${clinicIds.length}院完了（実行中${running}院・成功${totals.succeeded}院・失敗${totals.failed}院）`
-      );
-      const worker = async (workerIndex) => {
-        await wait(workerIndex * 3000);
-        while (!abortReason) {
-          const index = cursor;
-          cursor += 1;
-          if (index >= clinicIds.length) return;
-          running += 1;
-          updateProgress();
-          try {
-            const data = await updateOneClinic(clinicIds[index]);
-            totals.succeeded += 1;
-            if (data.changed) totals.changed += 1;
-            if (data.autoApplied) totals.autoApplied += 1;
-            serviceFailures = 0;
-          } catch (error) {
-            totals.failed += 1;
-            if (failureSamples.length < 3) failureSamples.push(error.message);
-            if (isBillingError(error)) {
-              abortReason = `Gemini APIの支払いエラー（HTTP 402）のため自動停止しました: ${error.message}`;
-            } else if (isRetryableServiceError(error)) {
-              serviceFailures += 1;
-              if (serviceFailures >= NATIONWIDE_CONCURRENCY) {
-                abortReason = `Gemini APIの利用制限が続いたため自動停止しました: ${error.message}`;
-              }
-            }
-          } finally {
-            running -= 1;
-            processed += 1;
-            updateProgress();
+          if (!data.requested) break;
+          processed += Number(data.requested || 0);
+          for (const key of ["succeeded", "failed", "changed", "autoApplied", "skipped", "protected"]) {
+            totals[key] += Number(data[key] || 0);
           }
         }
-      };
-      await Promise.all(Array.from({ length: Math.min(NATIONWIDE_CONCURRENCY, clinicIds.length) }, (_, index) => worker(index)));
+        if (reachedSafetyLimit) break;
+      }
 
       setStatus(
         status,
-        abortReason || `更新完了：新規公開${totals.published}院、公式情報 成功${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院。${failureSamples.length ? ` 主な失敗: ${failureSamples.join(" / ")}` : ""}`,
-        Boolean(abortReason) || totals.failed > 0
+        `確認完了：${processed}院・保存${totals.succeeded}院・失敗${totals.failed}院・変更${totals.changed}院・自動反映${totals.autoApplied}院・確認済み情報を保護${totals.protected}院・院名や公式URLの不足${totals.skipped}院。${reachedSafetyLimit ? ` 上限の${maximumClinics}院まで処理しました。` : ""}`,
+        totals.failed > 0
       );
       busy = false;
       await loadCandidates({ reset: true });
@@ -289,7 +194,7 @@
   function formatPricing(items) {
     return (items || []).map((item) => [
       item.treatment, item.displayPrice, (item.conditions || []).join(","),
-      (item.additionalCosts || []).join(","), item.sourceUrl
+      (item.additionalCosts || []).join(","), item.sourceUrl, item.amountMin ?? "", item.amountMax ?? ""
     ].join("｜")).join("\n");
   }
 
@@ -306,9 +211,7 @@
 
   function fillEditor(clinic) {
     currentClinicId = clinic.id;
-    currentDetectedData = clinic.detectedData || null;
-    if (clinic.officialExtractionJob?.status === "running") activeExtractionClinicId = clinic.id;
-    else if (activeExtractionClinicId === clinic.id) activeExtractionClinicId = "";
+    currentDetectedData = clinic.detectedHtmlData || clinic.detectedData || null;
     byId("editor-empty").hidden = true;
     byId("clinic-editor").hidden = false;
     byId("clinic-place-id").textContent = clinic.placeId || clinic.id;
@@ -324,6 +227,7 @@
     byId("clinic-treatments").value = (clinic.treatments || []).join("\n");
     byId("clinic-tags").value = (clinic.tags || []).join("\n");
     byId("clinic-pricing").value = formatPricing(clinic.pricing);
+    byId("clinic-treatment-details").value = (clinic.treatmentDetails || []).map(item => [item.name,(item.parts || []).join(","),item.downtimeMaxDays ?? "",item.sourceUrl].join("｜")).join("\n");
     byId("clinic-doctors").value = formatDoctors(clinic.doctors);
     byId("clinic-case-summary").value = clinic.caseInformation?.summary || "";
     byId("clinic-case-period").value = clinic.caseInformation?.period || "";
@@ -340,9 +244,15 @@
       byId("editor-status"),
       clinic.extractionStatus === "failed"
         ? `公式情報の抽出に失敗しました: ${clinic.extractionError || "原因は記録されていません。再実行すると詳細を記録します。"}`
-        : clinic.officialExtractionJob?.status === "running" ? "公式情報の抽出をバックグラウンドで実行しています…" : "",
+        : clinic.htmlExtractionStatus ? `公式HTML取得：${clinic.htmlExtractionStatus}（確認候補を確認できます）` : "",
       clinic.extractionStatus === "failed"
     );
+    if (clinic.htmlExtractionStatus) {
+      const count = clinic.detectedHtmlData?.pricing?.length || 0;
+      setStatus(byId("editor-status"), clinic.htmlExtractionStatus === "failed"
+        ? `公式HTMLの取得に失敗しました：${clinic.htmlExtractionError || "公式サイトを確認してください。"}`
+        : `公式HTML取得：${clinic.htmlExtractionStatus}・料金候補${count}件。取得できない項目と手動確認済み情報は保持しています。`, clinic.htmlExtractionStatus === "failed");
+    }
     renderCandidates();
   }
 
@@ -370,7 +280,10 @@
 
   function applyDetectedData() {
     if (!currentDetectedData) return;
-    fillEmptyField("clinic-treatments", (currentDetectedData.treatments || []).map((item) => item.name).filter(Boolean).join("\n"));
+    if (currentDetectedData.html && !confirm("この院の取扱施術・料金条件・税込区分を公式サイトで確認しましたか？確認した候補だけを入力して保存してください。")) return;
+    const services = currentDetectedData.information?.treatmentDetails || [];
+    fillEmptyField("clinic-treatments", [...new Set([...(currentDetectedData.treatments || []), ...services].map(item => item.name).filter(Boolean))].join("\n"));
+    fillEmptyField("clinic-opening-hours", currentDetectedData.information?.openingHours || currentDetectedData.openingHours);
     fillEmptyField("clinic-pricing", formatPricing(currentDetectedData.pricing));
     fillEmptyField("clinic-doctors", formatDoctors(currentDetectedData.doctors));
     const caseInformation = currentDetectedData.caseInformation?.[0];
@@ -399,91 +312,42 @@
   async function selectClinic(id) {
     if (busy) return;
     busy = true;
-    setStatus(byId("editor-status"), "候補を読み込んでいます…");
-    byId("place-preview-name").textContent = "取得中…";
+    setStatus(byId("editor-status"), "登録情報を読み込んでいます…");
     byId("place-preview-map").hidden = true;
     byId("place-preview-official").hidden = true;
     byId("place-attribution").hidden = true;
     try {
       const detail = await api(`/api/admin/clinics/${encodeURIComponent(id)}`);
       fillEditor(detail.clinic);
-      try {
-        const preview = await api(`/api/admin/clinics/${encodeURIComponent(id)}/place-preview`);
-        byId("place-preview-name").textContent = preview.place.name || "名称なし";
-        byId("place-preview-map").href = preview.place.googleMapsUrl || "#";
-        byId("place-preview-map").hidden = !preview.place.googleMapsUrl;
-        byId("place-preview-official").href = preview.place.officialUrl || "#";
-        byId("place-preview-official").hidden = !preview.place.officialUrl;
-        byId("place-attribution").hidden = false;
-        applyPlacePreview(preview.place);
-        setStatus(byId("editor-status"), "Googleの基本情報を空欄へ入力しました。公式サイトを開いて内容を確認してください。");
-      } catch (error) {
-        byId("place-preview-name").textContent = error.message;
+      byId("place-preview-name").textContent = detail.clinic.name || "名称未登録";
+      if (/^https:\/\//.test(detail.clinic.officialUrl || "")) {
+        byId("place-preview-official").href = detail.clinic.officialUrl;
+        byId("place-preview-official").hidden = false;
       }
     } catch (error) {
       setStatus(byId("editor-status"), error.message, true);
     } finally {
       busy = false;
       renderCandidates();
-      if (activeExtractionClinicId === id) void pollClinicExtraction(id);
-    }
-  }
-
-  const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-  async function pollClinicExtraction(id) {
-    if (pollingClinicIds.has(id)) return;
-    pollingClinicIds.add(id);
-    try {
-      while (activeExtractionClinicId === id) {
-        await wait(3000);
-        const data = await api(`/api/admin/clinics/${encodeURIComponent(id)}/extract-official`);
-        if (data.status === "running") {
-          if (currentClinicId === id) {
-            const completed = data.progress?.completed ?? 0;
-            const total = data.progress?.total ?? 3;
-            setStatus(byId("editor-status"), `公式情報を抽出しています… ${completed}/${total}項目完了。画面を閉じても処理は継続します。`);
-          }
-          continue;
-        }
-        activeExtractionClinicId = "";
-        if (data.clinic && currentClinicId === id) fillEditor(data.clinic);
-        if (currentClinicId === id) {
-          if (data.status === "completed") {
-            setStatus(byId("editor-status"), data.autoApplied
-              ? "公式情報を抽出し、根拠を確認できた項目を自動反映しました。"
-              : "公式情報を抽出しました。抽出候補を確認してください。");
-          } else if (data.status === "failed") {
-            setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${data.clinic?.extractionError || "原因を確認できませんでした。"}`, true);
-          }
-        }
-        await loadCandidates();
-      }
-    } catch (error) {
-      activeExtractionClinicId = "";
-      if (currentClinicId === id) setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${error.message}`, true);
-    } finally {
-      pollingClinicIds.delete(id);
-      renderCandidates();
     }
   }
 
   async function extractSelectedClinic() {
     if (!currentClinicId || busy) return;
-    if (!confirm("このクリニックの公式サイトをGeminiで再解析し、根拠を確認できた情報を自動反映しますか？")) return;
+    if (!confirm("公式サイトから情報を取得し、根拠を確認できた項目を更新しますか？手動確認済みの情報は保護し、グループ共通料金は確認候補として保存します。")) return;
     busy = true;
     renderCandidates();
     setStatus(byId("editor-status"), "公式サイト解析を開始しています…");
     try {
-      const data = await api(`/api/admin/clinics/${encodeURIComponent(currentClinicId)}/extract-official`, {
+      const data = await api(`/api/admin/clinics/${encodeURIComponent(currentClinicId)}/extract-html`, {
         method: "POST",
-        body: JSON.stringify({ confirmed: true })
+        body: JSON.stringify({ confirmed: true, autoApply: true })
       });
-      const id = currentClinicId;
-      activeExtractionClinicId = id;
       if (data.clinic) fillEditor(data.clinic);
-      setStatus(byId("editor-status"), "公式情報の抽出を開始しました。画面を閉じても処理は継続します。");
-      void pollClinicExtraction(id);
+      const result = data.results?.[0];
+      setStatus(byId("editor-status"), result?.ok
+        ? `公式HTMLから料金${result.prices}件・施術${result.treatments}件・医師${result.doctors}件を取得しました。${data.autoApplied ? "登録情報へ反映しました。" : "確認候補を確認してください。"}`
+        : `取得に失敗しました: ${result?.error || "結果を確認できませんでした。"}`, !result?.ok);
     } catch (error) {
       setStatus(byId("editor-status"), `公式情報の抽出に失敗しました: ${error.message}`, true);
     } finally {
@@ -494,9 +358,15 @@
 
   function parsePricing() {
     return lines(byId("clinic-pricing").value).map((row) => {
-      const [treatment, displayPrice, conditions, additionalCosts, sourceUrl] = rowParts(row, 5);
-      return { treatment, displayPrice, conditions: commaList(conditions), additionalCosts: commaList(additionalCosts), sourceUrl };
+      const [treatment, displayPrice, conditions, additionalCosts, sourceUrl, amountMin, amountMax] = rowParts(row, 7);
+      return { treatment, displayPrice, conditions: commaList(conditions), additionalCosts: commaList(additionalCosts), sourceUrl, amountMin:numericCell(amountMin,"最低掲載料金"),amountMax:numericCell(amountMax,"最高掲載料金") };
     });
+  }
+
+  function numericCell(value,label) {
+    if (!value) return null;
+    if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value))) throw new Error(`${label}は0以上の整数で入力してください。`);
+    return Number(value);
   }
 
   function parseDoctors() {
@@ -528,6 +398,7 @@
       openingHours: byId("clinic-opening-hours").value,
       treatments: lines(byId("clinic-treatments").value),
       tags: lines(byId("clinic-tags").value),
+      treatmentDetails: lines(byId("clinic-treatment-details").value).map(row=>{const [name,parts,days,sourceUrl]=rowParts(row,4);return {name,parts:commaList(parts),downtimeMaxDays:numericCell(days,"ダウンタイム上限"),sourceUrl};}),
       pricing: parsePricing(),
       doctors: parseDoctors(),
       caseInformation: caseSummary || caseSource ? {

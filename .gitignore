@@ -4,10 +4,14 @@
 node_modules/
 face3d/test-data/
 face3d/models/*
-!face3d/models/.gitkeep
-!face3d/models/README.md
+data/clinic-html-report*
 server-out.log
 server-err.log
 *.log
 Thumbs.db
 .DS_Store
+
+.worktrees/
+data/clinic-api-free-deploy*
+data/ocr/
+data/clinic-html-inventory*.json

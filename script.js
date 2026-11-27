@@ -78,6 +78,10 @@ const priorityInput = document.getElementById("priority");
 const simulateButton = document.getElementById("simulate-button");
 const simulationStatus = document.getElementById("simulation-status");
 const simulationError = document.getElementById("simulation-error");
+const capturePanel = document.querySelector(".capture-panel");
+const conditionsPanel = document.querySelector(".conditions-panel");
+const toConditionsButton = document.getElementById("to-conditions-button");
+const backToCaptureButton = document.getElementById("back-to-capture-button");
 const stepIndicators = [...document.querySelectorAll("[data-step-indicator]")];
 const saveButton = document.getElementById("save-button");
 const clearHistoryButton = document.getElementById("clear-history-button");
@@ -126,6 +130,27 @@ function showSimulationError(message) {
   simulationError.textContent = message;
   simulationError.classList.remove("hidden");
 }
+function setInputStep(step, { focus = true } = {}) {
+  capturePanel?.classList.toggle("step-hidden", step !== "capture");
+  conditionsPanel?.classList.toggle("step-hidden", step === "capture");
+  setSimulationStep(step);
+  if (!focus) return;
+  const heading = document.getElementById(step === "capture" ? "capture-title" : "input-title");
+  window.requestAnimationFrame(() => {
+    heading?.scrollIntoView({ behavior: "smooth", block: "start" });
+    heading?.focus?.({ preventScroll: true });
+  });
+}
+
+toConditionsButton?.addEventListener("click", () => {
+  if (!selectedImageData) {
+    cameraMessage.textContent = "顔画像を選択するか、カメラで撮影してから次へ進んでください。";
+    faceImageInput.focus();
+    return;
+  }
+  setInputStep("conditions");
+});
+backToCaptureButton?.addEventListener("click", () => setInputStep("capture"));
 
 function escapeText(value) {
   const text = String(value ?? "");
@@ -833,7 +858,7 @@ function completeGuidedScan() {
   const scanSummary = {
     completed: true,
     viewCount: Object.keys(guidedScan.views).length,
-    // Keep landmark data from every accepted direction for 3D reconstruction.
+    // Keep measurements from accepted camera directions for face analysis.
     // Camera images remain private to the scan and are not needed here.
     views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
       imageData: view.imageData,
@@ -1208,116 +1233,11 @@ function createAnalysisText(requestText, profile, designLabels = createDesignLab
 
 function renderAfterImageViewer(container, imageData) {
   if (!container || !imageData) return;
-  // The Three.js landmark mesh is mounted after face analysis. Keep only a
-  // placeholder here so the legacy radial-strip renderer cannot flash or
-  // replace the real mesh.
-  container.innerHTML = `
-    <div class="face-3d-viewer" aria-label="シミュレーション後の顔3Dモデルを読み込み中">
-      <img class="three-face-fallback" src="${imageData}" alt="シミュレーション後の予測イメージ">
-      <p class="face-3d-help">3Dモデルを準備しています…</p>
-    </div>`;
-  return;
-  container.innerHTML = `
-    <div class="face-3d-viewer" data-rotation="0" tabindex="0" aria-label="After画像の3Dビュー。左右にドラッグまたはスワイプして回転できます。">
-      <div class="face-3d-stage">
-        <canvas class="face-3d-canvas" aria-label="顔の近似3Dモデル"></canvas>
-        <img class="face-3d-source" src="${imageData}" alt="シミュレーション後の予測イメージ">
-      </div>
-      <p class="face-3d-help">左右にドラッグ／スワイプして180°回転 <span class="face-3d-angle">0°</span></p>
-    </div>`;
-
-  const viewer = container.querySelector(".face-3d-viewer");
-  const stage = viewer.querySelector(".face-3d-stage");
-  const canvas = viewer.querySelector(".face-3d-canvas");
-  const source = viewer.querySelector(".face-3d-source");
-  const angleLabel = viewer.querySelector(".face-3d-angle");
-  const context = canvas.getContext("2d");
-  const draw = (rotation) => {
-    if (!source.complete || !source.naturalWidth) return;
-    const width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    const height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-    }
-    context.clearRect(0, 0, width, height);
-    const angle = rotation * Math.PI / 180;
-    const scale = Math.min(width / source.naturalWidth, height / source.naturalHeight);
-    const imageWidth = source.naturalWidth * scale;
-    const imageHeight = source.naturalHeight * scale;
-    const left = (width - imageWidth) / 2;
-    const top = (height - imageHeight) / 2;
-    const strips = 96;
-    for (let index = 0; index < strips; index += 1) {
-      const x = index / strips;
-      const nextX = (index + 1) / strips;
-      const depth = Math.sin(x * Math.PI) * imageWidth * 0.16;
-      const nextDepth = Math.sin(nextX * Math.PI) * imageWidth * 0.16;
-      const projectedX = left + (x - 0.5) * imageWidth * Math.cos(angle) + depth * Math.sin(angle) + width / 2 - width / 2;
-      const nextProjectedX = left + (nextX - 0.5) * imageWidth * Math.cos(angle) + nextDepth * Math.sin(angle) + width / 2 - width / 2;
-      const projectedWidth = Math.max(1, Math.abs(nextProjectedX - projectedX) + 1);
-      context.drawImage(source, x * source.naturalWidth, 0, source.naturalWidth / strips + 1, source.naturalHeight, projectedX, top, projectedWidth, imageHeight);
-    }
-  };
-  source.addEventListener("load", () => draw(0));
-  let dragging = false;
-  let startX = 0;
-  let startRotation = 0;
-
-  const applyRotation = (rotation) => {
-    const normalized = Math.max(-180, Math.min(180, rotation));
-    viewer.dataset.rotation = String(normalized);
-    stage.style.transform = "none";
-    draw(normalized);
-    if (angleLabel) angleLabel.textContent = `${Math.round(normalized)}°`;
-  };
-
-  viewer.addEventListener("pointerdown", (event) => {
-    dragging = true;
-    startX = event.clientX;
-    startRotation = Number(viewer.dataset.rotation) || 0;
-    viewer.setPointerCapture?.(event.pointerId);
-    viewer.classList.add("is-dragging");
-  });
-  viewer.addEventListener("pointermove", (event) => {
-    if (!dragging) return;
-    applyRotation(startRotation + (event.clientX - startX) * 0.8);
-  });
-  viewer.addEventListener("mousemove", (event) => {
-    if (!dragging) return;
-    applyRotation(startRotation + (event.clientX - startX) * 0.8);
-  });
-  const stopDragging = () => {
-    dragging = false;
-    viewer.classList.remove("is-dragging");
-  };
-  viewer.addEventListener("pointerup", stopDragging);
-  viewer.addEventListener("pointercancel", stopDragging);
-  viewer.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    applyRotation((Number(viewer.dataset.rotation) || 0) + (event.key === "ArrowLeft" ? -15 : 15));
-  });
-}
-
-function combineAfterShapeWithScanDepth(afterAnalysis, scanAnalysis) {
-  if (!scanAnalysis?.ok || !scanAnalysis.landmarks?.length) return afterAnalysis;
-  if (!afterAnalysis?.ok || !afterAnalysis.landmarks?.length) return scanAnalysis;
-  const landmarks = afterAnalysis.landmarks.map((point, index) => ({
-    ...point,
-    // Keep the generated image's 2D shape while reusing the depth measured
-    // during the guided scan. A front-facing generated image cannot provide
-    // reliable new depth by itself.
-    z: scanAnalysis.landmarks[index]?.z ?? point.z
-  }));
-  return {
-    ...afterAnalysis,
-    ok: true,
-    landmarks,
-    meshConnections: afterAnalysis.meshConnections?.length
-      ? afterAnalysis.meshConnections
-      : scanAnalysis.meshConnections
-  };
+  const image = document.createElement('img');
+  image.src = imageData;
+  image.alt = 'シミュレーション後の予測イメージ';
+  image.className = 'after-simulation-image';
+  container.replaceChildren(image);
 }
 
 async function renderResult(result) {
@@ -1357,22 +1277,8 @@ async function renderResult(result) {
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
     setSimulationStatus("正面のAfter画像を表示しています…");
-    renderDirectionalAfterViewer(afterImage, generatedImage, result);
+    renderAfterImageViewer(afterImage, generatedImage, result);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
-    const meshAnalysis = combineAfterShapeWithScanDepth(result.afterFaceAnalysis, result.faceAnalysis);
-    const mountThreeViewer = (attempt = 0) => {
-      const threeViewer = afterImage.querySelector(".face-3d-viewer");
-      if (!threeViewer) return;
-      if (window.Face3DViewer) {
-        const mounted = window.Face3DViewer.mount(threeViewer.parentElement, generatedImage, meshAnalysis);
-        if (!mounted) {
-          threeViewer.parentElement.innerHTML = `<img class="after-3d-fallback-image" src="${generatedImage}" alt="シミュレーション後の予測イメージ">`;
-        }
-        return;
-      }
-      if (attempt < 20) window.setTimeout(() => mountThreeViewer(attempt + 1), 100);
-    };
-    mountThreeViewer();
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
     analysisText.textContent = appendFaceScoreComparison(
@@ -1380,7 +1286,7 @@ async function renderResult(result) {
       result.faceAnalysis,
       result.afterFaceAnalysis
     );
-    setSimulationStatus("シミュレーションが完了しました。方向ボタンで画像を切り替えられます。");
+    setSimulationStatus("シミュレーションが完了しました。");
   } catch (error) {
     if (!stillCurrent()) return;
     console.error(error);
@@ -1396,9 +1302,9 @@ async function renderResult(result) {
         <span>${escapeText(error.message)}</span>
         <small>下には確認用としてローカル簡易生成の画像を表示しています。</small>
       </div>
-      <div class="after-3d-fallback-image"></div>
+      <div class="after-fallback-image"></div>
     `;
-    renderDirectionalAfterViewer(afterImage.querySelector(".after-3d-fallback-image"), localImage, result);
+    renderAfterImageViewer(afterImage.querySelector(".after-fallback-image"), localImage, result);
     showSimulationError(`After画像の生成に失敗しました。${error?.message || "通信状態やAPIの利用状況を確認してください。"}`);
   }
 
@@ -1445,67 +1351,6 @@ async function renderResult(result) {
   saveButton.disabled = false;
   // After generation, show the actual Before / After image comparison.
   scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
-}
-
-function renderDirectionalAfterViewer(container, frontImage, result) {
-  const views = result.faceAnalysis?.scan?.views || {};
-  const labels = { front: "正面", left: "左", right: "右", up: "上", down: "下" };
-  const generated = { front: frontImage };
-  container.innerHTML = `
-    <div class="directional-after-viewer">
-      <div class="directional-after-stage">
-        <img class="directional-after-image" src="${frontImage}" alt="シミュレーション後の${labels.front}画像">
-        <p class="directional-after-status" aria-live="polite">正面のAfter画像</p>
-        <div class="directional-after-controls" role="tablist" aria-label="表示方向">
-          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab" aria-selected="false"><span>${labels.up}</span></button>
-          <button type="button" class="directional-after-tab direction-left" data-direction="left" role="tab" aria-selected="false"><span>${labels.left}</span></button>
-          <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
-          <button type="button" class="directional-after-tab direction-right" data-direction="right" role="tab" aria-selected="false"><span>${labels.right}</span></button>
-          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab" aria-selected="false"><span>${labels.down}</span></button>
-        </div>
-      </div>
-    </div>`;
-
-  const image = container.querySelector(".directional-after-image");
-  const status = container.querySelector(".directional-after-status");
-  const tabs = container.querySelectorAll(".directional-after-tab");
-  tabs.forEach((tab) => tab.addEventListener("click", async () => {
-    const direction = tab.dataset.direction;
-    tabs.forEach((item) => {
-      const active = item === tab;
-      item.classList.toggle("is-active", active);
-      item.setAttribute("aria-selected", String(active));
-    });
-    if (generated[direction]) {
-      image.src = generated[direction];
-      image.alt = `シミュレーション後の${labels[direction]}画像`;
-      status.textContent = `${labels[direction]}のAfter画像`;
-      return;
-    }
-    const scanImage = views[direction]?.imageData;
-    if (!scanImage) {
-      status.textContent = `${labels[direction]}のスキャン画像がありません。5方向スキャンを完了してから実行してください。`;
-      return;
-    }
-    status.textContent = `${labels[direction]}のAfter画像を生成しています...`;
-    tab.disabled = true;
-    try {
-      // Use the generated front After image as the only visual source so the
-      // identity and requested changes remain consistent across directions.
-      const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
-      generated[direction] = directionalResult.image;
-      image.src = directionalResult.image;
-      image.alt = `シミュレーション後の${labels[direction]}画像`;
-      status.textContent = `${labels[direction]}のAfter画像`;
-    } catch (error) {
-      image.src = scanImage;
-      image.alt = `${labels[direction]}のスキャン画像`;
-      status.textContent = `${labels[direction]}の生成に失敗したためスキャン画像を表示しています`;
-      console.error("Directional simulation failed", error);
-    } finally {
-      tab.disabled = false;
-    }
-  }));
 }
 
 async function analyzeSelectedFace() {
@@ -2094,6 +1939,7 @@ window.AccountData.init({
 });
 
 window.addEventListener("app-locked", () => {
+  setInputStep("capture", { focus: false });
   privacyGeneration++;
   stopCamera();
   resetGuidedScan();

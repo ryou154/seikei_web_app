@@ -446,7 +446,7 @@ function buildGeminiPrompt(body, options = {}) {
     "The uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view.",
     viewDirectionGuide,
     "Preserve natural human anatomy and realistic skin texture.",
-    "Make the result look like a realistic three-dimensional facial render: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",
+    "Make the result look like a realistic photograph: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",
     `Style: ${labels.style || "natural"}. Eyes: ${labels.eye || "natural"}. Nose: ${labels.nose || "natural"}. Face: ${labels.face || "natural"}. Mouth: ${labels.mouth || "no change"}. Forehead: ${labels.forehead || "no change"}.`,
     detailGuide,
     `User request: ${requestText}. Additional free-form fine-detail request: ${body.profile?.detailFreeText || "none"}. Strength: ${strength}%.`,
@@ -502,7 +502,7 @@ function serveStatic(request, response) {
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
-    "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
+    "/clinics.html", "/clinic-search.js", "/clinic-search.css", "/account-data.js", "/face-analysis.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
     "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/users.html", "/admin/users.js", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {

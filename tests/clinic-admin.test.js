@@ -448,3 +448,12 @@ test("Firestore admin store merges selected prefectures without duplicates", asy
   assert.deepEqual(result.clinics.map((clinic) => clinic.id), ["kyoto", "osaka", "shared"]);
   assert.equal(result.nextCursor, "");
 });
+
+test('admin validates and preserves explicit parts, recovery upper bounds and numeric prices',()=>{
+  const source='https://example.com/official';const body=validBody({treatmentDetails:[{name:'二重',parts:['二重','目元'],downtimeMaxDays:14,sourceUrl:source}],pricing:[{treatment:'二重',displayPrice:'50,000円から',amountMin:50000,amountMax:80000,sourceUrl:source}]});
+  const data=normalizeAdminClinicUpdate(body,{email:'admin@example.com'},'2026-10-13');assert.deepEqual(data.treatmentDetails[0].parts,['二重','目元']);assert.equal(data.treatmentDetails[0].downtimeMaxDays,14);assert.equal(data.treatmentDetails[0].verifiedAt,'2026-10-13');assert.equal(data.pricing[0].amountMin,50000);
+  const unknown=normalizeAdminClinicUpdate(validBody(),{email:'admin@example.com'});assert.equal(unknown.pricing[0].amountMin,null);assert.deepEqual(unknown.treatmentDetails,[]);
+  for(const change of [{parts:['不明']},{downtimeMaxDays:-1},{downtimeMaxDays:366},{downtimeMaxDays:1.5},{sourceUrl:''},{name:'未登録施術'}])assert.throws(()=>normalizeAdminClinicUpdate({...body,treatmentDetails:[{...body.treatmentDetails[0],...change}]},{email:'admin@example.com'}));
+  assert.throws(()=>normalizeAdminClinicUpdate({...body,pricing:[{...body.pricing[0],amountMin:90000}]},{email:'admin@example.com'}),/最低掲載料金/);
+  assert.throws(()=>normalizeAdminClinicUpdate({...body,pricing:[{...body.pricing[0],amountMin:'50000'}]},{email:'admin@example.com'}));
+});

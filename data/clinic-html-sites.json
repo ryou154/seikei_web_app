@@ -1,0 +1,2428 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-06T06:46:03.946Z",
+  "sites": {
+    "a-bayclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "a-clinic.net": {
+      "clinicCount": 4,
+      "seeds": [
+        "/price-list/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "a-dio.catsys.jp": {
+      "clinicCount": 7,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "abc-kanazawa.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.php",
+        "/price_list/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "abc-kumamoto.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.php",
+        "/price_list/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "abc-niigata.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "abc-sapporo.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.php",
+        "/price_list/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "abc-shizuoka.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price_list/",
+        "/price.php"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "abe-family.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "adeb.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/ryokin/%e3%82%a2%e3%83%bc%e3%83%87%e3%83%bb%e3%83%99%e3%83%bc%e3%82%af%e3%83%aa%e3%83%8b%e3%83%83%e3%82%af%e7%a7%8b%e7%94%b0%e9%99%a2/",
+        "/news/ryokin/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "agaskin.net": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "aiwakai-iwate.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "akaikeskincare.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "partial"
+    },
+    "akiha-beauty-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/cosmetic/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "akita-biyo.clinic": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "akita-seiwa.coral-beauty.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "akizukiclinic-mj.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "amare.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "and-bg.com": {
+      "clinicCount": 5,
+      "seeds": [
+        "/price/skin/",
+        "/price/epilation/",
+        "/price/gynecology/",
+        "/price/shika/",
+        "/price/facelift/",
+        "/price/eyelid/",
+        "/price/breast/"
+      ],
+      "validatedPricePages": 7,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "and-mg.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "andmedical-order.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "aoki-tsuyoshi.com": {
+      "clinicCount": 38,
+      "seeds": [
+        "/clinic/sapporo",
+        "/clinic/kyoto",
+        "/clinic/utsunomiya",
+        "/clinic/fukui",
+        "/clinic/kanazawa",
+        "/clinic/omiya_nishiguchi",
+        "/clinic/nara",
+        "/clinic/yokkaichi",
+        "/clinic/fukushima",
+        "/clinic/matsumoto"
+      ],
+      "validatedPricePages": 37,
+      "parser": "tcb",
+      "status": "prices_detected"
+    },
+    "aoyama-hifuka.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "apollon-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/",
+        "/column/lifting-sagging/thread-lift-price/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "aquaclinic-iga.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/archives/selfpay/beauty"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "ariel.clinic": {
+      "clinicCount": 3,
+      "seeds": [
+        "/price/",
+        "/medical-treatment/face-liposuction/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "artis-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/fee/",
+        "/incision/",
+        "/canthoplasty/",
+        "/defat/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "asai-skinbeauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/%e6%96%99%e9%87%91%e8%a1%a8"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "aura-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "ayumi-skin.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "bccl.jp": {
+      "clinicCount": 6,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "blanc",
+      "status": "prices_detected"
+    },
+    "beauty-clinic-tsu.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "belleviaclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "biyougeka.com": {
+      "clinicCount": 6,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "seishin",
+      "status": "partial"
+    },
+    "bloom-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/",
+        "/first_time_price/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "brights-beauty.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "camellia-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/fee/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "chuoh-clinic-kagoshima.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/treat-fee/",
+        "/blog/viewhot-osmidrosis-hyperhidrosis/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "clarabeautyclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/nahain/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "clinic-shinsei.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/nextbeauty/",
+        "/nextbeauty/skincare.php",
+        "/nextbeauty/skincare.php/",
+        "/news/clinic/4783/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "clinic-viola.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "clinic-w.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/blog/small_face/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "clinique-fukuoka-tenjin.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "clinique-j.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "code-beauty.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/menu/double-eyelid/",
+        "/menu/breast-augmentation/",
+        "/menu/nipple-areola-reduction/",
+        "/menu/lower-eyelid/",
+        "/menu/facial-liposuction/"
+      ],
+      "validatedPricePages": 5,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "datsumou-madoguchi.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "do-s.net": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price/",
+        "/skin_care/v3foundation/",
+        "/skin_care/mdear/",
+        "/skin_care/lekarka/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "e-hada-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "ekimaebeautyclinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "elm-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "eminal-clinic.jp": {
+      "clinicCount": 11,
+      "seeds": [
+        "/menu/",
+        "/clinic/wakayama/c_wakayama/",
+        "/clinic/toyama/c_toyama/",
+        "/clinic/tokushima/c_tokushima/",
+        "/clinic/ooita/c_oita/",
+        "/clinic/aomori/c_aomori/",
+        "/clinic/kochi/c_kochi/",
+        "/clinic/gifu/c_gifu/",
+        "/clinic/iwate/c_morioka/",
+        "/clinic/kagoshima/c_kagoshima/"
+      ],
+      "validatedPricePages": 12,
+      "parser": "eminal",
+      "status": "prices_detected"
+    },
+    "emma-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "emma",
+      "status": "prices_detected"
+    },
+    "emmofaceclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "eterna-clinic.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/menu/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "eternalbeautyclinic-official.my.canva.site": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "f-clinic-oita.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "fclinic-kanazawa.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "foreboise.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "fujiharaseikei.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "fujii-biyo.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/index.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "fuku01.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/cost/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "fumino.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/fee/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "furuhashi-hifuka.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "g-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "garden-senbi.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/face-line/",
+        "/breast/",
+        "/liposuction/",
+        "/slimming/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "gbc-gifu.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/",
+        "/shimi-laser-price/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "ginzabiyoclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "gloss-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "grace-skin.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price_list/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "gymb-bc.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "harmonyplus.amebaownd.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "haruyama-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "heart-bc.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "heartland.or.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/clinic/narawellness/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "himeji-biyou.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "hirakawa-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "hiroshima-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price-surgery",
+        "/price-skin"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "hisaka-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "hokurikubiyou.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "hondori-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "hori-clinic.net": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "i-mediclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "ianaclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "ibc-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "ichida-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "icon-generator.net": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "instagram.com": {
+      "clinicCount": 3,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "ishidai-bc.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price-policy/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "ivygroup.co.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "j-prs.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "jclinicgroup.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "jinclinic-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "jk-medical.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "joeclinic.jp": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "k-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "k-k-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kaji-cl.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kamei-biyo.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "kanawa-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "kanoa-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "partial"
+    },
+    "kawada-keisei.gr.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/about/charge/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kclinic-matsuyama.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "kclinic",
+      "status": "prices_detected"
+    },
+    "keisei-biyou.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "keisei.ne.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kenbishin.net": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/shiwa/",
+        "/price/tarumi/",
+        "/price/keana/",
+        "/price/nikibi/",
+        "/price/futae/",
+        "/price/shimi/",
+        "/price/hokuroibo/",
+        "/price/akaragao/"
+      ],
+      "validatedPricePages": 8,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "keyama-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "kia-beauty.jp": {
+      "clinicCount": 2,
+      "seeds": [
+        "/maibotsu"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kii-pain.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/iv/",
+        "/peeling/",
+        "/vitamin/"
+      ],
+      "validatedPricePages": 3,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kinohikari.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kira-cli.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/hifu.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kisui-clinic.co.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "kmr.clinic": {
+      "clinicCount": 1,
+      "seeds": [
+        "/menu-prices/",
+        "/services/plastic-surgery/",
+        "/services/lymphedema/cdt/drainage/"
+      ],
+      "validatedPricePages": 3,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kojima-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "komatsubaraplasticsurgery.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "kondo-iin.net": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "kumamoto-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kusunose-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "kyoritsu-biyo.com": {
+      "clinicCount": 7,
+      "seeds": [
+        "/price/face/eye/",
+        "/price/face/sagging/",
+        "/price/face/thread-lift/",
+        "/price/face/eye_bags/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "kyotoekimae-beautyclinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "lamu-kagoshima.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "leap-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "lifebeauty.clinic": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "lin.ee": {
+      "clinicCount": 2,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "lively-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/dermatology/",
+        "/column/post/onda-lift-upper-arm/",
+        "/price/surgery/"
+      ],
+      "validatedPricePages": 3,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "lor-clinic-omotesando.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price-list/omotesando",
+        "/price-list/nagoya",
+        "/price-list/sapporo"
+      ],
+      "validatedPricePages": 3,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "lula-beauty.jp": {
+      "clinicCount": 17,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "lula",
+      "status": "prices_detected"
+    },
+    "lula-niigata.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "partial"
+    },
+    "luna.s.sakata-biyou.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "luvoclinictokyo.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "m-beauty.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/about/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "m-matsumoto-skc.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "maekawa-clinic.net": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "maru-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "maruyama-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.html",
+        "/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mbcf.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/pricemenu/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mc-keiaikai.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price-skinlazer",
+        "/price-infusion",
+        "/price-thread",
+        "/price-regenerative",
+        "/price-botox",
+        "/price-nosethread",
+        "/price-hyaluronic"
+      ],
+      "validatedPricePages": 7,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "medicalex.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "mencli.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/medical_fees/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "miebeauty.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/%e6%96%99%e9%87%91%e4%b8%80%e8%a6%a7/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mifuneyama-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "miki-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/miyazaki-fee/",
+        "/fee/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "minegishi-hifukeisei.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "minekeisei.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/pages/20/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mirai-beauty-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mito-biyou.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/fee/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mito.ishikura-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/contents/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "miyazaki-biyou.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mizui-eye-skinclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mmdcl.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/medical/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "morilabo.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "ms-clinic-beauty-health.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/fee/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "msa-cosmetic-surgery.clinic": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "mskinclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "munakata-skin.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "partial"
+    },
+    "my-beauty.clinic": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "myuclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "myu",
+      "status": "prices_detected"
+    },
+    "nagano-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "nagaoka.clinic": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "nagoya.ace-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "nakamura-biyou.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "nakanishi-keisei.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "naruclinic-chiba.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/column/under-eye-dark-circles-removal-market-price/",
+        "/column/double-eyelid-only-one-eye/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "naruclinic-mito.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "nebula-clinic.jp": {
+      "clinicCount": 2,
+      "seeds": [
+        "/menu/hifu/",
+        "/menu/futae_maibotsu/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "nectar-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/menu/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "nishimura-keisei.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "norst.co.jp": {
+      "clinicCount": 5,
+      "seeds": [
+        "/price/",
+        "/content/phimosis/3920/",
+        "/phimosis/surgery/takamatsu-kagawa/",
+        "/phimosis/surgery/utsunomiya-tochigi/",
+        "/phimosis/surgery/koufu/",
+        "/phimosis/surgery/matsue-shimane/",
+        "/phimosis/surgery/morioka-iwate/",
+        "/content/exsome/5246/"
+      ],
+      "validatedPricePages": 8,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "nsn-c.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "nsnc-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/price_medical_laser",
+        "/price/price_picolaser",
+        "/price/price_electroporation",
+        "/price/ultracel_qplus_linear"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "obata-c.net": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "okada-keiseigeka.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "okazakibeauty.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "okibi-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "okinawa.pro-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/girlsmenu/",
+        "/mensmenu/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "olino-bc.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/%E6%96%99%E9%87%91"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "onishi-biyou.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "onishiskinclinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/index.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "oogaki-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "open-clinicjp.com": {
+      "clinicCount": 3,
+      "seeds": [
+        "/menu/beauty/hair-removal.html",
+        "/menu/beauty/aga.html",
+        "/menu/beauty/skin-improvement.html",
+        "/menu/beauty/wrinkles.html",
+        "/menu/beauty/drip-injection.html"
+      ],
+      "validatedPricePages": 5,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "oriver-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "osaka-miyabi.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/",
+        "/price/monitor.php"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "osaka.ace-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "osaka.taclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/eye/",
+        "/price/nose/",
+        "/price/antiaging/",
+        "/price/face_fat_remove/",
+        "/",
+        "/price/"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "otaclinic.net": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "otsuka-biyo.co.jp": {
+      "clinicCount": 3,
+      "seeds": [
+        "/lineup/agingcare/price/",
+        "/lineup/eye/price/",
+        "/lineup/circles/price/"
+      ],
+      "validatedPricePages": 3,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "ouchi-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/laser/removal/",
+        "/laser/blauman/",
+        "/laser/liftup/",
+        "/laser/facial/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "oyama-keisei.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "oyama-seikei.gassankai.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "ozasaclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "palm-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/",
+        "/column/2902/",
+        "/column/2905/",
+        "/column/2904/",
+        "/column/2903/"
+      ],
+      "validatedPricePages": 5,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "pcedx-p.medicomcloud.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "primaclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "prs-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/medical-infomation/%E3%83%AF%E3%82%AD%E6%B1%97%E3%83%BB%E3%83%AF%E3%82%AD%E3%82%AC%EF%BC%88%E8%85%8B%E8%87%AD%E7%97%87%EF%BC%89%E5%A4%96%E6%9D%A5/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "rei-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "reinebeautyclinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/fee"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "rejubeautyclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/clinic/prices/",
+        "/campaign/spring-skin-improvement-festival-popular-skin-boosting-injections-at-a-special-price-until-the-end-of-may-2026/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "rin-medical-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "rosabeauty.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/surgery/",
+        "/price/other/",
+        "/price/medical-hair-removal/",
+        "/price/dermatology/",
+        "/price/"
+      ],
+      "validatedPricePages": 5,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "rose-clinic.info": {
+      "clinicCount": 1,
+      "seeds": [
+        "/datsumo/price_datsumo/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "s-b-c.net": {
+      "clinicCount": 59,
+      "seeds": [
+        "/agingcare/charge_list/",
+        "/eyelid/charge_list/",
+        "/itaewon-beauty/menu/",
+        "/datsumo/",
+        "/k_campaign/campaign106-0237.html",
+        "/k_campaign/campaign106-0187.html",
+        "/k_campaign/campaign106-0113.html",
+        "/k_campaign/campaign106-0142.html",
+        "/k_campaign/campaign106-0248.html",
+        "/medical-products/charge_list/"
+      ],
+      "validatedPricePages": 10,
+      "parser": "sbc",
+      "status": "prices_detected"
+    },
+    "s-medic-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "saga-rheuma.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "saishin-sp.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/cost/",
+        "/matsuyama/cost/"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sakurabiyougeka.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price.html"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sakuracli.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sakuraclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "sakuragi-c.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sakuramomiji.clinic": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "sapporo.taclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/eye/",
+        "/price/nose/",
+        "/price/antiaging/",
+        "/price/face_fat_remove/",
+        "/",
+        "/price/"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sasaki-medical.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/dermatology/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "seishinbiyou-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/clinic/nara/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sendai-bc.net": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price",
+        "/plan/skincare/suikou"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sendai-n-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "sendai.taclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/eye/",
+        "/price/nose/",
+        "/price/antiaging/",
+        "/price/face_fat_remove/",
+        "/",
+        "/price/"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sherieclinic.jp": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "shibu-cli.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/shinjuku/",
+        "/shibuya/",
+        "/price_all/",
+        "/price_all/slack/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "shiga-biyou.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "shinagawa-skin.com": {
+      "clinicCount": 3,
+      "seeds": [
+        "/price/wrinkle.php",
+        "/price/whitening.php",
+        "/price/futae.php",
+        "/price/others.php"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "shinjukubc.com": {
+      "clinicCount": 2,
+      "seeds": [
+        "/price/surgey_4",
+        "/epilation_women",
+        "/price/diet",
+        "/price/surgey_1",
+        "/price/surgey_2",
+        "/surgey_3"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "shinseikaicentralclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/gentlemaxpro/",
+        "/chemicalpeeling/",
+        "/picolaser/",
+        "/",
+        "/skindiagnosis/"
+      ],
+      "validatedPricePages": 5,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "shirasagi-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price",
+        "/menu/depilation/depilation",
+        "/menu/laser/pico-laser"
+      ],
+      "validatedPricePages": 3,
+      "parser": "shirasagi",
+      "status": "prices_detected"
+    },
+    "shiromoto.to": {
+      "clinicCount": 13,
+      "seeds": [
+        "/fee/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "shiromoto",
+      "status": "prices_detected"
+    },
+    "sincere-gc.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/course/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "sites.google.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "ssc6.doctorqube.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "sunroad-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "szk-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "t-clinic-official.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "taguchi-cl.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "tai-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "takaishi.org": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "takakioka-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "takasaki-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price-table/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "takasaki.taclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/eye/",
+        "/price/nose/",
+        "/price/antiaging/",
+        "/price/face_fat_injection/",
+        "/price/face_fat_remove/",
+        "/",
+        "/price/"
+      ],
+      "validatedPricePages": 7,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tanaka-naika.clinic": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "tanaka-pras-cl.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/medical-nayami/list6/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "taro-beauty-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price",
+        "/price/skin"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tcbskin.clinic": {
+      "clinicCount": 6,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "theclinic-hiroshima.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/contents/breasts/",
+        "/contents/liposuction/case/no18/",
+        "/contents/liposuction/",
+        "/contents/liposuction/faq/no14/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "theclinic-nagoya.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/contents/breast-hip/reconstruction/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tkc-biyou.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/face.html",
+        "/price/eye.html",
+        "/price/kotsukiri.html",
+        "/price/bust.html",
+        "/price/nose.html",
+        "/price/mouth.html"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tkc110.jp": {
+      "clinicCount": 4,
+      "seeds": [
+        "/price/face.html",
+        "/price/eye.html",
+        "/price/kotsukiri.html",
+        "/price/bust.html",
+        "/price/nose.html",
+        "/price/mouth.html"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tokimekikeiseigeka.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "tokyo-bellezza-clinic.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "tokyoaoyama-aga.com": {
+      "clinicCount": 3,
+      "seeds": [
+        "/agacost/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tokyotamagawaclinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "tsubakiskinclinic-tsubacl.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tsuda-keisei.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/hair_removal/",
+        "/aesthetic/",
+        "/student-discount/"
+      ],
+      "validatedPricePages": 3,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "tsuneda-keisei.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "u-b-c.net": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "umikazeclinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/treatment/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "unate-clinic-rurikazekai.tkc.best-hp.jp": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "utsunomiya-hifukeisei.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/aesthetic-surgery/price",
+        "/breast-reconstruction"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "varixclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/operations/blood/varicose-kinds"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "wakigeka.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/makeup/price"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "wasc.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/facialtreatmentprice/",
+        "/hairremovalprice/",
+        "/drtreatmentprice/",
+        "/bodytreatmentprice/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "wendel-clinic-kofu.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "wendel-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/cost/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "whowakayama.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "wi-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yamagata-fujinka.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price-list/",
+        "/syouinshinsyukusyousyuzyutu/",
+        "/hifu/",
+        "/vital-injector/"
+      ],
+      "validatedPricePages": 4,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yamagata-sasaki-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "yamamotogeka.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "no_data"
+    },
+    "yokohama.taclinic.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/eye/",
+        "/price/nose/",
+        "/price/antiaging/",
+        "/price/face_fat_remove/",
+        "/",
+        "/price/"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yonago-beauty.jp": {
+      "clinicCount": 1,
+      "seeds": [
+        "/botox",
+        "/suiko"
+      ],
+      "validatedPricePages": 2,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yoshicl.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/medical/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yoshimotolc-beauty.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/pricelist/",
+        "/removal/",
+        "/simi/",
+        "/other/",
+        "/hokuro/",
+        "/hyperhidrosis/"
+      ],
+      "validatedPricePages": 6,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yu-beauty-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [],
+      "validatedPricePages": 0,
+      "parser": "semantic",
+      "status": "failed"
+    },
+    "yufu-clinic.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/price/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    },
+    "yui-mc.com": {
+      "clinicCount": 1,
+      "seeds": [
+        "/pricelist/"
+      ],
+      "validatedPricePages": 1,
+      "parser": "semantic",
+      "status": "prices_detected"
+    }
+  }
+}

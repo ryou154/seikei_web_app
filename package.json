@@ -6,6 +6,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "clinics:html:plan": "node --env-file-if-exists=.env scripts/sync-clinic-html.js",
+    "clinics:html:preview": "node --env-file-if-exists=.env scripts/sync-clinic-html.js --execute",
+    "clinics:html:sync": "node --env-file-if-exists=.env scripts/sync-clinic-html.js --write --auto-apply",
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test tests/*.test.js",
     "clinics:check": "node --env-file-if-exists=.env scripts/import-clinics.js",
@@ -22,7 +25,12 @@
     "@google-cloud/bigquery": "^8.1.1",
     "@google-cloud/firestore": "^9.2.0",
     "@mediapipe/tasks-vision": "^1.1.1",
+    "@napi-rs/canvas": "1.1.0",
+    "cheerio": "1.2.0",
     "firebase-admin": "14.5.0",
-    "three": "^0.186.1"
+    "pdfjs-dist": "6.5.438",
+    "robots-parser": "3.0.1",
+    "tesseract.js": "7.0.0",
+    "playwright-core": "^1.64.1"
   }
 }

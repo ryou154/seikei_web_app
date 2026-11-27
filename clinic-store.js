@@ -1,9 +1,12 @@
 const { authorize } = require("./auth-server");
+const { partsFromTreatmentName } = require('./treatment-parts');
+const { priceItem } = require('./clinic-html-sync');
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const MAX_SCAN = 1000;
 const VERIFICATION_STATUSES = new Set(["verified", "needs_review", "unverified", "automated"]);
+const TREATMENT_PARTS = new Set(["二重", "目元", "鼻", "輪郭", "肌", "胸", "体"]);
 
 class ClinicInputError extends Error {
   constructor(message, status = 400) {
@@ -42,7 +45,15 @@ function normalizeClinicQuery(searchParams) {
   if (verificationStatus && !VERIFICATION_STATUSES.has(verificationStatus)) {
     throw new ClinicInputError("確認状態を確認してください。");
   }
+  const part = cleanText(searchParams.get("part"), 10, "希望部位");
+  if (part && !TREATMENT_PARTS.has(part)) throw new ClinicInputError("希望部位を確認してください。");
+  const budget = cleanInteger(searchParams.get('budget'), null, 0, 1000000000, '予算上限');
+  const budgetMin = cleanInteger(searchParams.get('budgetMin'), null, 0, 1000000000, '予算下限');
+  if (budget !== null && budgetMin !== null && budgetMin > budget) throw new ClinicInputError('予算下限は上限以下にしてください。');
   return {
+    part,
+    budget, budgetMin,
+    days: cleanInteger(searchParams.get("days"), null, 0, 365, "ダウンタイム"),
     prefecture: cleanText(searchParams.get("prefecture"), 10, "都道府県"),
     city: cleanText(searchParams.get("city"), 80, "市区町村"),
     keyword: cleanText(searchParams.get("keyword"), 100, "検索語"),
@@ -61,7 +72,7 @@ function validClinicId(value) {
   return value;
 }
 
-function array(value, max = 100) {
+function array(value, max = 500) {
   return Array.isArray(value) ? value.slice(0, max) : [];
 }
 
@@ -73,7 +84,7 @@ function string(value) {
   return typeof value === "string" ? value : "";
 }
 
-function strings(value, max = 100) {
+function strings(value, max = 500) {
   return array(value, max).filter((item) => typeof item === "string");
 }
 
@@ -108,6 +119,7 @@ function publicPricing(value) {
     amountMax: Number.isFinite(source.amountMax) ? source.amountMax : null,
     conditions: strings(source.conditions),
     additionalCosts: strings(source.additionalCosts),
+    scope: string(source.scope),
     sourceUrl: string(source.sourceUrl),
     verifiedAt: string(source.verifiedAt)
   };
@@ -119,6 +131,8 @@ function publicInformation(value) {
     title: string(source.title),
     description: string(source.description),
     treatment: string(source.treatment),
+    scope: string(source.scope),
+    notes: string(source.notes),
     sourceUrl: string(source.sourceUrl),
     verifiedAt: string(source.verifiedAt)
   };
@@ -147,6 +161,10 @@ function publicSource(value) {
 
 function publicClinic(id, value, { detail = false } = {}) {
   const source = object(value) || {};
+  const prices = searchablePricing(source);
+  const extractedDates = source.verificationStatus === 'automated' ? prices.filter(hasEvidence).map(p => p.verifiedAt)
+    .filter(date => typeof date === 'string' && Number.isFinite(Date.parse(date)) && Date.parse(date) <= Date.now()) : [];
+  const latestExtraction = extractedDates.sort((a, b) => Date.parse(b) - Date.parse(a))[0];
   const clinic = {
     id,
     placeId: string(source.placeId),
@@ -163,19 +181,26 @@ function publicClinic(id, value, { detail = false } = {}) {
     openingHours: typeof source.openingHours === "string"
       ? source.openingHours
       : strings(source.openingHours, 14),
-    treatments: strings(source.treatments),
+    treatments: [...new Set([...strings(source.treatments), ...searchablePricing(source).filter(p => !referenceOnly(p)).map(p => p.treatment).filter(Boolean)])],
+    referenceTreatmentDetails: [...new Set(prices.filter(p => referenceOnly(p) && hasEvidence(p)).map(p => p.treatment).filter(Boolean))]
+      .map(name => ({ name, parts: partsFromTreatmentName(name) })),
+    treatmentDetails: searchableTreatmentDetails(source).map(item => ({
+      name: string(item?.name), parts: strings(item?.parts).filter(part => TREATMENT_PARTS.has(part)),
+      downtimeMaxDays: Number.isSafeInteger(item?.downtimeMaxDays) && item.downtimeMaxDays >= 0 && item.downtimeMaxDays <= 365 ? item.downtimeMaxDays : null,
+      sourceUrl: string(item?.sourceUrl), verifiedAt: string(item?.verifiedAt)
+    })),
     tags: strings(source.tags),
     hasPricing: Boolean(source.hasPricing || array(source.pricing).length),
     verificationStatus: VERIFICATION_STATUSES.has(source.verificationStatus)
       ? source.verificationStatus
       : "unverified",
-    verifiedAt: string(source.verifiedAt),
+    verifiedAt: string(source.verifiedAt || latestExtraction),
     updatedAt: string(source.updatedAt)
   };
   if (!detail) return clinic;
   return {
     ...clinic,
-    pricing: array(source.pricing).map(publicPricing),
+    pricing: searchablePricing(source).map(publicPricing),
     doctors: array(source.doctors).map(publicDoctor),
     caseInformation: publicCaseInformation(source.caseInformation),
     downtimeAndRisks: array(source.downtimeAndRisks).map(publicInformation),
@@ -188,14 +213,78 @@ function normalizeSearchText(value) {
   return String(value || "").normalize("NFKC").toLocaleLowerCase("ja");
 }
 
+function hasEvidence(item) {
+  try { const source = new URL(item.sourceUrl); const date = Date.parse(item.verifiedAt);
+    return source.protocol === "https:" && !source.username && !source.password && Number.isFinite(date) && date <= Date.now();
+  } catch { return false; }
+}
+
+function searchableTreatmentDetails(clinic) {
+  const details = array(clinic.treatmentDetails);
+  const existingNames = new Set(details.map(t => t.name));
+  const source = { sourceUrl: clinic.officialUrl, verifiedAt: clinic.verifiedAt };
+  const prices = searchablePricing(clinic).filter(p => !referenceOnly(p));
+  const names = [...new Set([...strings(clinic.treatments), ...prices.map(p => p.treatment).filter(Boolean)])];
+  const inferred = names.filter(name => !existingNames.has(name)).flatMap(name => {
+    const price = prices.find(p => p.treatment === name && hasEvidence(p));
+    const evidence = hasEvidence(source) ? source : price;
+    if (!evidence) return [];
+    const risks = array(clinic.downtimeAndRisks).filter(r => !referenceOnly(r) && r.treatment === name && hasEvidence(r) && /ダウンタイム/.test(`${r.title || ''} ${r.description || ''}`));
+    const durations = risks.map(r => downtimeUpperDays(r.description));
+    const days = durations.length && durations.every(d => d !== null) ? Math.max(...durations) : null;
+    const risk = days !== null ? risks[durations.indexOf(days)] : null;
+    return [{ name, parts: partsFromTreatmentName(name), downtimeMaxDays: days,
+      sourceUrl: days !== null ? risk.sourceUrl : evidence.sourceUrl, verifiedAt: days !== null ? risk.verifiedAt : evidence.verifiedAt }];
+  });
+  return [...details, ...inferred];
+}
+
+function searchablePricing(clinic) {
+  return array(clinic.pricing).map(p => {
+    if (Object.hasOwn(p, 'amountMin') || !hasEvidence(p)) return p;
+    const parsed = priceItem({ name: p.treatment, price: p.displayPrice, conditions: strings(p.conditions), sourceUrl: p.sourceUrl,
+      evidence: p.displayPrice, taxIncluded: strings(p.conditions).some(c => /税込/.test(c)) });
+    return parsed ? { ...p, amountMin: parsed.amountMin, amountMax: parsed.amountMax } : p;
+  });
+}
+
+function referenceOnly(item) { return ['group', 'reference', 'unconfirmed'].includes(item.scope); }
+
+function downtimeUpperDays(value) {
+  const text = String(value || '').normalize('NFKC');
+  if (/ヶ月|か月|カ月|ヵ月|[年月]/.test(text)) return null;
+  const durations = [...text.matchAll(/(?:(\d+)\s*(日|週間)?\s*[~〜～－–-]\s*)?(\d+)\s*(日|週間)/g)];
+  if (!durations.length) return null;
+  const maxima = durations.map(m => Number(m[3]) * (m[4] === '週間' ? 7 : 1));
+  return maxima.every(n => n >= 0 && n <= 365) ? Math.max(...maxima) : null;
+}
+
+function matchesTreatmentConditions(clinic, filters) {
+  const details = searchableTreatmentDetails(clinic);
+  const prices = searchablePricing(clinic).filter(p => !referenceOnly(p));
+  const candidates = [...details, ...prices.map(price => ({ name: price.treatment }))];
+  return candidates.some(t => {
+    if (!t.name || (filters.treatment && !normalizeSearchText(t.name).includes(normalizeSearchText(filters.treatment)))) return false;
+    if (filters.part && (!hasEvidence(t) || !strings(t.parts).includes(filters.part))) return false;
+    if (filters.days != null && (!hasEvidence(t) || !Number.isSafeInteger(t.downtimeMaxDays) || t.downtimeMaxDays < 0 || t.downtimeMaxDays > filters.days)) return false;
+    if ((filters.budget != null || filters.budgetMin != null) && !prices.some(price => normalizeSearchText(price.treatment) === normalizeSearchText(t.name) && hasEvidence(price) && Number.isSafeInteger(price.amountMin) && price.amountMin >= 0
+      && (filters.budget == null || price.amountMin <= filters.budget)
+      && (filters.budgetMin == null || (Number.isSafeInteger(price.amountMax) ? price.amountMax : price.amountMin) >= filters.budgetMin))) return false;
+    return true;
+  });
+}
+
 function matchesFilters(clinic, filters) {
   if (clinic.publicationStatus !== "published") return false;
   if (filters.prefecture && clinic.prefecture !== filters.prefecture) return false;
   if (filters.city && !normalizeSearchText(clinic.city).includes(normalizeSearchText(filters.city))) return false;
-  if (filters.verificationStatus && clinic.verificationStatus !== filters.verificationStatus) return false;
-  if (filters.hasPricing !== null && Boolean(clinic.hasPricing || array(clinic.pricing).length) !== filters.hasPricing) return false;
+  if (filters.verificationStatus && (filters.verificationStatus === 'needs_review'
+    ? !['needs_review', 'automated'].includes(clinic.verificationStatus)
+    : clinic.verificationStatus !== filters.verificationStatus)) return false;
+  if (filters.hasPricing != null && Boolean(clinic.hasPricing || array(clinic.pricing).length) !== filters.hasPricing) return false;
+  if ((filters.part || filters.budget != null || filters.budgetMin != null || filters.days != null) && !matchesTreatmentConditions(clinic, filters)) return false;
   if (filters.treatment) {
-    const treatments = [...array(clinic.treatments), ...array(clinic.tags)].map(normalizeSearchText);
+    const treatments = [...array(clinic.treatments), ...array(clinic.tags), ...array(clinic.treatmentDetails).map(t => t.name)].map(normalizeSearchText);
     const target = normalizeSearchText(filters.treatment);
     if (!treatments.some((item) => item.includes(target))) return false;
   }
@@ -235,7 +324,7 @@ function createClinicStore(db) {
   };
 }
 
-function createClinicHandler({ authenticate = authorize, getStore } = {}) {
+function createClinicHandler({ authenticate = authorize, getStore, readCasePhotos = require('./clinic-case-photos').createCasePhotoReader() } = {}) {
   if (typeof getStore !== "function") throw new TypeError("getStore is required");
   return async (request) => {
     try {
@@ -245,6 +334,15 @@ function createClinicHandler({ authenticate = authorize, getStore } = {}) {
       const detailMatch = /^\/api\/clinics\/([a-zA-Z0-9_-]{1,128})$/.exec(url.pathname);
       const store = getStore();
 
+      const photoMatch = /^\/api\/clinics\/([a-zA-Z0-9_-]{1,128})\/case-photos$/.exec(url.pathname);
+      if(photoMatch){
+        if([...url.searchParams.keys()].some(key=>key!=='part'))return {status:404,data:{error:'Not found'}};
+        const part=cleanText(url.searchParams.get('part'),10,'希望部位');
+        if(part&&!TREATMENT_PARTS.has(part))throw new ClinicInputError('希望部位を確認してください。');
+        const clinic=await store.get(validClinicId(photoMatch[1]));
+        if(!clinic)return {status:404,data:{error:'クリニック情報が見つかりません。'}};
+        return {status:200,data:await readCasePhotos(clinic,{part})};
+      }
       if (detailMatch) {
         if (url.search) return { status: 404, data: { error: "Not found" } };
         const clinic = await store.get(validClinicId(detailMatch[1]));
@@ -293,5 +391,7 @@ module.exports = {
   normalizeClinicQuery,
   publicClinic,
   matchesFilters,
-  validClinicId
+  validClinicId,
+  downtimeUpperDays,
+  TREATMENT_PARTS
 };

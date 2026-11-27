@@ -42,9 +42,9 @@
         <div>
           <p class="eyebrow">Nationwide update</p>
           <h2 id="nationwide-update-heading">全国のクリニックデータを自動更新</h2>
-          <p>47都道府県それぞれ最大10院をGoogleから登録・更新し、続けて公式サイトの情報を「施術・料金」「医師・症例」「リスク・保証」に分けて更新します。</p>
-          <p class="format-note">保存済みデータの閲覧には更新操作は不要です。Googleや公式サイトから最新情報を取り直したい時だけ、このボタンを使用します。</p>
-          <p class="format-note">公式情報は1院につきGemini APIを4回使用します。全国最大470院を更新する場合は最大1,880回です。全国更新では5院ずつ並列処理します。</p>
+          <p>登録済みの全国のクリニックを対象に、公式サイトから施術・料金・診療時間・医師情報などを取得して更新します。公開中・下書きの院を対象にします。</p>
+          <p class="format-note">保存済みデータの閲覧には更新操作は不要です。公式サイトから情報を取り直したい時に、このボタンを使用します。</p>
+          <p class="format-note">Gemini API・Google Places APIは使用しません。取得できない項目は既存情報を保持し、手動確認済みの情報は更新候補として保存します。画像・JavaScriptのみで掲載されている情報などは取得できない場合があります。</p>
         </div>
         <div class="nationwide-update-action">
           <button id="update-nationwide-clinics" type="button" class="main-button">全国データを更新</button>
@@ -83,7 +83,7 @@
               <code id="clinic-place-id"></code>
             </div>
             <div>
-              <span class="field-label">Google候補名（一時表示）</span>
+              <span class="field-label">登録済みのクリニック</span>
               <strong id="place-preview-name">未取得</strong>
               <a id="place-preview-map" href="#" target="_blank" rel="noopener" hidden>Google Mapsで確認</a>
               <a id="place-preview-official" href="#" target="_blank" rel="noopener" hidden>公式サイト候補を確認</a>
@@ -120,13 +120,14 @@
             <legend>施術・検索情報</legend>
             <div class="form-grid">
               <label class="wide">対応施術（1行1件）<textarea id="clinic-treatments" rows="5"></textarea></label>
+            <textarea id="clinic-treatment-details" aria-label="希望部位・ダウンタイムの検索条件" rows="5"></textarea>
               <label class="wide">タグ（1行1件）<textarea id="clinic-tags" rows="3"></textarea></label>
             </div>
           </fieldset>
 
           <fieldset>
             <legend>料金・追加費用</legend>
-            <p class="format-note">1行ごとに「施術名｜表示料金｜条件（カンマ区切り）｜追加費用（カンマ区切り）｜情報源URL」</p>
+            <p class="format-note">1行ごとに「施術名｜表示料金｜条件（カンマ区切り）｜追加費用（カンマ区切り）｜情報源URL｜最低掲載料金（数値、省略可）｜最高掲載料金（数値、省略可）」</p>
             <textarea id="clinic-pricing" rows="6"></textarea>
           </fieldset>
 
