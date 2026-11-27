@@ -66,6 +66,7 @@
         if (!localStorage.getItem("meylon-trial-started-at")) localStorage.setItem("meylon-trial-started-at", String(Date.now()));
       } else {
         localStorage.removeItem("seikei-selected-plan");
+        localStorage.removeItem("meylon-trial-started-at");
       }
     } catch {}
     updatePlanPrompt();

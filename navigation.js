@@ -33,7 +33,8 @@
     { href: "/home.html", label: "ホーム" },
     { href: "/app.html#input-title", label: "シミュレーション" },
     { href: "/history.html", label: "履歴" },
-    { href: "/clinics.html", label: "クリニック" }
+    { href: "/clinics.html", label: "クリニック" },
+    { href: "/chat.html", label: "チャット相談" }
   ];
 
   const navigationLinks = [];
