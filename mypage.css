@@ -274,3 +274,7 @@
   background: linear-gradient(180deg, #ffffff 0%, #f2fbfd 42%, #d9f0f5 100%);
   box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(126, 184, 199, 0.16), 0 5px 14px rgba(69, 133, 154, 0.17);
 }
+.sensitive-profile-field { transition: opacity .15s ease; }
+.mypage-form:not(.is-editing) .sensitive-profile-field { display: none; }
+.mypage-message-list { display: grid; gap: 10px; }
+.mypage-empty { margin: 0; padding: 18px; border: 1px dashed var(--line); color: var(--muted); }

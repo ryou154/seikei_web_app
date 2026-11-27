@@ -45,17 +45,17 @@
           <label class="field" for="display-name"><span>表示名</span>
             <input id="display-name" name="displayName" type="text" autocomplete="name" maxlength="50" required>
           </label>
-          <label class="field" for="phone-number"><span>電話番号（任意）</span>
+          <label class="field sensitive-profile-field" for="phone-number"><span>電話番号（任意）</span>
             <input id="phone-number" name="phoneNumber" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="例：090-1234-5678">
           </label>
           <p class="small">前後の空白を除いて1〜50文字で入力してください。</p>
-          <label class="field" for="account-email"><span>メールアドレス</span>
+          <label class="field sensitive-profile-field" for="account-email"><span>メールアドレス</span>
             <input id="account-email" type="email" readonly aria-readonly="true">
           </label>
-          <label class="field" for="profile-user-id"><span>ユーザーID（変更不可）</span>
+          <label class="field sensitive-profile-field" for="profile-user-id"><span>ユーザーID（変更不可）</span>
             <input id="profile-user-id" type="text" readonly aria-readonly="true">
           </label>
-          <dl class="mypage-details">
+          <dl class="mypage-details sensitive-profile-field">
             <div><dt>ログイン方法</dt><dd id="login-method">確認中</dd></div>
             <div><dt>メール確認</dt><dd id="email-verification">確認中</dd></div>
           </dl>
@@ -63,6 +63,9 @@
           <p id="profile-status" class="inline-status" role="status" aria-live="polite"></p>
         </form>
       </section>
+
+      <section class="panel mypage-section" aria-labelledby="clinic-mail-title"><p class="section-kicker">CLINIC MESSAGES</p><h2 id="clinic-mail-title">クリニックからのメール</h2><p class="section-description">クリニックから届いた案内や連絡を確認できます。</p><div id="clinic-mail-list" class="mypage-message-list"><p class="mypage-empty">クリニックからのメールはありません。</p></div></section>
+      <section class="panel mypage-section" aria-labelledby="app-notice-title"><p class="section-kicker">MEYLON NOTICES</p><h2 id="app-notice-title">MEYLONからのお知らせ</h2><p class="section-description">プラン、メンテナンス、機能追加などのお知らせです。</p><div id="app-notice-list" class="mypage-message-list"><p class="mypage-empty">新しいお知らせはありません。</p></div></section>
 
       <section class="panel mypage-section" aria-labelledby="plan-title"><p class="section-kicker">PLAN</p><h2 id="plan-title">利用プラン</h2><dl class="mypage-details"><div><dt>現在のプラン</dt><dd id="mypage-plan-name">確認中</dd></div><div><dt>利用期限</dt><dd id="mypage-plan-ends">確認中</dd></div><div><dt>状態</dt><dd id="mypage-plan-status">確認中</dd></div></dl><div class="mypage-actions"><a class="sub-button" href="plans.html">プランを変更する</a><button id="mypage-plan-cancel" class="sub-button" type="button">プランを解約する</button></div><p id="mypage-plan-message" class="inline-status" role="status"></p></section>
 
