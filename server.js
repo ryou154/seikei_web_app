@@ -259,8 +259,19 @@ async function handleGeminiChat(request, response) {
     });
     const data = await result.json().catch(() => ({}));
     if (!result.ok) return sendJson(response, result.status, { error: data?.error?.message || "チャット相談の生成に失敗しました。" });
+    let completed = data;
+    for (let attempt = 0; attempt < 45 && completed?.status === "in_progress"; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const poll = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions/${encodeURIComponent(data.id)}`, {
+        headers: { "x-goog-api-key": apiKey }, signal: controller.signal
+      });
+      completed = await poll.json().catch(() => ({}));
+      if (!poll.ok) return sendJson(response, poll.status, { error: completed?.error?.message || "チャット相談の結果を取得できませんでした。" });
+    }
+    if (completed?.status === "in_progress") return sendJson(response, 504, { error: "チャット相談の生成に時間がかかっています。もう一度お試しください。" });
+    if (completed?.status === "failed") return sendJson(response, 502, { error: "チャット相談の生成に失敗しました。" });
     const texts = [];
-    collectGeminiText(data, texts);
+    collectGeminiText(completed, texts);
     const message = texts.join("\n").trim();
     return sendJson(response, 200, { message: message || "回答を生成できませんでした。もう一度お試しください。" });
   } catch (error) {
