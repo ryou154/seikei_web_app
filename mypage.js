@@ -3,7 +3,7 @@ const content = document.getElementById("app-content");
 const byId = (id) => document.getElementById(id);
 let busy = false;
 let profileEditing = false;
-function renderPlanStatus() { const type = window.PlanPolicy?.currentPlanType?.() || "free"; const labels = { free: "無料プラン", trial: "無料トライアル", monthly: "月額プラン", annual: "年額プラン" }; const ends = Number(localStorage.getItem("meylon-plan-ends-at")); const cancelled = localStorage.getItem("meylon-plan-cancelled") === "true"; byId("mypage-plan-name").textContent = labels[type]; byId("mypage-plan-ends").textContent = ends ? new Date(ends).toLocaleDateString("ja-JP") : "期限なし"; byId("mypage-plan-status").textContent = cancelled ? "次回更新停止済み" : "利用中"; byId("mypage-plan-cancel").disabled = type === "free" || cancelled; }
+function renderPlanStatus() { const type = window.PlanPolicy?.currentPlanType?.() || "free"; const labels = { free: "無料プラン", trial: "無料トライアル", monthly: "月額プラン", annual: "年額プラン" }; const ends = Number(localStorage.getItem("meylon-plan-ends-at")); const cancelled = localStorage.getItem("meylon-plan-cancelled") === "true"; byId("mypage-plan-name").textContent = labels[type]; byId("mypage-plan-ends").textContent = ends ? new Date(ends).toLocaleDateString("ja-JP") : "期限なし"; byId("mypage-plan-status").textContent = cancelled ? "次回更新停止済み" : "利用中"; byId("mypage-plan-cancel").disabled = type === "free" || cancelled; if (byId("mypage-plan-add")) byId("mypage-plan-add").disabled = type === "free"; }
 
 function setStatus(id, message, isError = false) {
   const target = byId(id);
