@@ -3,6 +3,7 @@ const content = document.getElementById("app-content");
 const byId = (id) => document.getElementById(id);
 let busy = false;
 let profileEditing = false;
+function renderPlanStatus() { const type = window.PlanPolicy?.currentPlanType?.() || "free"; const labels = { free: "無料プラン", trial: "無料トライアル", monthly: "月額プラン", annual: "年額プラン" }; const ends = Number(localStorage.getItem("meylon-plan-ends-at")); const cancelled = localStorage.getItem("meylon-plan-cancelled") === "true"; byId("mypage-plan-name").textContent = labels[type]; byId("mypage-plan-ends").textContent = ends ? new Date(ends).toLocaleDateString("ja-JP") : "期限なし"; byId("mypage-plan-status").textContent = cancelled ? "次回更新停止済み" : "利用中"; byId("mypage-plan-cancel").disabled = type === "free" || cancelled; }
 
 function setStatus(id, message, isError = false) {
   const target = byId(id);
@@ -146,6 +147,7 @@ async function showUser(user) {
   byId("password-managed").hidden = hasPassword || !isGoogle;
   if (!hasPassword && !isGoogle) byId("password-managed").textContent = "このログイン方法ではパスワードを変更できません。";
   content.hidden = false;
+  renderPlanStatus();
   setProfileEditing(false);
   status.textContent = "マイページを読み込みました。";
   // The account panel should not wait for profile/history network requests.
@@ -157,6 +159,7 @@ async function initialize() {
     const appAuth = await waitForAuthClient();
     const sdk = appAuth.firebaseSdk;
     const auth = appAuth.firebaseAuth;
+    byId("mypage-plan-cancel")?.addEventListener("click", () => { if (!confirm("次回更新を停止しますか？契約期間終了までは利用できます。")) return; localStorage.setItem("meylon-plan-cancelled", "true"); byId("mypage-plan-message").textContent = "次回更新を停止しました。"; renderPlanStatus(); });
 
     window.addEventListener("app-authorized", () => { void showUser(auth.currentUser); });
     window.addEventListener("auth-state-changed", () => {

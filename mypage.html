@@ -64,6 +64,8 @@
         </form>
       </section>
 
+      <section class="panel mypage-section" aria-labelledby="plan-title"><p class="section-kicker">PLAN</p><h2 id="plan-title">利用プラン</h2><dl class="mypage-details"><div><dt>現在のプラン</dt><dd id="mypage-plan-name">確認中</dd></div><div><dt>利用期限</dt><dd id="mypage-plan-ends">確認中</dd></div><div><dt>状態</dt><dd id="mypage-plan-status">確認中</dd></div></dl><div class="mypage-actions"><a class="sub-button" href="plans.html">プランを変更する</a><button id="mypage-plan-cancel" class="sub-button" type="button">プランを解約する</button></div><p id="mypage-plan-message" class="inline-status" role="status"></p></section>
+
       <section class="panel mypage-section" aria-labelledby="security-title">
         <p class="section-kicker">SECURITY</p>
         <h2 id="security-title">パスワードとセキュリティ</h2>
@@ -117,7 +119,7 @@
     </main>
   </div>
 
-  <script type="module" src="auth-core.js"></script>
+  <script src="plan-policy.js"></script><script type="module" src="auth-core.js"></script>
   <script src="mypage-model.js"></script>
   <script type="module" src="mypage.js"></script>
 </body>
