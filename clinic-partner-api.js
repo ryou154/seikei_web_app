@@ -45,6 +45,8 @@ function createPartnerHandler({
       let data;
       if (p.startsWith("/api/admin/clinic-partners")) {
         const admin = await adminAuthenticate(request);
+        if (p === "/api/admin/clinic-partners/clinics" && request.method === "GET")
+          return {status: 200, data: {clinics: await service.registeredClinics(url.searchParams.get("keyword") || "")}};
         if (
           p === "/api/admin/clinic-partners" &&
           request.method === "GET" &&

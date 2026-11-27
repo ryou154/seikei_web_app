@@ -24,7 +24,7 @@ async function load() {
               search = button("院を検索", async () => {
                 try {
                   const result = await api(
-                    "/api/clinics?" +
+                    "/api/admin/clinic-partners/clinics?" +
                       new URLSearchParams({
                         keyword: input.value,
                         limit: "20",

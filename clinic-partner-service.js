@@ -237,6 +237,14 @@ function createPartnerService(db) {
       });
       return { application };
     },
+    async registeredClinics(keyword = "") {
+      const query = text(keyword, 80, "検索語", false).toLowerCase();
+      const result = await db.collection("clinics").where("publicationStatus", "==", "published").limit(500).get();
+      return result.docs.filter(d => String(d.data().name || "").toLowerCase().includes(query)).slice(0, 20).map(d => {
+        const c = d.data();
+        return {id: d.id, name: c.name, prefecture: c.prefecture || "", city: c.city || "", officialUrl: c.officialUrl || ""};
+      });
+    },
     async applications() {
       const s = await db
         .collection("clinicPartnerMembers")

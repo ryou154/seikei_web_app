@@ -16,6 +16,10 @@ test("sandbox registration stays isolated from live and other sandbox members", 
   assert.equal(db.values.get("clinicPartnerMembers/test-user").clinicId, "live-clinic");
   assert.equal((await createPartnerService(partnerDatabase(db, "test-b")).session("test-user")).application, null);
   assert.equal((await scoped.getAll(scoped.collection("clinicPartnerMembers").doc("test-user")))[0].data().status, "pending");
+  db.values.set("clinics/live-clinic", {name: "本番クリニック", publicationStatus: "published"});
+  await scoped.collection("clinics").doc("test-clinic").set({name: "動作確認用クリニック", publicationStatus: "published"});
+  assert.deepEqual((await service.registeredClinics("動作確認")).map(c => c.id), ["test-clinic"]);
+  assert.deepEqual(await service.registeredClinics("本番"), []);
   assert.throws(() => partnerDatabase(db, "../live"));
   assert.equal(partnerDatabase(db, ""), db);
 });
