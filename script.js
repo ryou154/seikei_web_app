@@ -116,6 +116,29 @@ let privacyGeneration = 0;
 let cropperInstance = null;
 openCropButton.hidden = true;
 
+const FREE_SIMULATION_LIMIT = 10;
+function currentPlanName() {
+  try { return localStorage.getItem("seikei-selected-plan") || "無料プラン"; } catch { return "無料プラン"; }
+}
+function isPaidPlan() {
+  return ["スタンダード", "プレミアム", "月額プラン", "年額プラン"].includes(currentPlanName());
+}
+function currentUsageKey() {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return `seikei-simulation-usage:${window.AppAuth?.uid || "anonymous"}:${month}`;
+}
+function reserveFreeSimulation() {
+  if (isPaidPlan()) return true;
+  const key = currentUsageKey();
+  const used = Number(localStorage.getItem(key) || 0);
+  if (used >= FREE_SIMULATION_LIMIT) {
+    throw new Error("無料プランの今月のシミュレーション回数（10回）に達しました。次月までお待ちください。");
+  }
+  localStorage.setItem(key, String(used + 1));
+  return true;
+}
+
 function setSimulationStep(step) {
   stepIndicators.forEach((item) => item.classList.toggle("is-active", item.dataset.stepIndicator === step));
 }
@@ -584,14 +607,120 @@ imageCropDialog.addEventListener("close", () => {
 
 const guidedScanSteps = [
   { key: "front", label: "正面を向いてください" },
-  { key: "left", label: "顔をゆっくり左へ向けてください" },
-  { key: "right", label: "顔をゆっくり右へ向けてください" },
+  { key: "left45", label: "顔を左斜め45度へ向けてください" },
+  { key: "left90", label: "顔を左真横へ向けてください" },
+  { key: "right45", label: "顔を右斜め45度へ向けてください" },
+  { key: "right90", label: "顔を右真横へ向けてください" },
   { key: "up", label: "顔を少し上へ向けてください" },
   { key: "down", label: "顔を少し下へ向けてください" }
 ];
 
+// The burst is silent because the stream is opened with audio disabled.
+// Keeping several landmark samples per pose gives later reconstruction code
+// more stable input than relying on one frame captured at a single instant.
+const GUIDED_FRONT_FRAME_COUNT = 1;
+const GUIDED_DIRECTION_FRAME_COUNT = 15;
+const GUIDED_BURST_DURATION_MS = 2000;
+const GUIDED_BURST_INTERVAL_MS = 125;
+const GUIDED_POSE_SETTLE_MS = 2000;
+const GUIDED_DIRECTION_GRACE_MS = 1800;
+const GUIDED_YAW_THRESHOLD = 4;
+const GUIDED_PITCH_THRESHOLD = 1;
+const scanDirectionAudio = {
+  intro: new Audio("/assets/scan-audio/start.mp3"),
+  front: new Audio("/assets/scan-audio/front.mp3"),
+  left: new Audio("/assets/scan-audio/left%20(2).mp3"),
+  right: new Audio("/assets/scan-audio/right%20(2).mp3"),
+  up: new Audio("/assets/scan-audio/up%20(2).mp3"),
+  down: new Audio("/assets/scan-audio/down.mp3")
+};
+const scanFeedbackAudio = {
+  retry: new Audio("/assets/scan-audio/retry.mp3"),
+  closer: new Audio("/assets/scan-audio/move-closer.mp3"),
+  away: new Audio("/assets/scan-audio/move-away.mp3"),
+  left: new Audio("/assets/scan-audio/adjust-left.mp3"),
+  right: new Audio("/assets/scan-audio/adjust-right.mp3"),
+  up: new Audio("/assets/scan-audio/adjust-up.mp3"),
+  down: new Audio("/assets/scan-audio/adjust-down.mp3")
+};
+Object.values(scanDirectionAudio).forEach((audio) => {
+  audio.preload = "auto";
+});
+Object.values(scanFeedbackAudio).forEach((audio) => {
+  audio.preload = "auto";
+});
+let scanAudioContext = null;
+let lastScanFeedbackKey = "";
+let lastScanFeedbackAt = 0;
+let scanAudioSequence = 0;
+
+function playScanDirectionAudio(stepKey) {
+  const audio = scanDirectionAudio[stepKey]
+    || scanDirectionAudio[stepKey.startsWith("left") ? "left" : stepKey.startsWith("right") ? "right" : stepKey];
+  if (!audio) return;
+  Object.values(scanDirectionAudio).forEach((item) => {
+    if (item !== audio) {
+      item.pause();
+      item.currentTime = 0;
+    }
+  });
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function playScanFeedbackAudio(feedbackKey, stepKey) {
+  const audio = scanFeedbackAudio[feedbackKey];
+  if (!audio) return;
+  const now = performance.now();
+  if (lastScanFeedbackKey === feedbackKey && now - lastScanFeedbackAt < 1800) return;
+  lastScanFeedbackKey = feedbackKey;
+  lastScanFeedbackAt = now;
+  const sequence = ++scanAudioSequence;
+  Object.values(scanDirectionAudio).forEach((item) => {
+    item.pause();
+    item.currentTime = 0;
+  });
+  Object.values(scanFeedbackAudio).forEach((item) => {
+    if (item !== audio) {
+      item.pause();
+      item.currentTime = 0;
+    }
+  });
+  audio.onended = () => {
+    if (sequence !== scanAudioSequence || !guidedScan || guidedScanSteps[guidedScan.index]?.key !== stepKey) return;
+    const retryAudio = scanFeedbackAudio.retry;
+    retryAudio.onended = () => {
+      if (sequence === scanAudioSequence && guidedScan && guidedScanSteps[guidedScan.index]?.key === stepKey) playScanDirectionAudio(stepKey);
+    };
+    retryAudio.currentTime = 0;
+    retryAudio.play().catch(() => playScanDirectionAudio(stepKey));
+  };
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function playScanBeep() {
+  try {
+    scanAudioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (scanAudioContext.state === "suspended") scanAudioContext.resume();
+    const oscillator = scanAudioContext.createOscillator();
+    const gain = scanAudioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, scanAudioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, scanAudioContext.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, scanAudioContext.currentTime + 0.09);
+    oscillator.connect(gain).connect(scanAudioContext.destination);
+    oscillator.start();
+    oscillator.stop(scanAudioContext.currentTime + 0.1);
+  } catch (error) {
+    // Audio guidance is optional; scanning must continue if the browser blocks it.
+  }
+}
+
 startCameraButton.addEventListener("click", async () => {
   const cameraGeneration = privacyGeneration;
+  playScanDirectionAudio("intro");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     cameraMessage.textContent = "このブラウザではカメラを使用できません。";
     return;
@@ -686,6 +815,7 @@ function resetGuidedScan() {
   cameraScanProgressBar.style.width = "0%";
   cameraScanSteps.querySelectorAll("span").forEach((item) => {
     item.classList.remove("active", "done");
+    item.hidden = false;
   });
 }
 
@@ -702,12 +832,18 @@ function startGuidedScan() {
     index: 0,
     stableFrames: 0,
     views: {},
+    retryAttemptsByStep: {},
     horizontalSign: 0,
     verticalSign: 0,
-    failures: 0
+    failures: 0,
+    stepStartedAt: 0
   };
+  if (!isPaidPlan()) {
+    cameraScanSteps.querySelectorAll("span").forEach((item) => { item.hidden = item.dataset.scanStep !== "front"; });
+  }
   captureButton.disabled = true;
   captureButton.textContent = "スキャン中…";
+  cameraScanStatus.textContent = "これから音声案内が流れます。音声に従って顔を動かしてください。";
   updateGuidedScanUi();
   scheduleGuidedScan(100);
 }
@@ -733,19 +869,45 @@ async function processGuidedScanFrame() {
     if (scanGeneration !== privacyGeneration || !guidedScan) return;
     const step = guidedScanSteps[guidedScan.index];
     const accepted = isGuidedScanPoseAccepted(step.key, analysis.metrics);
+    const distanceIssue = getGuidedDistanceIssue(step.key, analysis.metrics);
     guidedScan.failures = 0;
 
-    if (accepted) {
+    if (distanceIssue) {
+      guidedScan.stableFrames = 0;
+      guidedScan.invalidPoseSince = null;
+      cameraDirection.classList.remove("is-detected");
+      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics, false);
+    } else if (accepted) {
       guidedScan.stableFrames += 1;
+      guidedScan.invalidPoseSince = null;
       cameraDirection.classList.add("is-detected");
       cameraScanStatus.textContent = `${step.label} そのまま少し止まってください。`;
-      if (guidedScan.stableFrames >= 2) {
-        acceptGuidedScanView(step.key, imageData, analysis);
+      if (guidedScan.stableFrames >= 2 && performance.now() - guidedScan.stepStartedAt >= GUIDED_POSE_SETTLE_MS) {
+        await acceptGuidedScanView(step.key, imageData, analysis);
       }
-    } else {
+    } else if (performance.now() - guidedScan.stepStartedAt < GUIDED_DIRECTION_GRACE_MS) {
       guidedScan.stableFrames = 0;
       cameraDirection.classList.remove("is-detected");
-      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics);
+      cameraScanStatus.textContent = `${step.label}に合わせています…`;
+    } else {
+      guidedScan.stableFrames = 0;
+      guidedScan.invalidPoseSince ||= performance.now();
+      cameraDirection.classList.remove("is-detected");
+      const feedbackStartedAt = lastScanFeedbackAt;
+      const wrongPoseSustained = performance.now() - guidedScan.invalidPoseSince >= GUIDED_POSE_SETTLE_MS;
+      cameraScanStatus.textContent = createGuidedScanHint(step.key, analysis.metrics, wrongPoseSustained);
+      if (lastScanFeedbackAt !== feedbackStartedAt) {
+        const stepRetryCount = (guidedScan.retryAttemptsByStep[step.key] || 0) + 1;
+        guidedScan.retryAttemptsByStep[step.key] = stepRetryCount;
+        if (stepRetryCount > 3) {
+          clearTimeout(guidedScanTimer);
+          guidedScanTimer = null;
+          guidedScan = null;
+          captureButton.disabled = false;
+          captureButton.textContent = "顔スキャンを再試行";
+          cameraScanStatus.textContent = "スキャンに何度も失敗しました。再試行ボタンを押してください。";
+        }
+      }
     }
   } catch (error) {
     if (scanGeneration !== privacyGeneration || !guidedScan) return;
@@ -769,8 +931,13 @@ async function processGuidedScanFrame() {
 }
 
 function isGuidedScanPoseAccepted(stepKey, metrics) {
-  const centered = metrics.frameCenterOffsetX <= 18 && metrics.frameCenterOffsetY <= 24;
-  const suitableSize = metrics.faceWidthInFrame >= 22 && metrics.faceWidthInFrame <= 72;
+  const isSidePose = stepKey.startsWith("left") || stepKey.startsWith("right");
+  // A profile face is naturally narrower in the landmark box, so use a more
+  // forgiving framing range for the four horizontal poses.
+  const centered = metrics.frameCenterOffsetX <= (isSidePose ? 30 : 22)
+    && metrics.frameCenterOffsetY <= (isSidePose ? 32 : 28);
+  const suitableSize = metrics.faceWidthInFrame >= (isSidePose ? 10 : 18)
+    && metrics.faceWidthInFrame <= 82;
   if (!centered || !suitableSize) return false;
 
   if (stepKey === "front") {
@@ -778,52 +945,117 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   }
 
   const front = guidedScan.views.front.analysis.metrics;
-  if (stepKey === "left") {
-    return Math.abs(metrics.yawRatio - front.yawRatio) >= 12;
+  const yawDifference = metrics.yawRatio - front.yawRatio;
+  // The camera preview/capture can report the yaw sign differently depending
+  // on mirroring and browser implementation. For scanning, prioritize a
+  // sufficient turn from the front over the sign so a valid left/right pose
+  // is not rejected solely because of that implementation detail.
+  const yawThreshold = stepKey.endsWith("90") ? 10 : GUIDED_YAW_THRESHOLD;
+  if (stepKey.startsWith("left")) {
+    return Math.abs(yawDifference) >= yawThreshold;
   }
-  if (stepKey === "right") {
-    const difference = metrics.yawRatio - front.yawRatio;
-    return Math.abs(difference) >= 12 && Math.sign(difference) === -guidedScan.horizontalSign;
+  if (stepKey.startsWith("right")) {
+    return Math.abs(yawDifference) >= yawThreshold;
   }
-  if (stepKey === "up") {
-    return Math.abs(metrics.pitchRatio - front.pitchRatio) >= 4;
-  }
+  const pitchDifference = metrics.pitchRatio - front.pitchRatio;
+  if (stepKey === "up") return pitchDifference <= -GUIDED_PITCH_THRESHOLD;
   if (stepKey === "down") {
-    const difference = metrics.pitchRatio - front.pitchRatio;
-    return Math.abs(difference) >= 4 && Math.sign(difference) === -guidedScan.verticalSign;
+    return pitchDifference >= GUIDED_PITCH_THRESHOLD;
   }
   return false;
 }
 
-function acceptGuidedScanView(stepKey, imageData, analysis) {
+function getGuidedDistanceIssue(stepKey, metrics) {
+  const isSidePose = stepKey.startsWith("left") || stepKey.startsWith("right");
+  const minimum = isSidePose ? 10 : 18;
+  if (metrics.faceWidthInFrame < minimum) return "closer";
+  if (metrics.faceWidthInFrame > 82) return "away";
+  return "";
+}
+
+async function captureGuidedBurst(stepKey, firstImageData, firstAnalysis) {
+  const frames = [{
+    imageData: firstImageData,
+    landmarks: firstAnalysis.landmarks,
+    meshConnections: firstAnalysis.meshConnections,
+    metrics: firstAnalysis.metrics,
+    capturedAt: new Date().toISOString()
+  }];
+  const startedAt = performance.now();
+  const targetFrameCount = stepKey === "front" ? GUIDED_FRONT_FRAME_COUNT : GUIDED_DIRECTION_FRAME_COUNT;
+  if (targetFrameCount === 1) return { imageData: firstImageData, analysis: firstAnalysis, frames };
+  cameraScanStatus.textContent = `${guidedScanSteps.find((step) => step.key === stepKey)?.label || "この方向"}を連写中…`;
+  playScanBeep();
+  const beepTimer = setInterval(playScanBeep, 500);
+
+  try {
+    while (performance.now() - startedAt < GUIDED_BURST_DURATION_MS && frames.length < targetFrameCount && cameraStream && guidedScan) {
+      await new Promise((resolve) => setTimeout(resolve, GUIDED_BURST_INTERVAL_MS));
+      const imageData = captureCameraFrame(480, 0.72);
+      if (!imageData) continue;
+      try {
+        const analysis = await window.FaceBalanceAnalyzer.analyze(imageData);
+        frames.push({
+          imageData,
+          landmarks: analysis.landmarks,
+          meshConnections: analysis.meshConnections,
+          metrics: analysis.metrics,
+          capturedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        // A single missed frame should not cancel the burst.
+      }
+    }
+  } finally {
+    clearInterval(beepTimer);
+  }
+
+  const representative = frames[Math.floor(frames.length / 2)] || frames[0];
+  return { imageData: representative.imageData, analysis: {
+    ok: true,
+    landmarks: representative.landmarks,
+    meshConnections: representative.meshConnections,
+    metrics: representative.metrics
+  }, frames };
+}
+
+async function acceptGuidedScanView(stepKey, imageData, analysis) {
+  const burst = await captureGuidedBurst(stepKey, imageData, analysis);
   const front = guidedScan.views.front?.analysis.metrics;
   guidedScan.views[stepKey] = {
-    imageData,
-    analysis,
+    imageData: burst.imageData,
+    analysis: burst.analysis,
+    burstFrames: burst.frames,
     capture: {
       capturedAt: new Date().toISOString(),
       sourceWidth: cameraPreview.videoWidth,
       sourceHeight: cameraPreview.videoHeight,
       imageWidth: captureCanvas.width,
       imageHeight: captureCanvas.height,
-      faceWidthInFrame: analysis.metrics.faceWidthInFrame,
-      faceHeightInFrame: analysis.metrics.faceHeightInFrame,
-      frameCenterOffsetX: analysis.metrics.frameCenterOffsetX,
-      frameCenterOffsetY: analysis.metrics.frameCenterOffsetY,
-      yawRatio: analysis.metrics.yawRatio,
-      pitchRatio: analysis.metrics.pitchRatio
+      faceWidthInFrame: burst.analysis.metrics.faceWidthInFrame,
+      faceHeightInFrame: burst.analysis.metrics.faceHeightInFrame,
+      frameCenterOffsetX: burst.analysis.metrics.frameCenterOffsetX,
+      frameCenterOffsetY: burst.analysis.metrics.frameCenterOffsetY,
+      yawRatio: burst.analysis.metrics.yawRatio,
+      pitchRatio: burst.analysis.metrics.pitchRatio,
+      burstFrameCount: burst.frames.length,
+      burstDurationMs: GUIDED_BURST_DURATION_MS
     }
   };
   if (stepKey === "left") {
-    guidedScan.horizontalSign = Math.sign(analysis.metrics.yawRatio - front.yawRatio) || 1;
+    guidedScan.horizontalSign = Math.sign(burst.analysis.metrics.yawRatio - front.yawRatio) || 1;
   }
   if (stepKey === "up") {
-    guidedScan.verticalSign = Math.sign(analysis.metrics.pitchRatio - front.pitchRatio) || 1;
+    guidedScan.verticalSign = Math.sign(burst.analysis.metrics.pitchRatio - front.pitchRatio) || 1;
   }
 
   const completedItem = cameraScanSteps.querySelector(`[data-scan-step="${stepKey}"]`);
   completedItem?.classList.remove("active");
   completedItem?.classList.add("done");
+  if (!isPaidPlan() && stepKey === "front") {
+    completeGuidedScan();
+    return;
+  }
   guidedScan.index += 1;
   guidedScan.stableFrames = 0;
 
@@ -837,19 +1069,39 @@ function acceptGuidedScanView(stepKey, imageData, analysis) {
 function updateGuidedScanUi() {
   if (!guidedScan) return;
   const step = guidedScanSteps[guidedScan.index];
+  guidedScan.stepStartedAt = performance.now();
+  playScanDirectionAudio(step.key);
   cameraDirection.textContent = step.key === "front" ? "正面" : step.label.replace("顔を", "").replace("ください", "");
-  cameraScanStatus.textContent = step.label;
+  cameraScanStatus.textContent = guidedScan.index === 0
+    ? `これから音声案内が流れます。音声に従ってください。${step.label}`
+    : `音声案内に従ってください。${step.label}`;
   cameraScanSteps.querySelectorAll("span").forEach((item) => item.classList.remove("active"));
   cameraScanSteps.querySelector(`[data-scan-step="${step.key}"]`)?.classList.add("active");
   cameraScanProgressBar.style.width = `${guidedScan.index / guidedScanSteps.length * 100}%`;
 }
 
-function createGuidedScanHint(stepKey, metrics) {
-  if (metrics.frameCenterOffsetX > 18 || metrics.frameCenterOffsetY > 24) {
+function createGuidedScanHint(stepKey, metrics, allowDirectionFeedback = true) {
+  const distanceIssue = getGuidedDistanceIssue(stepKey, metrics);
+  if (distanceIssue === "closer") {
+    playScanFeedbackAudio("closer", stepKey);
+    return "カメラへ少し近づいてください。";
+  }
+  if (distanceIssue === "away") {
+    playScanFeedbackAudio("away", stepKey);
+    return "カメラから少し離れてください。";
+  }
+  if (metrics.frameCenterOffsetX > 18) {
+    playScanFeedbackAudio(metrics.frameCenterOffsetX > 0 ? "right" : "left", stepKey);
     return "顔をガイドの中央へ移動してください。";
   }
-  if (metrics.faceWidthInFrame < 22) return "カメラへ少し近づいてください。";
-  if (metrics.faceWidthInFrame > 72) return "カメラから少し離れてください。";
+  if (metrics.frameCenterOffsetY > 24) {
+    playScanFeedbackAudio(metrics.frameCenterOffsetY > 0 ? "down" : "up", stepKey);
+    return "顔をガイドの中央へ移動してください。";
+  }
+  if (allowDirectionFeedback && stepKey.startsWith("left")) playScanFeedbackAudio("left", stepKey);
+  if (allowDirectionFeedback && stepKey.startsWith("right")) playScanFeedbackAudio("right", stepKey);
+  if (allowDirectionFeedback && stepKey === "up") playScanFeedbackAudio("up", stepKey);
+  if (allowDirectionFeedback && stepKey === "down") playScanFeedbackAudio("down", stepKey);
   return guidedScanSteps.find((step) => step.key === stepKey)?.label || "顔をゆっくり動かしてください。";
 }
 
@@ -858,27 +1110,29 @@ function completeGuidedScan() {
   const scanSummary = {
     completed: true,
     viewCount: Object.keys(guidedScan.views).length,
-    // Keep measurements from accepted camera directions for face analysis.
-    // Camera images remain private to the scan and are not needed here.
+    // Keep landmark data from every accepted direction for 3D reconstruction.
+    // Camera images remain in memory for the current simulation. Landmark
+    // samples from each silent burst are retained for reconstruction.
     views: Object.fromEntries(Object.entries(guidedScan.views).map(([key, view]) => [key, {
       imageData: view.imageData,
       landmarks: view.analysis.landmarks,
       meshConnections: view.analysis.meshConnections,
       metrics: view.analysis.metrics,
+      burstFrames: view.burstFrames,
       capture: view.capture
     }]))
   };
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
   cameraDirection.classList.add("is-detected");
-  cameraScanStatus.textContent = "5方向の確認が完了しました。正面写真を登録します。";
+  cameraScanStatus.textContent = `${scanSummary.viewCount}方向の確認が完了しました。正面写真を登録します。`;
   setSelectedImage(frontView.imageData);
   latestFaceAnalysis = { ...frontView.analysis, scan: scanSummary };
   analyzedImageData = selectedImageData;
   guidedScan = null;
   clearTimeout(guidedScanTimer);
   guidedScanTimer = null;
-  setTimeout(() => stopCamera("5方向の顔スキャンが完了し、最適な正面写真を登録しました。"), 700);
+  setTimeout(() => stopCamera(`${scanSummary.viewCount}方向の顔スキャンと無音撮影が完了し、正面写真を登録しました。`), 700);
 }
 
 stopCameraButton.addEventListener("click", () => stopCamera());
@@ -903,6 +1157,8 @@ simulateButton.addEventListener("click", async () => {
       throw new Error(requestValidation.message);
     }
     const requestText = requestValidation.sanitized;
+
+    reserveFreeSimulation();
 
     if (!selectedImageData) {
       showSimulationError("顔画像を選択するか、カメラで撮影してください。");
@@ -1284,8 +1540,12 @@ async function renderResult(result) {
     }
     if (!stillCurrent()) return;
     result.afterImage = generatedImage;
+    setSimulationStatus("全方向のAfter画像を生成しています…");
+    const generatedViews = await generateDirectionalAfterImages(result, generatedImage);
+    if (!stillCurrent()) return;
     setSimulationStatus("正面のAfter画像を表示しています…");
-    renderAfterImageViewer(afterImage, generatedImage, result);
+    renderDirectionalAfterViewer(afterImage, generatedImage, result, generatedViews);
+    renderDirectionalBeforeViewer(beforeImage, result);
     result.afterFaceAnalysis = await analyzeFaceImage(generatedImage);
     if (!stillCurrent()) return;
     renderFaceScoreComparison(result.faceAnalysis, result.afterFaceAnalysis);
@@ -1312,7 +1572,8 @@ async function renderResult(result) {
       </div>
       <div class="after-fallback-image"></div>
     `;
-    renderAfterImageViewer(afterImage.querySelector(".after-fallback-image"), localImage, result);
+    renderDirectionalAfterViewer(afterImage.querySelector(".after-fallback-image"), localImage, result, { front: localImage });
+    renderDirectionalBeforeViewer(beforeImage, result);
     showSimulationError(`After画像の生成に失敗しました。${error?.message || "通信状態やAPIの利用状況を確認してください。"}`);
   }
 
@@ -1359,6 +1620,115 @@ async function renderResult(result) {
   saveButton.disabled = false;
   // After generation, show the actual Before / After image comparison.
   scrollToSimulationResult(comparisonPanel || beforeImage || resultPanel, "start");
+}
+
+async function generateDirectionalAfterImages(result, frontImage) {
+  const directions = ["front", "left45", "right45", "left90", "right90", "up", "down"];
+  const generated = { front: frontImage };
+  if (result.profile.imageEngine !== "gemini") return generated;
+
+  const entries = [];
+  for (const direction of directions.slice(1)) {
+    try {
+      const directionalResult = await createGeminiAfterImage(result, frontImage, direction);
+      entries.push([direction, directionalResult.image]);
+    } catch (error) {
+      console.error(`Directional simulation failed (${direction})`, error);
+      // Avoid losing a side view because several large Gemini requests were
+      // sent at once. Retry once after the previous request has settled.
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const retryResult = await createGeminiAfterImage(result, frontImage, direction);
+        entries.push([direction, retryResult.image]);
+      } catch (retryError) {
+        console.error(`Directional simulation retry failed (${direction})`, retryError);
+        entries.push([direction, null]);
+      }
+    }
+  }
+  entries.forEach(([direction, image]) => {
+    if (image) generated[direction] = image;
+  });
+  return generated;
+}
+
+function renderDirectionalAfterViewer(container, frontImage, result, generated = { front: frontImage }) {
+  const views = result.faceAnalysis?.scan?.views || {};
+  const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
+  const scanKeys = { front: ["front"], left45: ["left45"], right45: ["right45"], left90: ["left90"], right90: ["right90"], up: ["up"], down: ["down"] };
+  container.innerHTML = `
+    <div class="directional-after-viewer">
+      <div class="directional-after-stage">
+        <img class="directional-after-image" src="${frontImage}" alt="シミュレーション後の${labels.front}画像">
+        <p class="directional-after-status" aria-live="polite">正面のAfter画像</p>
+        <div class="directional-after-controls" role="tablist" aria-label="表示方向">
+          <button type="button" class="directional-after-tab direction-up" data-direction="up" role="tab" aria-selected="false"><span>${labels.up}</span></button>
+          <button type="button" class="directional-after-tab direction-left90" data-direction="left90" role="tab" aria-selected="false"><span>${labels.left90}</span></button>
+          <button type="button" class="directional-after-tab direction-left45" data-direction="left45" role="tab" aria-selected="false"><span>${labels.left45}</span></button>
+          <button type="button" class="directional-after-tab direction-front is-active" data-direction="front" role="tab" aria-selected="true">${labels.front}</button>
+          <button type="button" class="directional-after-tab direction-right45" data-direction="right45" role="tab" aria-selected="false"><span>${labels.right45}</span></button>
+          <button type="button" class="directional-after-tab direction-right90" data-direction="right90" role="tab" aria-selected="false"><span>${labels.right90}</span></button>
+          <button type="button" class="directional-after-tab direction-down" data-direction="down" role="tab" aria-selected="false"><span>${labels.down}</span></button>
+        </div>
+      </div>
+    </div>`;
+  if (!isPaidPlan()) {
+    container.querySelector(".directional-after-controls")?.remove();
+    container.querySelector(".directional-after-status").textContent = "無料プラン：正面のAfter画像";
+  }
+
+  const image = container.querySelector(".directional-after-image");
+  const status = container.querySelector(".directional-after-status");
+  const tabs = container.querySelectorAll(".directional-after-tab");
+  tabs.forEach((tab) => tab.addEventListener("click", async () => {
+    const direction = tab.dataset.direction;
+    tabs.forEach((item) => {
+      const active = item === tab;
+      item.classList.toggle("is-active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
+    if (generated[direction]) {
+      image.src = generated[direction];
+      image.alt = `シミュレーション後の${labels[direction]}画像`;
+      status.textContent = `${labels[direction]}のAfter画像`;
+      document.dispatchEvent(new CustomEvent("after-direction-change", { detail: { direction } }));
+      return;
+    }
+    const scanImage = scanKeys[direction]?.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData;
+    image.src = scanImage;
+    image.alt = `${labels[direction]}のスキャン画像`;
+    status.textContent = `${labels[direction]}の生成に失敗したためスキャン画像を表示しています`;
+    document.dispatchEvent(new CustomEvent("after-direction-change", { detail: { direction } }));
+  }));
+}
+
+function renderDirectionalBeforeViewer(container, result) {
+  const views = result.faceAnalysis?.scan?.views || {};
+  const labels = { front: "正面", left45: "左45°", right45: "右45°", left90: "左真横", right90: "右真横", up: "上", down: "下" };
+  const scanKeys = { front: ["front"], left45: ["left45"], right45: ["right45"], left90: ["left90"], right90: ["right90"], up: ["up"], down: ["down"] };
+  const imageMap = Object.fromEntries(Object.entries(scanKeys).map(([direction, keys]) => [
+    direction,
+    keys.map((key) => views[key]?.imageData).find(Boolean) || views.front?.imageData || result.beforeImage
+  ]));
+  const initialImage = imageMap.front || result.beforeImage;
+  container.innerHTML = `
+    <div class="directional-after-viewer directional-before-viewer">
+      <div class="directional-after-stage">
+        <img class="directional-after-image" src="${initialImage}" alt="シミュレーション前の${labels.front}画像">
+        <p class="directional-after-status" aria-live="polite">正面のBefore画像（スキャン画像）</p>
+      </div>
+    </div>`;
+  const image = container.querySelector(".directional-after-image");
+  const status = container.querySelector(".directional-after-status");
+  const setDirection = (direction) => {
+    image.src = imageMap[direction] || initialImage;
+    image.alt = `シミュレーション前の${labels[direction]}画像`;
+    status.textContent = `${labels[direction]}のBefore画像（スキャン画像）`;
+  };
+  container._beforeDirectionHandler?.();
+  const syncHandler = (event) => setDirection(event.detail?.direction || "front");
+  document.addEventListener("after-direction-change", syncHandler);
+  container._beforeDirectionHandler = () => document.removeEventListener("after-direction-change", syncHandler);
 }
 
 async function analyzeSelectedFace() {
@@ -1550,6 +1920,17 @@ async function createGeminiAfterImage(result, sourceImage = selectedImageData, v
   }
 
   const preparedImage = await resizeImageForGemini(sourceImage);
+  const scanViews = result.faceAnalysis?.scan?.views || {};
+  const scanReferenceEntries = Object.entries(scanViews).flatMap(([direction, view]) => {
+    const frames = Array.isArray(view?.burstFrames) && view.burstFrames.length
+      ? view.burstFrames
+      : [{ imageData: view?.imageData }];
+    return frames.filter((frame) => frame?.imageData).map((frame) => ({ direction, imageData: frame.imageData }));
+  });
+  const scanReferences = (await Promise.all(scanReferenceEntries.map(async ({ direction, imageData }) => {
+    const prepared = await resizeImageForGemini(imageData);
+    return { direction, image: prepared.data };
+  }))).filter(Boolean);
   const response = await window.AppAuth.fetch("/api/gemini-edit", {
     method: "POST",
     headers: {
@@ -1557,6 +1938,7 @@ async function createGeminiAfterImage(result, sourceImage = selectedImageData, v
     },
     body: JSON.stringify({
       image: preparedImage.data,
+      scanReferences,
       aspectRatio: preparedImage.aspectRatio,
       requestText: result.requestText,
       viewDirection,

@@ -185,6 +185,12 @@ async function handleGeminiEdit(request, response) {
 
   const body = await readJsonBody(request);
   const image = parseDataUrl(body.image);
+  const scanReferences = Array.isArray(body.scanReferences)
+    ? body.scanReferences.slice(0, 61).map((reference) => ({
+      direction: clean(reference?.direction, 20),
+      image: parseDataUrl(reference?.image)
+    })).filter((reference) => reference.image)
+    : [];
   const prompt = buildGeminiPrompt(body);
   const retryPrompt = buildGeminiPrompt(body, { compact: true });
   const aspectRatio = normalizeAspectRatio(body.aspectRatio);
@@ -200,6 +206,7 @@ async function handleGeminiEdit(request, response) {
       model: attempt.model,
       prompt: attempt.prompt,
       image,
+      referenceImages: scanReferences,
       aspectRatio
     });
 
@@ -257,7 +264,7 @@ async function handleGeminiChat(request, response) {
   } finally { clearTimeout(timeoutId); }
 }
 
-async function requestGeminiImage({ model, prompt, image, aspectRatio }) {
+async function requestGeminiImage({ model, prompt, image, referenceImages = [], aspectRatio }) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 160000);
 
@@ -274,11 +281,12 @@ async function requestGeminiImage({ model, prompt, image, aspectRatio }) {
           model,
           input: [
             { type: "text", text: prompt },
-            {
+            { type: "image", mime_type: image.mimeType, data: image.base64 },
+            ...referenceImages.map(({ image: reference }) => ({
               type: "image",
-              mime_type: image.mimeType,
-              data: image.base64
-            }
+              mime_type: reference.mimeType,
+              data: reference.base64
+            }))
           ],
           response_format: {
             type: "image",
@@ -407,8 +415,10 @@ function buildGeminiPrompt(body, options = {}) {
   const requestText = body.requestText || "選択された理想イメージを反映";
   const viewDirectionGuides = {
     front: "View direction: straight-on front view.",
-    left: "View direction: turn the same person's head slightly to the left, showing a natural left three-quarter/profile view.",
-    right: "View direction: turn the same person's head slightly to the right, showing a natural right three-quarter/profile view.",
+    left45: "View direction: turn the same person's head about 45 degrees to the left, showing a natural left three-quarter view.",
+    right45: "View direction: turn the same person's head about 45 degrees to the right, showing a natural right three-quarter view.",
+    left90: "View direction: turn the same person's head fully to the left, showing a natural true left side profile at about 90 degrees.",
+    right90: "View direction: turn the same person's head fully to the right, showing a natural true right side profile at about 90 degrees.",
     up: "View direction: keep the same person and turn the face slightly upward, showing a natural upward-looking view.",
     down: "View direction: keep the same person and turn the face slightly downward, showing a natural downward-looking view."
   };
@@ -481,7 +491,7 @@ function buildGeminiPrompt(body, options = {}) {
     "This is a non-medical aesthetic visualization for a school demo, not a diagnosis or treatment recommendation.",
     genderGuide,
     "Keep the same person and realistic identity. Preserve the original camera distance, crop, framing, head size, hairstyle, clothes, lighting, and visible background. Keep the full head, hair, chin, neck, and the same amount of shoulders visible. For a directional view, change only the head direction requested below while keeping the framing consistent. Never zoom in, crop closer, enlarge the face, or cut off any part that was visible in the input.",
-    "The uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view.",
+    "The first uploaded image is the canonical generated front After image. Preserve its identity, hairstyle, skin tone, facial proportions, and every requested aesthetic change exactly; do not redesign the face for another view. Any following reference images are the user's silent multi-angle scan and must be used only to estimate the same person's head direction, visible contour, nose projection, lips, jawline, and proportions. Never copy their Before appearance over the canonical After image and never change the person.",
     viewDirectionGuide,
     "Preserve natural human anatomy and realistic skin texture.",
     "Make the result look like a realistic photograph: preserve visible depth in the nose bridge and tip, eyelids, brow ridge, cheekbones, lips, chin, and jawline. Use natural directional light, soft occlusion, and gentle cast shadows so the face reads as volumetric rather than a flat 2D overlay. Do not use an illustration, cartoon, plastic, or mannequin look.",
@@ -541,7 +551,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/clinics.html", "/clinic-search.js", "/clinic-search.css", "/account-data.js", "/face-analysis.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/users.html", "/admin/users.js", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/assets/scan-audio/start.mp3", "/assets/scan-audio/front.mp3", "/assets/scan-audio/left (2).mp3", "/assets/scan-audio/right (2).mp3", "/assets/scan-audio/up (2).mp3", "/assets/scan-audio/down.mp3", "/assets/scan-audio/retry.mp3", "/assets/scan-audio/move-closer.mp3", "/assets/scan-audio/move-away.mp3", "/assets/scan-audio/adjust-left.mp3", "/assets/scan-audio/adjust-right.mp3", "/assets/scan-audio/adjust-up.mp3", "/assets/scan-audio/adjust-down.mp3", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/users.html", "/admin/users.js", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);

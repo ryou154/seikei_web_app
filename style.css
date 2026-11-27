@@ -1973,3 +1973,54 @@ body[data-auth-page="register"] .auth-buttons { align-items: center; }
 
 #manual-capture-button { display: none; }
 #open-crop:disabled { display: none; }
+
+/* Seven-view After controls: 45-degree and true side-profile buttons share
+   the same scan data but request different generated view directions. */
+.directional-after-controls { grid-template-columns: repeat(3, 72px); grid-template-rows: repeat(3, 48px); }
+.directional-after-controls .direction-left90 { grid-column: 1; grid-row: 1; }
+.directional-after-controls .direction-up { grid-column: 2; grid-row: 1; }
+.directional-after-controls .direction-right90 { grid-column: 3; grid-row: 1; }
+.directional-after-controls .direction-left45 { grid-column: 1; grid-row: 2; }
+.directional-after-controls .direction-front { grid-column: 2; grid-row: 2; }
+.directional-after-controls .direction-right45 { grid-column: 3; grid-row: 2; }
+.directional-after-controls .direction-down { grid-column: 2; grid-row: 3; }
+.directional-after-controls .direction-left45,
+.directional-after-controls .direction-left90,
+.directional-after-controls .direction-right45,
+.directional-after-controls .direction-right90,
+.directional-after-controls .direction-up,
+.directional-after-controls .direction-down { position: relative; width: 72px; height: 48px; border: 0; border-radius: 0; background: #000; clip-path: polygon(0 50%, 18% 0, 30% 0, 30% 25%, 100% 25%, 100% 75%, 30% 75%, 30% 100%, 18% 100%); }
+.directional-after-controls .direction-right45,
+.directional-after-controls .direction-right90 { clip-path: polygon(70% 0, 82% 0, 100% 50%, 82% 100%, 70% 100%, 70% 75%, 0 75%, 0 25%, 70% 25%); }
+.directional-after-controls .direction-up { clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%); }
+.directional-after-controls .direction-down { clip-path: polygon(28% 0, 72% 0, 72% 75%, 100% 75%, 50% 100%, 0 75%, 28% 75%); }
+.directional-after-controls .direction-left45::before,
+.directional-after-controls .direction-left90::before,
+.directional-after-controls .direction-right45::before,
+.directional-after-controls .direction-right90::before,
+.directional-after-controls .direction-up::before,
+.directional-after-controls .direction-down::before { content: ""; position: absolute; inset: 2px; background: #a9d2e1; z-index: 0; }
+.directional-after-controls .direction-left45::before,
+.directional-after-controls .direction-left90::before { clip-path: polygon(0 50%, 18% 0, 30% 0, 30% 25%, 100% 25%, 100% 75%, 30% 75%, 30% 100%, 18% 100%); }
+.directional-after-controls .direction-right45::before,
+.directional-after-controls .direction-right90::before { clip-path: polygon(70% 0, 82% 0, 100% 50%, 82% 100%, 70% 100%, 70% 75%, 0 75%, 0 25%, 70% 25%); }
+.directional-after-controls .direction-up::before { clip-path: polygon(50% 0, 100% 25%, 72% 25%, 72% 100%, 28% 100%, 28% 25%, 0 25%); }
+.directional-after-controls .direction-down::before { clip-path: polygon(28% 0, 72% 0, 72% 75%, 100% 75%, 50% 100%, 0 75%, 28% 75%); }
+.directional-after-controls .direction-left45 span,
+.directional-after-controls .direction-left90 span,
+.directional-after-controls .direction-right45 span,
+.directional-after-controls .direction-right90 span,
+.directional-after-controls .direction-up span,
+.directional-after-controls .direction-down span { position: relative; z-index: 1; font-size: .78rem; white-space: nowrap; }
+.directional-after-controls .direction-left45:hover::before,
+.directional-after-controls .direction-left45.is-active::before,
+.directional-after-controls .direction-left90:hover::before,
+.directional-after-controls .direction-left90.is-active::before,
+.directional-after-controls .direction-right45:hover::before,
+.directional-after-controls .direction-right45.is-active::before,
+.directional-after-controls .direction-right90:hover::before,
+.directional-after-controls .direction-right90.is-active::before,
+.directional-after-controls .direction-up:hover::before,
+.directional-after-controls .direction-up.is-active::before,
+.directional-after-controls .direction-down:hover::before,
+.directional-after-controls .direction-down.is-active::before { background: #8fc4d7; }
