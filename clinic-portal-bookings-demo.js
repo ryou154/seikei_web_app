@@ -6,7 +6,7 @@
   const patient=id=>D.patients.find(p=>p.id===id),service=id=>D.services.find(s=>s.id===id);
   let selectedPatient,selectedAppointment,viewMode='month';
   const store=D.connect(localStorage,()=>render());
-  $('schedule-date').value=D.shift(D.today(),1);
+  $('schedule-date').value=D.nextOpenDate(D.shift(D.today(),1));
   $('schedule-month').value=$('schedule-date').value.slice(0,7);
   function notify(message){$('schedule-sync').textContent=message;}
   const ordered=appointments=>[...appointments].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
@@ -31,6 +31,7 @@
       $('schedule-day-title').textContent=emptyDates?'条件に一致する予約日はありません':new Intl.DateTimeFormat('ja-JP',{month:'long',day:'numeric',weekday:'long',timeZone:'Asia/Tokyo'}).format(new Date(date+'T12:00:00+09:00'));
       const rows=D.slots().map(time=>{const row=el('div',null,'schedule-row');row.append(el('span',time,'schedule-time'));const appointment=live.find(a=>D.minutes(a.time)<=D.minutes(time)&&D.minutes(a.time)+a.duration>D.minutes(time));
         if(appointment){if(filter&&filter!==appointment.status)row.append(el('div','別の状態の予約あり（空き枠ではありません）','schedule-empty closed'));else row.append(appointmentButton(appointment));}
+        else if(D.closedDate(date)){row.append(el('div','休診日（日曜日）','schedule-empty closed'));}
         else{const closed=state.closedSlots.some(s=>s.date===date&&s.time===time),empty=el('div',null,'schedule-empty'+(closed?' closed':''));empty.append(el('span',closed?'－ 受付停止':'○ 空き枠'),button(closed?'受付を再開':'受付を停止',async()=>{try{await store.transact(s=>D.closeSlot(s,date,time,!closed));notify(`${date} ${time}の受付を${closed?'再開':'停止'}しました（デモ）。`);}catch(e){notify(e.message);}}));row.append(empty);}return row;});
       for(const a of day.filter(a=>a.status==='cancelled'&&(!filter||filter==='cancelled'))){const row=el('div',null,'schedule-row');row.append(el('span',a.time,'schedule-time'),appointmentButton(a));rows.push(row);}
       $('schedule-list').replaceChildren(...(emptyDates?[el('p','予約状態の条件を変更するか、「予約がある日だけ表示」をオフにしてください。','empty')]:rows));
@@ -45,7 +46,7 @@
     const calendar=$('month-calendar');calendar.classList.toggle('filtered',onlyBooked);
     const content=[];
     if(!onlyBooked){for(const weekday of ['日','月','火','水','木','金','土'])content.push(el('span',weekday,'month-weekday'));const offset=new Date(month+'-01T12:00:00+09:00').getUTCDay();for(let i=0;i<offset;i++){const blank=el('div',null,'month-blank');blank.setAttribute('aria-hidden','true');content.push(blank);}}
-    for(const date of dates){const bookings=matching.filter(a=>a.date===date),cell=button('',()=>{$('schedule-date').value=date;render();},'month-day'+(date===selected?' selected':'')+(date===D.today()?' today':''));cell.setAttribute('aria-label',date+' 予約'+bookings.length+'件');cell.setAttribute('aria-pressed',String(date===selected));const number=el('b',Number(date.slice(-2)));cell.append(number);if(onlyBooked)cell.append(el('small',new Intl.DateTimeFormat('ja-JP',{weekday:'short',timeZone:'Asia/Tokyo'}).format(new Date(date+'T12:00:00+09:00'))));cell.append(el('span',bookings.length?bookings.length+'件':'—','month-count'+(bookings.length?' has-bookings':'')));content.push(cell);}
+    for(const date of dates){const bookings=matching.filter(a=>a.date===date),cell=button('',()=>{$('schedule-date').value=date;render();},'month-day'+(date===selected?' selected':'')+(date===D.today()?' today':''));cell.setAttribute('aria-label',date+' 予約'+bookings.length+'件');cell.setAttribute('aria-pressed',String(date===selected));const number=el('b',Number(date.slice(-2)));cell.append(number);if(onlyBooked)cell.append(el('small',new Intl.DateTimeFormat('ja-JP',{weekday:'short',timeZone:'Asia/Tokyo'}).format(new Date(date+'T12:00:00+09:00'))));cell.append(el('span',bookings.length?bookings.length+'件':D.closedDate(date)?'休診':'—','month-count'+(bookings.length?' has-bookings':'')));content.push(cell);}
     if(!dates.length)content.push(el('p','この月に条件に一致する予約日はありません。','empty'));
     calendar.replaceChildren(...content);$('month-summary').textContent=Number(month.slice(0,4))+'年'+Number(month.slice(5))+'月 · '+matching.length+'件の予約 ／ '+new Set(matching.map(a=>a.date)).size+'日間'+(onlyBooked?'（予約がある日のみ）':'');
   }
@@ -54,7 +55,7 @@
     const state=store.read(),p=patient(selectedPatient),content=$('booking-detail-content');if(!p||!state.appointments.some(a=>a.patientId===p.id)){$('booking-detail-dialog').close();return;}
     const identity=el('div',null,'patient-identity'),name=el('div');name.append(el('small',`利用者ID：${p.id} · 架空データ`),el('h3',p.name),el('small',p.kana));identity.append(el('span',p.name[0],'avatar'),name);const dl=el('dl',null,'patient-details');for(const [label,value] of [['年齢',p.age],['電話番号',p.phone],['メール',p.email]])dl.append(el('dt',label),el('dd',value));content.replaceChildren(identity,dl);
     let appointments=ordered(state.appointments.filter(a=>a.patientId===p.id));if(selectedAppointment)appointments=appointments.filter(a=>a.id===selectedAppointment);
-    for(const a of appointments){const section=el('section',null,'appointment-detail');section.append(el('h3','予約内容'),el('p',`${a.date} ${a.time}〜${D.time(D.minutes(a.time)+a.duration)}`),el('p',service(a.serviceId)?.name||'予約メニュー'),el('p','担当医：山田 みなみ（架空）'),el('span',D.statuses[a.status],'booking-status'));
+    for(const a of appointments){const section=el('section',null,'appointment-detail');section.append(el('h3','予約内容'),el('p',`${a.date} ${a.time}〜${D.time(D.minutes(a.time)+a.duration)}`),el('p',service(a.serviceId)?.name||'予約メニュー'),el('p','担当医：未割当（デモ）'),el('span',D.statuses[a.status],'booking-status'));
       if(!['completed','cancelled'].includes(a.status)){const form=el('form',null,'status-editor'),label=el('label','予約状態'),select=el('select');select.setAttribute('aria-label','予約状態');for(const [value,title] of Object.entries(D.statuses)){const option=el('option',title);option.value=value;select.append(option);}select.value=a.status;label.append(select);const submit=el('button','状態を保存','button primary');submit.type='submit';form.append(label,submit);form.addEventListener('submit',async event=>{event.preventDefault();submit.disabled=true;try{await store.transact(s=>D.updateStatus(s,a.id,select.value));notify('予約状態を変更しました（デモ）。');}catch(e){notify(e.message);}finally{submit.disabled=false;}});section.append(form);}
       content.append(section);
     }

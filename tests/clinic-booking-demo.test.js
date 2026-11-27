@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const D=require('../clinic-booking-demo-store');
-const date=()=>D.shift(D.today(),2);
+const date=()=>D.nextOpenDate(D.shift(D.today(),2));
 const input=overrides=>({patientId:'p3',serviceId:'eye',date:date(),time:'11:00',shareHistory:false,...overrides});
 
 test('user booking is visible to another clinic reader and blocks every overlapping slot',async()=>{
@@ -65,3 +65,5 @@ test('month calendar covers the entire month including leap years and December r
  assert.equal(D.moveMonth('2027-01',-1),'2026-12');
  assert.throws(()=>D.monthDates('2026-13'));
 });
+
+test('ACE Osaka demo respects Sunday closure without claiming real availability',()=>{let sunday=D.today();while(!D.closedDate(sunday))sunday=D.shift(sunday,1);assert.equal(D.available(D.initial(),sunday,'11:00',30),false);assert.equal(D.closedDate(D.nextOpenDate(sunday)),false);});
