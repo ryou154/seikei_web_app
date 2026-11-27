@@ -148,6 +148,8 @@ async function showUser(user) {
   if (!hasPassword && !isGoogle) byId("password-managed").textContent = "このログイン方法ではパスワードを変更できません。";
   content.hidden = false;
   renderPlanStatus();
+  if (!byId("mypage-plan-add")) byId("mypage-plan-cancel")?.insertAdjacentHTML("afterend", "<button id=\"mypage-plan-add\" class=\"sub-button\" type=\"button\">15回追加（580円・テスト）</button>");
+  byId("mypage-plan-add")?.addEventListener("click", () => { const type = window.PlanPolicy.currentPlanType(); const message = byId("mypage-plan-message"); if (type === "free") { message.textContent = "追加シミュレーションは有料プランで利用できます。"; return; } const total = window.PlanPolicy.addBonusSimulations(15, type); message.textContent = `シミュレーションを15回追加しました。追加残数：${total}回`; });
   setProfileEditing(false);
   status.textContent = "マイページを読み込みました。";
   // The account panel should not wait for profile/history network requests.
