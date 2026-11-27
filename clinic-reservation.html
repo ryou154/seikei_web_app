@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>来院予約 | MEYLON</title>
+    <link rel="stylesheet" href="clinic-portal-demo.css" />
+    <link rel="stylesheet" href="clinic-booking-demo.css" />
+    <script type="module" src="clinic-reservation.js"></script>
+  </head>
+  <body class="booking-user-page">
+    <header class="booking-user-header">
+      <a class="brand" href="clinics.html">MEYLON<span>来院予約</span></a
+      ><a href="clinics.html">クリニック検索へ</a>
+    </header>
+    <main class="booking-user-main">
+      <p id="auth-status" role="status">ログインを確認しています…</p>
+      <div id="app-content" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">BOOK YOUR VISIT</p>
+            <h1 id="reservation-clinic-name">来院予約</h1>
+            <p id="reservation-clinic-address" class="subtitle"></p>
+          </div>
+        </div>
+        <p id="reservation-status" role="status" class="booking-sync"></p>
+        <div class="booking-user-grid">
+          <div>
+            <form id="reservation-profile-form" class="card">
+              <h2>利用者情報・施術歴</h2>
+              <label
+                >氏名<input
+                  name="name"
+                  required
+                  maxlength="100"
+                  autocomplete="name" /></label
+              ><label
+                >電話番号<input
+                  name="phone"
+                  required
+                  maxlength="30"
+                  autocomplete="tel"
+              /></label>
+              <p class="muted">
+                予約先クリニックに氏名・電話番号・確認済みのメールアドレスが共有されます。
+              </p>
+              <h3>本人申告の施術歴</h3>
+              <div id="reservation-history-editor"></div>
+              <button
+                type="button"
+                id="reservation-add-history"
+                class="button secondary"
+              >
+                ＋ 施術歴を追加</button
+              ><button type="submit" class="button primary full-width">
+                利用者情報を保存
+              </button>
+            </form>
+            <form id="reservation-book-form" class="card user-history-card">
+              <h2>予約内容</h2>
+              <label
+                >メニュー<select
+                  name="service"
+                  id="reservation-service"
+                  required
+                ></select></label
+              ><label
+                >希望日<input type="date" id="reservation-date" required
+              /></label>
+              <fieldset class="slot-fieldset">
+                <legend>空き時間を選択</legend>
+                <div id="reservation-slots" class="slot-options"></div>
+              </fieldset>
+              <label class="consent-label"
+                ><input type="checkbox" id="reservation-share" /><span
+                  >本人申告の他院施術歴を、この予約先クリニックに共有する<small
+                    >共有は後から予約一覧で解除できます。クリニックが作成した自院の施術記録は別に管理されます。</small
+                  ></span
+                ></label
+              >
+              <p id="reservation-summary" class="booking-summary"></p>
+              <button
+                type="submit"
+                class="button primary full-width"
+                id="reservation-submit"
+                disabled
+              >
+                予約を申し込む
+              </button>
+              <p class="muted">
+                申し込み時に入力中の利用者情報も保存します。予約受付後、クリニックが確認すると「予約確定」になります。施術の実施が確定するものではありません。
+              </p>
+            </form>
+          </div>
+          <aside class="card">
+            <h2>自分の予約</h2>
+            <button type="button" id="reservation-refresh" class="text-button">
+              更新
+            </button>
+            <div id="reservation-mine"></div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

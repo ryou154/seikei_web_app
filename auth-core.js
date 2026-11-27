@@ -1,6 +1,7 @@
+const clinicAuthMode=document.body?.dataset.clinicAuth;
 const status = document.getElementById("auth-status") || document.getElementById("mypage-status");
 const main = document.getElementById("app-content");
-const isLoginPage = location.pathname.endsWith("/login.html") ||
+const isLoginPage = clinicAuthMode === "public" || location.pathname.endsWith("/login.html") ||
   location.pathname === "/index.html" || location.pathname === "/";
 let authorizedUid = null;
 let generation = 0;
@@ -26,7 +27,7 @@ function dispatch(name) {
 function redirectToLogin() {
   if (isLoginPage || redirectingToLogin) return;
   redirectingToLogin = true;
-  location.replace("/login.html");
+  location.replace(clinicAuthMode ? "/clinic-partner-login.html" : "/login.html");
 }
 
 function updateLoginElements(user) {
@@ -125,7 +126,7 @@ async function checkSession(user, forceRefresh = false) {
     completeReady(true);
     dispatch("auth-state-changed");
     dispatch("app-authorized");
-    if (isLoginPage) location.replace("/home.html");
+    if (isLoginPage && !clinicAuthMode) location.replace("/home.html");
     return true;
   } catch (error) {
     if (currentGeneration !== generation || auth.currentUser?.uid !== user.uid) return false;
@@ -188,7 +189,7 @@ try {
     async fetch(url, options = {}) {
       const user = auth.currentUser;
       if (!authorizedUid || user?.uid !== authorizedUid) throw new Error("ログインしてください。");
-      const { forceRefresh = false, ...requestOptions } = options;
+      const { forceRefresh = false, preserveSessionOnForbidden = false, ...requestOptions } = options;
       const send = async (refresh) => {
         const token = await user.getIdToken(refresh);
         if (auth.currentUser?.uid !== user.uid || authorizedUid !== user.uid) throw new Error("ログインが変更されました。");
@@ -198,7 +199,7 @@ try {
       };
       let response = await send(forceRefresh);
       if (response.status === 401 && !forceRefresh) response = await send(true);
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401 || (response.status === 403 && !preserveSessionOnForbidden)) {
         lock("ログインまたは利用権限を確認できません。ログイン画面から再試行してください。");
         if (main) location.replace("/login.html");
         throw new Error("ログインまたは利用権限を確認できません。");

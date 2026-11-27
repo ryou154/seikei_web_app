@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>クリニック管理 | MEYLON</title>
+    <link rel="stylesheet" href="clinic-portal-demo.css" />
+    <link rel="stylesheet" href="clinic-booking-demo.css" />
+    <link rel="stylesheet" href="clinic-partner-auth-demo.css" />
+    <script type="module" src="clinic-partner.js"></script>
+  </head>
+  <body data-clinic-auth="private" class="real-partner-page">
+    <header class="booking-user-header">
+      <a class="brand" href="clinic-partner.html"
+        >MEYLON<span>CLINIC PARTNER</span></a
+      ><button id="partner-logout" class="button secondary" type="button">
+        ログアウト
+      </button>
+    </header>
+    <main class="real-partner-main">
+      <p id="auth-status" role="status">ログインを確認しています…</p>
+      <div id="app-content" hidden>
+        <section id="partner-pending" class="card" hidden>
+          <p class="eyebrow">CLINIC VERIFICATION</p>
+          <h1>クリニックの利用申請</h1>
+          <p id="partner-pending-text"></p>
+          <a class="button primary" href="clinic-partner-register.html"
+            >申請内容を入力する</a
+          ><button type="button" id="refresh-approval" class="button secondary">
+            承認状態を更新
+          </button>
+        </section>
+        <div id="partner-approved" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">CLINIC PARTNER</p>
+              <h1 id="real-clinic-name">クリニック管理</h1>
+              <p id="real-clinic-address" class="subtitle"></p>
+            </div>
+            <a
+              id="real-booking-link"
+              class="button primary"
+              href="clinic-reservation.html"
+              >利用者向け予約画面 ↗</a
+            >
+          </div>
+          <div class="tabs" role="tablist" aria-label="管理メニュー">
+            <button
+              role="tab"
+              aria-selected="true"
+              id="real-tab-schedule"
+              data-panel="schedule"
+            >
+              予約スケジュール</button
+            ><button
+              role="tab"
+              aria-selected="false"
+              id="real-tab-settings"
+              data-panel="settings"
+            >
+              予約受付設定
+            </button>
+          </div>
+          <p id="partner-status" role="status" class="booking-sync"></p>
+          <section id="real-schedule" class="card">
+            <div class="schedule-toolbar">
+              <div class="date-controls">
+                <button
+                  type="button"
+                  id="real-prev-month"
+                  class="button secondary"
+                  aria-label="前の月"
+                >
+                  ‹</button
+                ><label>表示月<input id="real-month" type="month" /></label
+                ><button
+                  type="button"
+                  id="real-next-month"
+                  class="button secondary"
+                  aria-label="次の月"
+                >
+                  ›</button
+                ><button type="button" id="real-refresh" class="text-button">
+                  更新
+                </button>
+              </div>
+              <label class="schedule-filter"
+                >予約状態<select id="real-state">
+                  <option value="">すべて</option>
+                  <option value="requested">予約受付</option>
+                  <option value="confirmed">予約確定</option>
+                  <option value="arrived">来院済み</option>
+                  <option value="completed">対応完了</option>
+                  <option value="cancelled">キャンセル</option>
+                </select></label
+              >
+            </div>
+            <label class="booked-only-toggle"
+              ><input
+                id="real-only-booked"
+                type="checkbox"
+              />予約がある日だけ表示</label
+            >
+            <p id="real-month-summary" class="month-summary"></p>
+            <div id="real-calendar" class="month-calendar"></div>
+            <h2 id="real-selected-date"></h2>
+            <div id="real-day-bookings"></div>
+            <details class="availability-controls">
+              <summary>選択日の受付枠を停止・再開する</summary>
+              <p class="muted">
+                予約済みの枠は停止できません。受付時間・休診日は「予約受付設定」で変更できます。
+              </p>
+              <div id="real-slot-controls" class="slot-options"></div>
+            </details>
+          </section>
+          <section id="real-settings" class="card" hidden>
+            <h2>予約受付設定</h2>
+            <p class="muted">
+              実際の診療体制に合わせて設定してください。1枠につき同時に1件の予約を受け付けます。
+            </p>
+            <form id="real-settings-form">
+              <div class="form-grid">
+                <label
+                  >受付開始<input
+                    type="time"
+                    name="start"
+                    step="1800"
+                    required /></label
+                ><label
+                  >受付終了<input type="time" name="end" step="1800" required
+                /></label>
+                <fieldset class="wide weekday-settings">
+                  <legend>毎週の休診日</legend>
+                  <div id="real-closed-weekdays"></div>
+                </fieldset>
+                <label class="wide"
+                  >臨時休診日・祝日（1行に1日、例：2026-12-29）<textarea
+                    name="closedDates"
+                    rows="4"
+                  ></textarea>
+                </label>
+              </div>
+              <h3>予約メニュー</h3>
+              <div id="real-services"></div>
+              <button
+                type="button"
+                id="real-add-service"
+                class="button secondary"
+              >
+                ＋ メニューを追加</button
+              ><label class="booked-only-toggle"
+                ><input
+                  type="checkbox"
+                  name="enabled"
+                />診療時間・休診日・メニューを確認し、オンライン予約受付を開始する</label
+              >
+              <p class="muted">
+                変更済みの受付時間より外にある既存予約は、予約一覧から引き続き確認できます。受付停止時も既存予約は保持します。
+              </p>
+              <button class="button primary" type="submit">
+                予約受付設定を保存
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </main>
+    <dialog
+      id="real-patient-dialog"
+      class="booking-detail-dialog"
+      aria-labelledby="real-patient-title"
+    >
+      <header class="dialog-header">
+        <h2 id="real-patient-title">予約者情報</h2>
+        <button
+          type="button"
+          id="real-patient-close"
+          class="close-button"
+          aria-label="閉じる"
+        >
+          ×
+        </button>
+      </header>
+      <div id="real-patient-content"></div>
+    </dialog>
+  </body>
+</html>

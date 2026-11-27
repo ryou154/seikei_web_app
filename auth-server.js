@@ -73,13 +73,13 @@ async function authorize(request, verifyToken = verifyFirebaseToken, logger = co
   return { uid: claims.uid, email: claims.email };
 }
 
-async function verifyFirebaseToken(token) {
+async function verifyFirebaseToken(token, checkRevoked = false) {
   // Never accept emulator tokens on the production server.
   if (process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error("Auth emulator is not supported");
   firebaseAuth ||= getAuth(initializeApp({ projectId: config.projectId }));
   // Signature, issuer, audience and expiry are verified by the Admin SDK.
   try {
-    return await firebaseAuth.verifyIdToken(token);
+    return await firebaseAuth.verifyIdToken(token, checkRevoked);
   } catch (error) {
     // Firebase rotates signing keys and certificate retrieval can fail briefly.
     // Retry these two key-specific failures with a fresh Admin verifier/cache.
@@ -88,7 +88,7 @@ async function verifyFirebaseToken(token) {
     }
     const now = Date.now();
     const retryAuth = await getRefreshedFirebaseAuth(now);
-    const claims = await retryAuth.verifyIdToken(token);
+    const claims = await retryAuth.verifyIdToken(token, checkRevoked);
     firebaseAuth = retryAuth;
     return claims;
   }
@@ -119,4 +119,6 @@ async function getRefreshedFirebaseAuth(now) {
   finally { refreshPromise = undefined; }
 }
 
-module.exports = { authorize };
+async function authorizeSensitive(request) { return authorize(request, token => verifyFirebaseToken(token, true)); }
+
+module.exports = { authorize, authorizeSensitive };

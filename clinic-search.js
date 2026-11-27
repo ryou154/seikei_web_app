@@ -356,7 +356,7 @@
     fragment.append(node('p','掲載情報は各クリニックの公式サイト等を確認した参考情報です。料金・施術内容・リスク・保証条件は変更される場合があります。最新情報は必ず公式サイトまたはカウンセリングで確認してください。本サービスは医療機関や施術効果を保証するものではありません。','note'));
     const officialEvidenceUrl=[c.officialUrl,...c.sources.map(s=>s.sourceUrl||s.url),...c.treatments.map(t=>t.sourceUrl),...c.pricing.map(p=>p.sourceUrl)].find(url=>safeUrl(url));
     const footer=node('div',undefined,'actions clinic-evidence-footer');
-    footer.append(link('根拠の公式ページを開く',officialEvidenceUrl));fragment.append(footer);
+    if(!c.isDemo){const bookingLink=node('a','この院の予約受付を確認','button');bookingLink.href='/clinic-reservation.html?clinic='+encodeURIComponent(c.id);actions.append(bookingLink);}footer.append(link('根拠の公式ページを開く',officialEvidenceUrl));fragment.append(footer);
     return fragment;
   }
   function renderGroup(parent,group,fields,fallback) {

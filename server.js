@@ -1,3 +1,5 @@
+const {createPartnerService}=require('./clinic-partner-service');
+const {createPartnerHandler}=require('./clinic-partner-api');
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -14,6 +16,7 @@ const { INQUIRY_CATEGORIES, createInquiryStore, clean, normalizeCategory } = req
 const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
+const handlePartner=createPartnerHandler({service:createPartnerService(firestore)});
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
 const clinicAdminDatabase = createClinicAdminStore(firestore);
@@ -43,6 +46,9 @@ const mimeTypes = {
 
 const server = http.createServer(async (request, response) => {
   try {
+    if (/^\/api\/(?:partner|reservations)(?:\/|\?|$)/.test(request.url) || /^\/api\/admin\/clinic-partners(?:\/|\?|$)/.test(request.url)) {
+      const result=await handlePartner(request);sendJson(response,result.status,result.data);return;
+    }
     if (imageService.matches(request.url)) {
       sendResult(response, await imageService.handle(request));
       return;
@@ -538,9 +544,15 @@ function serveStatic(request, response) {
   // dependencies, Git metadata or server-side access policy.
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
+  if (urlPath === '/clinic-portal-demo.html' || urlPath === '/clinic-booking-demo.html') {
+    const target=urlPath === '/clinic-portal-demo.html' ? '/clinic-partner.html' : '/clinic-reservation.html';
+    const clinic=requestUrl.searchParams.get('clinic');
+    response.writeHead(302, {Location:target+(urlPath === '/clinic-booking-demo.html' && clinic ? '?clinic='+encodeURIComponent(clinic) : ''),'Cache-Control':'no-store'});response.end();return;
+  }
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/clinic-booking-demo.html", "/clinic-booking-demo.css", "/clinic-booking-demo.js", "/clinic-booking-demo-store.js", "/clinic-portal-bookings-demo.js",
+    "/clinic-partner.html", "/clinic-partner.js", "/clinic-partner-auth.js", "/clinic-reservation.html", "/clinic-reservation.js", "/clinic-partner-shared.js", "/admin/clinic-partners.html", "/admin/clinic-partners.js",
     "/clinic-partner-login.html", "/clinic-partner-register.html", "/clinic-partner-auth-demo.css", "/clinic-partner-auth-demo.js",
     "/clinic-portal-demo.html", "/clinic-portal-demo.css", "/clinic-portal-demo.js",
     "/clinics.html", "/clinic-search.js", "/clinic-search.css", "/account-data.js", "/face-analysis.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",

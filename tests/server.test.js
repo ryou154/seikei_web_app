@@ -163,3 +163,11 @@ test("login page starts locked and public assets are available", async () => {
   }
   assert.equal((await fetch(`${base}/account-delete.js`)).status, 404);
 });
+
+test('clinic partner production pages expose only public assets and require authenticated APIs',async()=>{
+ for(const file of ['/clinic-partner.html','/clinic-partner-login.html','/clinic-partner-register.html','/clinic-reservation.html','/clinic-partner.js','/clinic-partner-auth.js','/clinic-reservation.js','/clinic-partner-shared.js','/admin/clinic-partners.html','/admin/clinic-partners.js'])assert.equal((await fetch(base+file)).status,200,file);
+ for(const file of ['/clinic-partner-service.js','/clinic-partner-api.js'])assert.equal((await fetch(base+file)).status,404,file);
+ for(const route of ['/api/partner/session','/api/partner/schedule?month=2026-11','/api/reservations','/api/reservations/profile','/api/admin/clinic-partners'])assert.equal((await fetch(base+route)).status,401,route);
+ const old=await fetch(base+'/clinic-portal-demo.html',{redirect:'manual'});assert.equal(old.status,302);assert.equal(old.headers.get('location'),'/clinic-partner.html');
+ const login=await (await fetch(base+'/clinic-partner-login.html')).text();assert.ok(login.includes('clinic-partner-auth.js'));assert.ok(!login.includes('demo@clinic.example.com'));assert.ok(!login.includes('demo-clinic-2026'));
+});
