@@ -59,7 +59,8 @@
 .admin-inline-status.is-error { color: #a33a3a; }
 .admin-sidebar-toggle { position: fixed; z-index: 30; top: 20px; left: 20px; display: grid; gap: 5px; width: 44px; height: 44px; padding: 11px 10px; border: 1px solid #cfe3ea; border-radius: 10px; background: #fff; box-shadow: 0 4px 16px rgba(55,105,132,.12); cursor: pointer; }
 .admin-sidebar-toggle span { display: block; height: 2px; border-radius: 2px; background: #285266; }
-.admin-sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 240px; padding: 88px 18px 22px; border-right: 1px solid #cfe3ea; background: #fff; box-shadow: 8px 0 24px rgba(55,105,132,.08); }
+.admin-sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 240px; padding: 88px 18px 22px; border-right: 1px solid #cfe3ea; background: #fff; box-shadow: 8px 0 24px rgba(55,105,132,.08); transform: translateX(-100%); transition: transform .2s ease; }
+body.sidebar-open .admin-sidebar { transform: translateX(0); }
 .admin-sidebar-brand { display: grid; gap: 4px; padding: 0 14px 28px; }
 .admin-sidebar-brand strong { color: #173c4e; font-size: 20px; }
 .admin-sidebar nav { display: grid; gap: 6px; }
@@ -67,6 +68,8 @@
 .admin-sidebar-link:hover,.admin-sidebar-link.is-active { color: #173c4e; background: #eaf5f9; }
 .admin-sidebar > .sub-button { margin: auto 14px 0; }
 .admin-sidebar-overlay { display: none; }
+body.sidebar-open .admin-sidebar-overlay { display: block; position: fixed; z-index: 10; inset: 0; background: rgba(23,60,78,.35); }
+.admin-sub-page .admin-back-link { display: none; }
 .plan-grid { display: grid; gap: 16px; }
 .plan-editor { padding: 20px; border: 1px solid #cfe3ea; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); }
 .plan-editor-head { display: grid; gap: 5px; margin-bottom: 16px; }
@@ -84,12 +87,13 @@
 .detail-button:hover { background: #e5f4f8; }
 .sales-dialog { width: min(680px, calc(100% - 32px)); border: 1px solid #cfe3ea; border-radius: 14px; padding: 24px; color: #173c4e; box-shadow: 0 20px 60px rgba(23,60,78,.24); }
 .sales-dialog::backdrop { background: rgba(23,60,78,.35); }
+.sales-year-select { min-height: 38px; margin: 10px 0 4px; padding: 6px 10px; border: 1px solid #cfe3ea; border-radius: 7px; color: #285266; background: #fff; font: inherit; }
 .sales-dialog h2 { margin: 0 0 8px; }
 .dialog-close { float: right; border: 0; background: transparent; color: #456879; font-size: 26px; cursor: pointer; }
-.sales-chart { display: grid; gap: 14px; margin-top: 22px; }
-.sales-chart-row { display: grid; grid-template-columns: 82px 1fr 92px; align-items: center; gap: 10px; font-size: 13px; }
-.sales-bar-track { height: 18px; overflow: hidden; border-radius: 999px; background: #eaf5f9; }
-.sales-bar { height: 100%; border-radius: inherit; background: #72b9cb; }
+.sales-chart { display: flex; align-items: end; gap: 14px; min-height: 260px; padding: 20px 10px 6px; border-bottom: 1px solid #cfe3ea; }
+.sales-chart-row { display: grid; flex: 1 1 0; grid-template-rows: 1fr auto auto; align-items: end; gap: 8px; min-width: 42px; height: 230px; text-align: center; font-size: 12px; }
+.sales-bar-track { display: flex; align-items: end; justify-content: center; height: 100%; }
+.sales-bar { width: min(38px, 70%); min-height: 4px; border-radius: 7px 7px 0 0; background: #72b9cb; }
 @media (max-width: 760px) {
   .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
   .admin-sidebar { transform: translateX(-100%); transition: transform .2s ease; }
