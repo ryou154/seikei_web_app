@@ -71,10 +71,10 @@
 .plan-editor { padding: 20px; border: 1px solid #cfe3ea; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(55,105,132,.08); }
 .plan-editor-head { display: grid; gap: 5px; margin-bottom: 16px; }
 .plan-editor-head strong { color: #173c4e; font-size: 20px; }
-.plan-editor-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.plan-editor-fields { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 12px; }
 .plan-editor-fields label { display: grid; gap: 6px; color: #456879; font-size: 13px; font-weight: 700; }
 .plan-editor-fields input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; min-height: 40px; padding: 8px 10px; border: 1px solid #cfe3ea; border-radius: 7px; background: #fff; font: inherit; }
-.plan-check { display: flex !important; align-items: center; gap: 8px !important; padding-top: 26px; }
+.plan-check { display: flex !important; align-items: center; gap: 8px !important; padding-top: 26px; white-space: nowrap; }
 .admin-actions { margin-top: 20px; }
 @media (max-width: 760px) {
   .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
