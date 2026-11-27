@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>クリニック管理デモ | MEYLON</title>
+  <link rel="stylesheet" href="clinic-portal-demo.css">
+  <script src="clinic-portal-demo.js" defer></script>
+  <link rel="stylesheet" href="clinic-booking-demo.css">
+  <script src="clinic-booking-demo-store.js" defer></script>
+  <script src="clinic-portal-bookings-demo.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="clinic-portal-demo.html">MEYLON<span>CLINIC PARTNER</span></a>
+    <p class="workspace-label">クリニック管理</p>
+    <nav aria-label="クリニック管理メニュー">
+      <button class="nav-item" data-tab="bookings"><span aria-hidden="true">▦</span>予約スケジュール</button>
+      <button class="nav-item" data-tab="patients"><span aria-hidden="true">♧</span>予約者・施術歴</button>
+      <button class="nav-item active" data-tab="overview"><span aria-hidden="true">◫</span>ダッシュボード</button>
+      <button class="nav-item" data-tab="basic"><span aria-hidden="true">⌂</span>基本情報</button>
+      <button class="nav-item" data-tab="treatments"><span aria-hidden="true">≡</span>施術・料金</button>
+      <button class="nav-item" data-tab="doctors"><span aria-hidden="true">♙</span>医師情報</button>
+      <button class="nav-item" data-tab="cases"><span aria-hidden="true">▧</span>症例写真</button>
+    </nav>
+    <div class="sidebar-note"><b>クリニックの魅力を、正確に。</b><p>施術や医師の情報を整えて、患者さんのクリニック選びをサポート。</p></div>
+    <div class="sidebar-account"><span class="avatar">M</span><div><b>管理担当者</b><small>デモアカウント</small></div></div>
+  </aside>
+  <div class="page-shell">
+    <header class="topbar"><span>クリニックポータル <b class="demo-badge">DEMO</b></span><a href="clinics.html">患者さん向け検索 ↗</a></header>
+    <main>
+      <div class="demo-notice"><span class="notice-dot"></span><p><b>体験用のデモ画面です。</b> 架空のクリニックを編集できます。保存・申請・予約はこのデモ内のみで、実際の掲載情報は変わりません。</p></div>
+      <div class="page-heading"><div><p class="eyebrow">YOUR CLINIC</p><h1 id="page-title">ダッシュボード</h1><p class="subtitle">自院の情報を整えて、患者さんに届けましょう。</p></div><div class="heading-actions"><button class="button secondary" id="preview-button">掲載プレビュー ↗</button><button class="button primary" id="submit-button">更新を申請</button></div></div>
+      <section class="clinic-banner"><div class="clinic-mark" aria-hidden="true">M<span>+</span></div><div class="clinic-identity"><div class="banner-name"><h2 id="banner-name"></h2><span class="status-badge" id="publication-status">デモ掲載中</span></div><p id="banner-address"></p></div><span class="banner-caption">CLINIC PROFILE</span></section>
+      <div class="tabs" role="tablist" aria-label="編集する情報">
+        <button role="tab" aria-selected="false" aria-controls="panel-bookings" id="tab-bookings" data-tab="bookings" tabindex="-1">予約スケジュール</button>
+        <button role="tab" aria-selected="false" aria-controls="panel-patients" id="tab-patients" data-tab="patients" tabindex="-1">予約者・施術歴</button>
+        <button role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview" tabindex="0">概要</button>
+        <button role="tab" aria-selected="false" aria-controls="panel-basic" id="tab-basic" data-tab="basic" tabindex="-1">基本情報</button>
+        <button role="tab" aria-selected="false" aria-controls="panel-treatments" id="tab-treatments" data-tab="treatments" tabindex="-1">施術・料金</button>
+        <button role="tab" aria-selected="false" aria-controls="panel-doctors" id="tab-doctors" data-tab="doctors" tabindex="-1">医師情報</button>
+        <button role="tab" aria-selected="false" aria-controls="panel-cases" id="tab-cases" data-tab="cases" tabindex="-1">症例写真</button>
+      </div>
+      <section id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+        <div class="stats"><article class="stat-card"><span>掲載情報の充実度</span><div><b id="completion-value">100</b><small>%</small><span class="stat-icon">✓</span></div><div class="progress"><span id="completion-bar"></span></div><p>基本情報・施術・医師・症例の登録状況</p></article><article class="stat-card"><span>登録している施術</span><div><b id="treatment-count">3</b><small>件</small><span class="stat-icon">≡</span></div><p>部位・料金・ダウンタイムを管理</p><button class="text-button" data-tab="treatments">施術を編集する →</button></article><article class="stat-card"><span>登録している症例</span><div><b id="case-count">1</b><small>件</small><span class="stat-icon">▧</span></div><p>Before / Afterで分かりやすく</p><button class="text-button" data-tab="cases">症例を管理する →</button></article></div>
+        <div class="overview-grid"><section class="card checklist"><div class="section-heading"><div><p class="eyebrow">GET STARTED</p><h2>掲載情報を整える</h2></div><span class="soft-badge">4つのステップ</span></div><p class="muted">いつでも編集できます。変更後はプレビューでご確認ください。</p><div id="checklist"></div></section><section class="card activity"><p class="eyebrow">ACTIVITY</p><h2>更新状況</h2><ol id="activity-list"></ol><div class="help-note"><b>公開までの流れ</b><p>情報を編集 → プレビュー → 更新を申請</p><small>このデモでは、申請後のステータス変更まで体験できます。</small></div></section></div>
+      </section>
+      <section id="panel-bookings" role="tabpanel" aria-labelledby="tab-bookings" hidden>
+        <div class="booking-intro"><div><h2>予約スケジュール</h2><p class="muted">利用者が予約すると自動で反映されます。予約を選択すると利用者情報・施術歴を確認できます。</p></div><a class="button primary" href="clinic-booking-demo.html" target="_blank" rel="noopener">利用者側で予約を試す ↗</a></div>
+        <p class="booking-sync" id="schedule-sync" role="status"></p>
+        <div class="booking-metrics" id="booking-metrics"></div>
+        <div class="card"><div class="schedule-view-switch" role="group" aria-label="カレンダー表示"><button type="button" id="view-month" aria-pressed="true">月表示</button><button type="button" id="view-day" aria-pressed="false">日表示</button></div><div class="schedule-toolbar"><div id="month-controls" class="date-controls"><button type="button" class="button secondary" id="previous-month" aria-label="前の月">‹</button><label>表示月<input type="month" id="schedule-month"></label><button type="button" class="button secondary" id="next-month" aria-label="次の月">›</button><button type="button" class="text-button" id="schedule-this-month">今月</button></div><div id="day-controls" class="date-controls" hidden><button type="button" class="button secondary" id="previous-date" aria-label="前の日">‹</button><label>表示日<input type="date" id="schedule-date"></label><button type="button" class="button secondary" id="next-date" aria-label="次の日">›</button><button type="button" class="text-button" id="schedule-today">今日</button></div><label class="schedule-filter">予約状態<select id="schedule-status"><option value="">すべて</option><option value="requested">予約受付</option><option value="confirmed">予約確定</option><option value="arrived">来院済み</option><option value="completed">対応完了</option><option value="cancelled">キャンセル</option></select></label></div><label class="booked-only-toggle"><input type="checkbox" id="schedule-booked-only">予約がある日だけ表示<span>予約状態の条件に一致する日へ絞り込みます</span></label><p id="month-summary" class="month-summary" role="status"></p><div id="month-calendar" class="month-calendar" aria-label="月間予約カレンダー"></div><div id="week-strip" class="week-strip" hidden></div><div class="schedule-heading"><h3 id="schedule-day-title"></h3><span class="muted">担当医：山田 みなみ（架空） · 30分単位</span></div><div class="schedule-legend"><span>● 予約あり</span><span>○ 予約可能</span><span>－ 受付停止</span></div><div id="schedule-list"></div></div>
+        <p class="booking-demo-footer">架空データのみを使用するデモです。状態は同じブラウザ内の別タブと同期します。受付枠の停止・再開は空き枠から操作できます。</p>
+      </section>
+      <section id="panel-patients" role="tabpanel" aria-labelledby="tab-patients" hidden><div class="card"><div class="section-heading"><div><p class="eyebrow">PATIENT RECORDS</p><h2>予約者・施術歴</h2><p class="muted">予約した利用者の情報を確認できます。施術歴は自院記録と本人申告を区別して表示します。</p></div></div><label class="patient-search-label">利用者を検索<input type="search" id="patient-search" placeholder="氏名・フリガナ・利用者ID"></label><div id="patient-list"></div></div></section>
+      <section id="panel-basic" role="tabpanel" aria-labelledby="tab-basic" hidden>
+        <form id="basic-form" class="card"><div class="section-heading"><div><p class="eyebrow">CLINIC PROFILE</p><h2>基本情報</h2></div><span class="soft-badge">患者さんに表示する情報</span></div><div class="form-grid"><label class="wide">クリニック名<input name="name" required maxlength="100"></label><label>都道府県<select name="prefecture"><option>大阪府</option><option>東京都</option><option>神奈川県</option><option>愛知県</option><option>福岡県</option><option>北海道</option><option>宮城県</option></select></label><label>電話番号<input name="phone" type="tel" maxlength="30"></label><label class="wide">住所<input name="address" required maxlength="200"></label><label>診療時間<input name="hours" required maxlength="100"></label><label>休診日<input name="closed" maxlength="100"></label><label class="wide">公式サイトURL<input name="website" type="url" placeholder="https://example.com" maxlength="300"></label><label class="wide">クリニック紹介<textarea name="description" rows="4" maxlength="1000"></textarea></label></div><div class="form-footer"><span class="muted">保存内容はデモ終了まで保持されます。</span><button class="button primary" type="submit">基本情報を保存</button></div></form>
+      </section>
+      <section id="panel-treatments" role="tabpanel" aria-labelledby="tab-treatments" hidden><div class="card"><div class="section-heading"><div><p class="eyebrow">TREATMENTS</p><h2>施術・料金</h2><p class="muted">部位ごとに、料金や施術条件を登録します。</p></div><button class="button primary" id="add-treatment">＋ 施術を追加</button></div><div id="treatment-list" class="record-list"></div></div></section>
+      <section id="panel-doctors" role="tabpanel" aria-labelledby="tab-doctors" hidden><div class="card"><div class="section-heading"><div><p class="eyebrow">OUR DOCTORS</p><h2>医師情報</h2><p class="muted">所属医師の経歴・資格・得意な施術を紹介します。</p></div><button class="button primary" id="add-doctor">＋ 医師を追加</button></div><div id="doctor-list" class="doctor-grid"></div></div></section>
+      <section id="panel-cases" role="tabpanel" aria-labelledby="tab-cases" hidden><div class="card"><div class="section-heading"><div><p class="eyebrow">CASE GALLERY</p><h2>症例写真</h2><p class="muted">術前・術後をセットで登録できます。</p></div><button class="button primary" id="add-case">＋ 症例を追加</button></div><p class="image-notice">サンプルは配置確認用のイラストです。実際の症例写真・施術結果ではありません。選択した画像はサーバーへ送信されません。</p><div id="case-list" class="case-grid"></div></div></section>
+      <footer class="page-footer"><span>MEYLON <small>CLINIC PARTNER</small></span><button class="text-button" id="reset-button">デモを初期状態に戻す</button></footer>
+    </main>
+  </div>
+  <dialog id="editor-dialog" aria-labelledby="editor-title"><form id="editor-form"><header class="dialog-header"><h2 id="editor-title"></h2><button type="button" class="close-button" data-close aria-label="閉じる">×</button></header><div id="editor-fields" class="form-grid"></div><p id="editor-error" class="error" role="alert"></p><div class="dialog-footer"><button type="button" class="button secondary" data-close>キャンセル</button><button class="button primary" type="submit">保存する</button></div></form></dialog>
+  <dialog id="preview-dialog" class="preview-dialog" aria-labelledby="preview-title"><header class="dialog-header"><div><p class="eyebrow">PATIENT VIEW</p><h2 id="preview-title">掲載プレビュー</h2></div><button class="close-button" data-close aria-label="閉じる">×</button></header><div id="preview-content"></div><p class="preview-note">デモの掲載イメージです。実際の公開ページは更新されません。</p></dialog>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><header class="dialog-header"><h2 id="confirm-title"></h2><button class="close-button" data-close aria-label="閉じる">×</button></header><p id="confirm-message"></p><div class="dialog-footer"><button class="button secondary" data-close>キャンセル</button><button class="button primary" id="confirm-action">申請する（デモ）</button></div></dialog>
+  <dialog id="booking-detail-dialog" class="booking-detail-dialog" aria-labelledby="booking-detail-title"><header class="dialog-header"><div><p class="eyebrow">RESERVATION & PATIENT</p><h2 id="booking-detail-title">予約者情報</h2></div><button type="button" class="close-button" id="close-booking-detail" aria-label="予約者情報を閉じる">×</button></header><div id="booking-detail-content"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
