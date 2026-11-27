@@ -885,6 +885,13 @@ stopCameraButton.addEventListener("click", () => stopCamera());
 
 simulateButton.addEventListener("click", async () => {
   if (simulateButton.disabled) return;
+  const planType = window.PlanPolicy?.currentPlanType?.() || "free";
+  const plan = window.PlanPolicy?.getPlanPolicy?.(planType);
+  const usage = window.PlanPolicy?.getUsage?.(planType);
+  if (plan && usage && usage.simulations >= plan.simulationLimit) {
+    showSimulationError(`今月のシミュレーション回数（${plan.simulationLimit}回）を使い切りました。プラン変更または回数追加をご利用ください。`);
+    return;
+  }
   simulateButton.disabled = true;
   const originalLabel = simulateButton.textContent;
   simulateButton.textContent = "シミュレーション準備中…";
@@ -908,6 +915,7 @@ simulateButton.addEventListener("click", async () => {
       return;
     }
 
+    window.PlanPolicy?.consumeSimulation?.(planType);
     latestResult = createSimulationResult(requestText);
     setSimulationStep("result");
     setSimulationStatus("顔画像を解析しています…");

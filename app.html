@@ -548,6 +548,7 @@
     async function loadApp() {
       if (appLoaded) return;
       appLoaded = true;
+      await import("./plan-policy.js");
       await import("./script.js");
       restoreHistorySettings();
     }

@@ -37,7 +37,7 @@
     if (!prompt) return;
     let hasPaidPlan = false;
     try {
-      hasPaidPlan = ["スタンダード", "プレミアム"].includes(localStorage.getItem("seikei-selected-plan"));
+      hasPaidPlan = ["月額プラン", "年額プラン"].includes(localStorage.getItem("seikei-selected-plan"));
     } catch {}
     prompt.hidden = hasPaidPlan;
   }
@@ -49,9 +49,9 @@
     let plan = "無料プラン";
     try { plan = localStorage.getItem("seikei-selected-plan") || plan; } catch {}
     const details = {
-      "無料プラン": "月3回までシミュレーション",
-      "スタンダード": "月30回・広告なし",
-      "プレミアム": "回数無制限・広告なし"
+      "無料プラン": "正面撮影・月10回まで",
+      "月額プラン": "月30回・7方向・広告なし",
+      "年額プラン": "365回・7方向・広告なし"
     };
     name.textContent = plan;
     detail.textContent = details[plan] || details["無料プラン"];
@@ -59,7 +59,7 @@
 
   function selectPlan(button) {
     try {
-      if (["スタンダード", "プレミアム"].includes(button.dataset.plan)) {
+      if (["月額プラン", "年額プラン"].includes(button.dataset.plan)) {
         localStorage.setItem("seikei-selected-plan", button.dataset.plan);
       } else {
         localStorage.removeItem("seikei-selected-plan");
