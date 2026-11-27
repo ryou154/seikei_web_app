@@ -1,4 +1,5 @@
 (() => {
+  // Keep the consultation entry in the shared navigation on every user-facing page.
   function redirectLegacyClinicPage() {
     if (location.pathname === "/app.html" && location.hash === "#clinic-title") {
       location.replace("/clinics.html" + location.search);
