@@ -154,6 +154,11 @@ const server = http.createServer(async (request, response) => {
       await handleGeminiEdit(request, response);
       return;
     }
+    if (request.method === "POST" && request.url === "/api/gemini-chat") {
+      await authorize(request);
+      await handleGeminiChat(request, response);
+      return;
+    }
 
     if (request.method === "GET") {
       serveStatic(request, response);
@@ -217,6 +222,39 @@ async function handleGeminiEdit(request, response) {
     error: errors.at(-1)?.message || "Gemini画像生成に失敗しました。",
     detail: errors.map((error) => error.message).filter(Boolean).join(" / ")
   });
+}
+
+async function handleGeminiChat(request, response) {
+  if (!apiKey) return sendJson(response, 500, { error: "GEMINI_API_KEY が設定されていません。" });
+  const body = await readJsonBody(request);
+  const messages = Array.isArray(body.messages) ? body.messages.slice(-12) : [];
+  if (!messages.length || messages.some((item) => typeof item?.text !== "string" || item.text.trim().length > 2000)) {
+    return sendJson(response, 400, { error: "相談内容を確認してください。" });
+  }
+  const prompt = [
+    "あなたは美容医療・美容整形に関する情報整理を支援するチャットボットです。",
+    "診断、治療の断定、効果の保証、緊急時の判断は行わず、医師への相談を促してください。",
+    "ユーザーの希望を整理し、確認すべき施術候補、一般的な注意点、医師に聞く質問を日本語で簡潔に案内してください。",
+    "ユーザーが施術を希望しても、このチャットだけでシミュレーションを実行せず、必要なら候補を提示して確認を求めてください。",
+    `会話:\n${messages.map((item) => `${item.role === "user" ? "ユーザー" : "アシスタント"}: ${item.text.trim()}`).join("\n")}`
+  ].join("\n");
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  try {
+    const result = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      method: "POST",
+      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gemini-2.5-flash", input: prompt }),
+      signal: controller.signal
+    });
+    const data = await result.json().catch(() => ({}));
+    if (!result.ok) return sendJson(response, result.status, { error: "チャット相談の生成に失敗しました。" });
+    const texts = [];
+    collectGeminiText(data, texts);
+    return sendJson(response, 200, { message: texts.join("\n") || "回答を生成できませんでした。もう一度お試しください。" });
+  } catch (error) {
+    return sendJson(response, error.name === "AbortError" ? 504 : 502, { error: "チャット相談がタイムアウトしました。少し時間を置いて再試行してください。" });
+  } finally { clearTimeout(timeoutId); }
 }
 
 async function requestGeminiImage({ model, prompt, image, aspectRatio }) {
