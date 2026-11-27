@@ -91,10 +91,13 @@ body.sidebar-open .admin-sidebar-overlay { display: block; position: fixed; z-in
 .sales-year-select { min-height: 38px; margin: 10px 0 4px; padding: 6px 10px; border: 1px solid #cfe3ea; border-radius: 7px; color: #285266; background: #fff; font: inherit; }
 .sales-dialog h2 { margin: 0 0 8px; }
 .dialog-close { float: right; border: 0; background: transparent; color: #456879; font-size: 26px; cursor: pointer; }
-.sales-chart { display: flex; align-items: end; gap: 14px; min-height: 260px; padding: 20px 10px 6px; border-bottom: 1px solid #cfe3ea; }
-.sales-chart-row { display: grid; flex: 1 1 0; grid-template-rows: 1fr auto auto; align-items: end; gap: 8px; min-width: 42px; height: 230px; text-align: center; font-size: 12px; }
-.sales-bar-track { display: flex; align-items: end; justify-content: center; height: 100%; }
-.sales-bar { width: min(38px, 70%); min-height: 4px; border-radius: 7px 7px 0 0; background: #72b9cb; }
+.sales-chart { min-height: 260px; margin-top: 18px; }
+.sales-line-chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart-axis { stroke: #cfe3ea; stroke-width: 1; }
+.chart-line { fill: none; stroke: #4c9db2; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.chart-point { fill: #fff; stroke: #28758c; stroke-width: 3; }
+.sales-line-chart text { fill: #456879; font-size: 12px; }
+.chart-values { display: flex; justify-content: space-between; gap: 10px; margin: 2px 8px 0; color: #285266; font-size: 12px; }
 @media (max-width: 760px) {
   .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
   .admin-sidebar { transform: translateX(-100%); transition: transform .2s ease; }
