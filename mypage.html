@@ -14,16 +14,6 @@
   <div id="page-transition-content">
     <p id="mypage-status" class="mypage-status visually-hidden" role="status" aria-live="polite"></p>
     <main id="app-content" class="mypage-content" hidden>
-      <section class="panel mypage-section account-summary" aria-labelledby="account-summary-title">
-        <p class="section-kicker">ACCOUNT INFO</p>
-        <h2 id="account-summary-title">アカウント情報</h2>
-        <dl class="mypage-details account-summary-grid">
-          <div><dt>電話番号</dt><dd id="account-phone">未登録</dd></div>
-          <div><dt>ユーザーID</dt><dd id="account-id">確認中</dd></div>
-          <div><dt>本人確認</dt><dd id="identity-status">確認済み</dd></div>
-          <div><dt>クーポン</dt><dd id="coupon-status">現在利用できるクーポンはありません</dd></div>
-        </dl>
-      </section>
       <section class="panel mypage-section" aria-labelledby="profile-title">
         <div class="mypage-section-heading">
           <div><p class="section-kicker">PROFILE</p><h2 id="profile-title">プロフィール</h2></div>
@@ -68,43 +58,6 @@
       <section class="panel mypage-section" aria-labelledby="app-notice-title"><p class="section-kicker">MEYLON NOTICES</p><h2 id="app-notice-title">MEYLONからのお知らせ</h2><p class="section-description">プラン、メンテナンス、機能追加などのお知らせです。</p><div id="app-notice-list" class="mypage-message-list"><p class="mypage-empty">新しいお知らせはありません。</p></div></section>
 
       <section class="panel mypage-section" aria-labelledby="plan-title"><p class="section-kicker">PLAN</p><h2 id="plan-title">利用プラン</h2><dl class="mypage-details"><div><dt>現在のプラン</dt><dd id="mypage-plan-name">確認中</dd></div><div><dt>利用期限</dt><dd id="mypage-plan-ends">確認中</dd></div><div><dt>状態</dt><dd id="mypage-plan-status">確認中</dd></div></dl><div class="mypage-actions"><a class="sub-button" href="plans.html">プランを変更する</a><button id="mypage-plan-cancel" class="sub-button" type="button">プランを解約する</button></div><p id="mypage-plan-message" class="inline-status" role="status"></p></section>
-
-      <section class="panel mypage-section" aria-labelledby="security-title">
-        <p class="section-kicker">SECURITY</p>
-        <h2 id="security-title">パスワードとセキュリティ</h2>
-        <p class="section-description">ログイン方法とメールアドレスの確認状態を管理します。</p>
-        <form id="password-form" class="mypage-form" hidden>
-          <label class="field" for="current-password"><span>現在のパスワード</span>
-            <input id="current-password" type="password" autocomplete="current-password" required>
-          </label>
-          <label class="field" for="new-password"><span>新しいパスワード</span>
-            <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
-          </label>
-          <label class="field" for="confirm-password"><span>新しいパスワード（確認）</span>
-            <input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required>
-          </label>
-          <button type="submit">パスワードを変更</button>
-        </form>
-        <p id="password-managed" class="small" hidden>パスワードはGoogleアカウント側で管理されています。</p>
-        <p id="password-status" class="inline-status" role="status" aria-live="polite"></p>
-      </section>
-
-      <section class="panel mypage-section" aria-labelledby="saved-data-title">
-        <p class="section-kicker">SAVED DATA</p>
-        <h2 id="saved-data-title">保存データ</h2>
-        <p class="section-description">シミュレーションの設定・履歴・画像の保存状況です。</p>
-        <dl class="mypage-details saved-data-details">
-          <div><dt>入力設定</dt><dd id="settings-count">読み込み中</dd></div>
-          <div><dt>履歴</dt><dd><span id="history-count">—</span> / 10件</dd></div>
-          <div><dt>保存画像</dt><dd id="image-count">—</dd></div>
-        </dl>
-        <div class="mypage-actions">
-          <button id="delete-settings" class="sub-button" type="button">保存設定を削除</button>
-          <button id="delete-history" class="sub-button" type="button">履歴と画像をすべて削除</button>
-          <button id="reload-data" class="sub-button" type="button">件数を再読み込み</button>
-        </div>
-        <p id="data-status" class="inline-status" role="status" aria-live="polite"></p>
-      </section>
 
       <section class="mypage-section danger-zone" aria-labelledby="danger-title">
         <p class="section-kicker">DANGER ZONE</p>

@@ -70,16 +70,6 @@
   padding: 24px;
 }
 
-/* Keep the secondary account cards on the right so the profile column does not become disproportionately tall. */
-.mypage-content > section[aria-labelledby="saved-data-title"] {
-  grid-column: auto;
-}
-
-.mypage-content > section[aria-labelledby="security-title"] {
-  align-self: start;
-  height: max-content;
-}
-
 .mypage-section h2 {
   margin: 0 0 18px;
   overflow-wrap: anywhere;
@@ -239,10 +229,6 @@
   .mypage-profile-actions { justify-content: flex-start; }
 
   .danger-zone {
-    grid-column: auto;
-  }
-
-  .mypage-content > section[aria-labelledby="saved-data-title"] {
     grid-column: auto;
   }
 
