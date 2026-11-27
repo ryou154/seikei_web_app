@@ -89,6 +89,9 @@ body.sidebar-open .admin-sidebar-overlay { display: block; position: fixed; z-in
 .sales-dialog { width: min(680px, calc(100% - 32px)); border: 1px solid #cfe3ea; border-radius: 14px; padding: 24px; color: #173c4e; box-shadow: 0 20px 60px rgba(23,60,78,.24); }
 .sales-dialog::backdrop { background: rgba(23,60,78,.35); }
 .sales-year-select { min-height: 38px; margin: 10px 0 4px; padding: 6px 10px; border: 1px solid #cfe3ea; border-radius: 7px; color: #285266; background: #fff; font: inherit; }
+.sales-year-picker { display: flex; gap: 6px; max-height: 86px; overflow-y: auto; margin: 10px 0 8px; padding: 8px; border: 1px solid #cfe3ea; border-radius: 8px; background: #f8fcfd; }
+.sales-year-picker button { flex: 0 0 auto; padding: 7px 10px; border: 1px solid #cfe3ea; border-radius: 7px; color: #285266; background: #fff; cursor: pointer; }
+.sales-year-picker button:hover, .sales-year-picker button.is-selected { color: #fff; background: #4c9db2; border-color: #4c9db2; }
 .sales-dialog h2 { margin: 0 0 8px; }
 .dialog-close { float: right; border: 0; background: transparent; color: #456879; font-size: 26px; cursor: pointer; }
 .sales-chart { min-height: 260px; margin-top: 18px; }
