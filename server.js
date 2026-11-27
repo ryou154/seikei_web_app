@@ -12,6 +12,7 @@ const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = requi
 const { createAdminUsersHandler } = require("./admin-users");
 const { INQUIRY_CATEGORIES, createInquiryStore, clean, normalizeCategory } = require("./inquiry-store");
 const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
+const { getPlanPolicy, canUseChat } = require("./plan-policy");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
@@ -232,6 +233,8 @@ async function handleGeminiEdit(request, response) {
 }
 
 async function handleGeminiChat(request, response) {
+  const planType = request.headers["x-meylon-plan"] || "free";
+  if (!canUseChat(planType, 0)) return sendJson(response, 403, { error: "チャット相談は有料プランまたは無料トライアルで利用できます。" });
   if (!apiKey) return sendJson(response, 500, { error: "GEMINI_API_KEY が設定されていません。" });
   const body = await readJsonBody(request);
   const messages = Array.isArray(body.messages) ? body.messages.slice(-12) : [];
@@ -551,7 +554,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/clinics.html", "/clinic-search.js", "/clinic-search.css", "/account-data.js", "/face-analysis.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/chat.html", "/chat.js", "/plan-policy.js", "/assets/scan-audio/start.mp3", "/assets/scan-audio/front.mp3", "/assets/scan-audio/left (2).mp3", "/assets/scan-audio/right (2).mp3", "/assets/scan-audio/up (2).mp3", "/assets/scan-audio/down.mp3", "/assets/scan-audio/retry.mp3", "/assets/scan-audio/move-closer.mp3", "/assets/scan-audio/move-away.mp3", "/assets/scan-audio/adjust-left.mp3", "/assets/scan-audio/adjust-right.mp3", "/assets/scan-audio/adjust-up.mp3", "/assets/scan-audio/adjust-down.mp3", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/users.html", "/admin/users.js", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/chat.html", "/chat.js", "/plans.html", "/plans.js", "/plan-policy.js", "/assets/scan-audio/start.mp3", "/assets/scan-audio/front.mp3", "/assets/scan-audio/left (2).mp3", "/assets/scan-audio/right (2).mp3", "/assets/scan-audio/up (2).mp3", "/assets/scan-audio/down.mp3", "/assets/scan-audio/retry.mp3", "/assets/scan-audio/move-closer.mp3", "/assets/scan-audio/move-away.mp3", "/assets/scan-audio/adjust-left.mp3", "/assets/scan-audio/adjust-right.mp3", "/assets/scan-audio/adjust-up.mp3", "/assets/scan-audio/adjust-down.mp3", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/users.html", "/admin/users.js", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);

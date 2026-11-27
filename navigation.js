@@ -35,7 +35,7 @@
     { href: "/history.html", label: "履歴" },
     { href: "/clinics.html", label: "クリニック" },
     { href: "/chat.html", label: "チャット相談" },
-    { href: "/home.html#plans-title", label: "プラン変更" }
+    { href: "/plans.html", label: "プラン変更" }
   ];
 
   const navigationLinks = [];

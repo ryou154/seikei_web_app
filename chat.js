@@ -16,7 +16,8 @@ async function sendChat(event) {
   if (!plan || !window.PlanPolicy.consumeChat(planType)) { status.textContent = plan?.chatLimit === 0 ? "チャット相談は有料プランまたは無料トライアルで利用できます。" : `今月のチャット相談回数（${plan.chatLimit}回）を使い切りました。`; return; }
   const image = await readImage();
   conversation.push({ role: "user", text }); addMessage("user", image ? `${text}\n（顔画像を添付）` : text); input.value = ""; imageInput.value = ""; status.textContent = "回答を生成しています…";
-  try { const response = await window.AppAuth.fetch("/api/gemini-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: conversation, image }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "相談に失敗しました。"); conversation.push({ role: "assistant", text: data.message }); addMessage("assistant", data.message); status.textContent = ""; }
+  const selectedPlan = localStorage.getItem("seikei-selected-plan"); const planType = selectedPlan === "月額プラン" ? "monthly" : selectedPlan === "年額プラン" ? "annual" : (window.PlanPolicy.currentPlanType() === "trial" ? "trial" : "free");
+  try { const response = await window.AppAuth.fetch("/api/gemini-chat", { method: "POST", headers: { "Content-Type": "application/json", "X-Meylon-Plan": planType }, body: JSON.stringify({ messages: conversation, image }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "相談に失敗しました。"); conversation.push({ role: "assistant", text: data.message }); addMessage("assistant", data.message); status.textContent = ""; }
   catch (error) { status.textContent = error.message || "相談に失敗しました。"; }
 }
 document.getElementById("chat-form").addEventListener("submit", sendChat);
