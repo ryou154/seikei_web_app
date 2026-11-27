@@ -1,3 +1,4 @@
+import "./plan-policy.js";
 const content = document.getElementById("chat-content");
 const messages = document.getElementById("chat-messages");
 const input = document.getElementById("chat-input");
@@ -9,6 +10,10 @@ function readImage() { const file = imageInput.files?.[0]; return file ? new Pro
 async function sendChat(event) {
   event.preventDefault();
   const text = input.value.trim(); if (!text) return;
+  const planType = window.PlanPolicy?.currentPlanType?.() || "free";
+  const plan = window.PlanPolicy?.getPlanPolicy?.(planType);
+  const usage = window.PlanPolicy?.getUsage?.(planType);
+  if (!plan || !window.PlanPolicy.consumeChat(planType)) { status.textContent = plan?.chatLimit === 0 ? "チャット相談は有料プランまたは無料トライアルで利用できます。" : `今月のチャット相談回数（${plan.chatLimit}回）を使い切りました。`; return; }
   const image = await readImage();
   conversation.push({ role: "user", text }); addMessage("user", image ? `${text}\n（顔画像を添付）` : text); input.value = ""; imageInput.value = ""; status.textContent = "回答を生成しています…";
   try { const response = await window.AppAuth.fetch("/api/gemini-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: conversation, image }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "相談に失敗しました。"); conversation.push({ role: "assistant", text: data.message }); addMessage("assistant", data.message); status.textContent = ""; }
