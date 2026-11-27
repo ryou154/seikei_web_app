@@ -75,6 +75,8 @@
 .plan-editor-fields label { display: grid; gap: 6px; color: #456879; font-size: 13px; font-weight: 700; }
 .plan-editor-fields input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; min-height: 40px; padding: 8px 10px; border: 1px solid #cfe3ea; border-radius: 7px; background: #fff; font: inherit; }
 .plan-check { display: flex !important; align-items: center; gap: 8px !important; padding-top: 26px; white-space: nowrap; }
+.plan-check input { flex: 0 0 18px; width: 18px; height: 18px; margin: 0; }
+.plan-check span { flex: 0 0 auto; }
 .admin-actions { margin-top: 20px; }
 @media (max-width: 760px) {
   .admin-dashboard-header,.admin-dashboard { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
