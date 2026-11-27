@@ -44,8 +44,6 @@ document.getElementById("save-blocked-words")?.addEventListener("click", async (
 document.getElementById("add-blocked-word")?.addEventListener("click", async () => { const input = document.getElementById("blocked-word-input"); const word = input.value.trim(); if (!word) return; const response = await window.AppAuth.fetch("/api/admin/settings"); const data = await response.json(); await saveBlockedWords([...(data.blockedWords || []), word]); input.value = ""; });
 document.getElementById("admin-logout")?.addEventListener("click", () => window.AppAuth?.logout());
 function setSidebarOpen(open) { page.classList.toggle("sidebar-open", open); sidebarToggle?.setAttribute("aria-expanded", String(open)); if (sidebarOverlay) sidebarOverlay.hidden = !open; }
-sidebarToggle?.addEventListener("click", () => setSidebarOpen(!page.classList.contains("sidebar-open")));
-sidebarOverlay?.addEventListener("click", () => setSidebarOpen(false));
 document.querySelectorAll(".admin-sidebar-link").forEach((link) => link.addEventListener("click", () => { document.querySelectorAll(".admin-sidebar-link").forEach((item) => item.classList.remove("is-active")); link.classList.add("is-active"); setSidebarOpen(false); }));
 window.addEventListener("app-authorized", initializeAdmin);
 if (window.AppAuth?.uid) initializeAdmin();
