@@ -898,11 +898,12 @@ function isGuidedScanPoseAccepted(stepKey, metrics) {
   // on mirroring and browser implementation. For scanning, prioritize a
   // sufficient turn from the front over the sign so a valid left/right pose
   // is not rejected solely because of that implementation detail.
+  const yawThreshold = stepKey.endsWith("90") ? 10 : GUIDED_YAW_THRESHOLD;
   if (stepKey.startsWith("left")) {
-    return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD;
+    return Math.abs(yawDifference) >= yawThreshold;
   }
   if (stepKey.startsWith("right")) {
-    return Math.abs(yawDifference) >= GUIDED_YAW_THRESHOLD;
+    return Math.abs(yawDifference) >= yawThreshold;
   }
   const pitchDifference = metrics.pitchRatio - front.pitchRatio;
   if (stepKey === "up") return pitchDifference <= -GUIDED_PITCH_THRESHOLD;
