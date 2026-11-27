@@ -12,6 +12,7 @@ const { createClinicAdminStore, createClinicAdminHandler, requireAdmin } = requi
 const { createAdminSettingsStore } = require("./admin-settings");
 const { INQUIRY_CATEGORIES, createInquiryStore, clean, normalizeCategory } = require("./inquiry-store");
 const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
+const { createPlanAdminHandler } = require("./admin-plan-store");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const accountDatabase = createStore(firestore);
@@ -27,6 +28,7 @@ const handleClinicAdmin = createClinicAdminHandler({ getStore: () => clinicAdmin
 const billingUsage = createBillingUsageService({
   createClient: (config) => new BigQuery({ projectId: config.billingProjectId })
 });
+const handlePlanAdmin = createPlanAdminHandler({ firestore, authenticate: (request) => requireAdmin(request, authorize) });
 
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -83,6 +85,11 @@ const server = http.createServer(async (request, response) => {
         }
         throw error;
       }
+      return;
+    }
+    if (request.url === "/api/admin/plans" || request.url === "/api/admin/sales") {
+      const result = await handlePlanAdmin(request);
+      sendJson(response, result.status, result.data);
       return;
     }
     if (request.url === "/api/admin/settings" && (request.method === "GET" || request.method === "PUT")) {
@@ -529,7 +536,7 @@ function serveStatic(request, response) {
   const publicFiles = new Set([
     "/", "/index.html", "/login.html", "/home.html", "/home.js", "/home.css", "/app.html", "/mypage.html", "/mypage.js", "/mypage-model.js", "/mypage.css", "/style.css", "/script.js", "/auth-client.js", "/auth-core.js", "/login-page.js",
     "/account-data.js", "/face-analysis.js", "/face-3d-viewer.js", "/input-guard.js", "/simulation-adjustments.js", "/history.html", "/history-page.js", "/history-page.css", "/register.html", "/reset-password.html", "/help.html", "/help.js", "/help.css", "/admin-clinics.html", "/admin-clinics.js", "/admin-clinics.css", "/data/clinics.js", "/data/clinic-details.js",
-    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/assets/scan-audio/start.mp3", "/assets/scan-audio/front.mp3", "/assets/scan-audio/left (2).mp3", "/assets/scan-audio/right (2).mp3", "/assets/scan-audio/up (2).mp3", "/assets/scan-audio/down.mp3", "/assets/scan-audio/retry.mp3", "/assets/scan-audio/move-closer.mp3", "/assets/scan-audio/move-away.mp3", "/assets/scan-audio/adjust-left.mp3", "/assets/scan-audio/adjust-right.mp3", "/assets/scan-audio/adjust-up.mp3", "/assets/scan-audio/adjust-down.mp3", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
+    "/navigation.js", "/navigation.css", "/profile-edit.html", "/profile-edit.js", "/assets/scan-audio/start.mp3", "/assets/scan-audio/front.mp3", "/assets/scan-audio/left (2).mp3", "/assets/scan-audio/right (2).mp3", "/assets/scan-audio/up (2).mp3", "/assets/scan-audio/down.mp3", "/assets/scan-audio/retry.mp3", "/assets/scan-audio/move-closer.mp3", "/assets/scan-audio/move-away.mp3", "/assets/scan-audio/adjust-left.mp3", "/assets/scan-audio/adjust-right.mp3", "/assets/scan-audio/adjust-up.mp3", "/assets/scan-audio/adjust-down.mp3", "/admin/", "/admin/index.html", "/admin/clinics.html", "/admin/api-usage.html", "/admin/api-usage.js", "/admin/blocked-words.html", "/admin/inquiries.html", "/admin/inquiries.js", "/admin/plans.html", "/admin/plans.js", "/admin/sales.html", "/admin/sales.js", "/admin/admin.js", "/admin/admin.css", "/admin/sidebar.js", logoFile, latestLogoFile
   ]);
   if (!publicFiles.has(urlPath)) {
     response.writeHead(404);
