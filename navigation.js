@@ -1,4 +1,14 @@
 (() => {
+  function redirectLegacyClinicPage() {
+    if (location.pathname === "/app.html" && location.hash === "#clinic-title") {
+      location.replace("/clinics.html" + location.search);
+      return true;
+    }
+    return false;
+  }
+  if (redirectLegacyClinicPage()) return;
+  window.addEventListener("hashchange", redirectLegacyClinicPage);
+
   const container = document.getElementById("common-navigation");
   if (!container) return;
 
