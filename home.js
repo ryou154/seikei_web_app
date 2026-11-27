@@ -49,7 +49,7 @@
     let plan = "無料プラン";
     try { plan = localStorage.getItem("seikei-selected-plan") || plan; } catch {}
     const details = {
-      "無料プラン": "月3回までシミュレーション",
+      "無料プラン": "月10回までシミュレーション",
       "スタンダード": "月30回・広告なし",
       "プレミアム": "回数無制限・広告なし"
     };

@@ -112,6 +112,29 @@ let privacyGeneration = 0;
 let cropperInstance = null;
 openCropButton.hidden = true;
 
+const FREE_SIMULATION_LIMIT = 10;
+function currentPlanName() {
+  try { return localStorage.getItem("seikei-selected-plan") || "無料プラン"; } catch { return "無料プラン"; }
+}
+function isPaidPlan() {
+  return ["スタンダード", "プレミアム"].includes(currentPlanName());
+}
+function currentUsageKey() {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return `seikei-simulation-usage:${window.AppAuth?.uid || "anonymous"}:${month}`;
+}
+function reserveFreeSimulation() {
+  if (isPaidPlan()) return true;
+  const key = currentUsageKey();
+  const used = Number(localStorage.getItem(key) || 0);
+  if (used >= FREE_SIMULATION_LIMIT) {
+    throw new Error("無料プランの今月のシミュレーション回数（10回）に達しました。次月までお待ちください。");
+  }
+  localStorage.setItem(key, String(used + 1));
+  return true;
+}
+
 function setSimulationStep(step) {
   stepIndicators.forEach((item) => item.classList.toggle("is-active", item.dataset.stepIndicator === step));
 }
@@ -767,6 +790,7 @@ function resetGuidedScan() {
   cameraScanProgressBar.style.width = "0%";
   cameraScanSteps.querySelectorAll("span").forEach((item) => {
     item.classList.remove("active", "done");
+    item.hidden = false;
   });
 }
 
@@ -789,6 +813,9 @@ function startGuidedScan() {
     failures: 0,
     stepStartedAt: 0
   };
+  if (!isPaidPlan()) {
+    cameraScanSteps.querySelectorAll("span").forEach((item) => { item.hidden = item.dataset.scanStep !== "front"; });
+  }
   captureButton.disabled = true;
   captureButton.textContent = "スキャン中…";
   cameraScanStatus.textContent = "これから音声案内が流れます。音声に従って顔を動かしてください。";
@@ -1000,6 +1027,10 @@ async function acceptGuidedScanView(stepKey, imageData, analysis) {
   const completedItem = cameraScanSteps.querySelector(`[data-scan-step="${stepKey}"]`);
   completedItem?.classList.remove("active");
   completedItem?.classList.add("done");
+  if (!isPaidPlan() && stepKey === "front") {
+    completeGuidedScan();
+    return;
+  }
   guidedScan.index += 1;
   guidedScan.stableFrames = 0;
 
@@ -1069,14 +1100,14 @@ function completeGuidedScan() {
   cameraScanProgressBar.style.width = "100%";
   cameraDirection.textContent = "完了";
   cameraDirection.classList.add("is-detected");
-  cameraScanStatus.textContent = "7方向の確認が完了しました。正面写真を登録します。";
+  cameraScanStatus.textContent = `${scanSummary.viewCount}方向の確認が完了しました。正面写真を登録します。`;
   setSelectedImage(frontView.imageData);
   latestFaceAnalysis = { ...frontView.analysis, scan: scanSummary };
   analyzedImageData = selectedImageData;
   guidedScan = null;
   clearTimeout(guidedScanTimer);
   guidedScanTimer = null;
-  setTimeout(() => stopCamera("7方向の顔スキャンと無音撮影が完了し、正面写真を登録しました。"), 700);
+  setTimeout(() => stopCamera(`${scanSummary.viewCount}方向の顔スキャンと無音撮影が完了し、正面写真を登録しました。`), 700);
 }
 
 stopCameraButton.addEventListener("click", () => stopCamera());
@@ -1094,6 +1125,8 @@ simulateButton.addEventListener("click", async () => {
       throw new Error(requestValidation.message);
     }
     const requestText = requestValidation.sanitized;
+
+    reserveFreeSimulation();
 
     if (!selectedImageData) {
       showSimulationError("顔画像を選択するか、カメラで撮影してください。");
@@ -1725,6 +1758,10 @@ function renderDirectionalAfterViewer(container, frontImage, result, generated =
         </div>
       </div>
     </div>`;
+  if (!isPaidPlan()) {
+    container.querySelector(".directional-after-controls")?.remove();
+    container.querySelector(".directional-after-status").textContent = "無料プラン：正面のAfter画像";
+  }
 
   const image = container.querySelector(".directional-after-image");
   const status = container.querySelector(".directional-after-status");
