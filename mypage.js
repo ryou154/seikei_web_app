@@ -135,25 +135,12 @@ async function showUser(user) {
   renderProfileIcon(savedIcon, user.displayName || "");
   byId("account-email").value = user.email || "";
   byId("profile-user-id").value = user.uid || "";
-  byId("account-phone").textContent = savedPhone || user.phoneNumber || "未登録";
-  byId("account-id").textContent = user.uid || "確認できません";
-  byId("identity-status").textContent = user.emailVerified ? "確認済み" : "未確認";
-  byId("login-method").textContent = [
-    isGoogle ? "Google" : null,
-    hasPassword ? "メールとパスワード" : null
-  ].filter(Boolean).join("、") || "その他のログイン方法";
-  byId("email-verification").textContent = user.emailVerified ? "確認済み" : "未確認";
-  byId("password-form").hidden = !hasPassword;
-  byId("password-managed").hidden = hasPassword || !isGoogle;
-  if (!hasPassword && !isGoogle) byId("password-managed").textContent = "このログイン方法ではパスワードを変更できません。";
   content.hidden = false;
   renderPlanStatus();
   if (!byId("mypage-plan-add")) byId("mypage-plan-cancel")?.insertAdjacentHTML("afterend", "<button id=\"mypage-plan-add\" class=\"sub-button\" type=\"button\">15回追加（580円・テスト）</button>");
   byId("mypage-plan-add")?.addEventListener("click", () => { const type = window.PlanPolicy.currentPlanType(); const message = byId("mypage-plan-message"); if (type === "free") { message.textContent = "追加シミュレーションは有料プランで利用できます。"; return; } const total = window.PlanPolicy.addBonusSimulations(15, type); message.textContent = `シミュレーションを15回追加しました。追加残数：${total}回`; });
   setProfileEditing(false);
   status.textContent = "マイページを読み込みました。";
-  // The account panel should not wait for profile/history network requests.
-  await loadSavedData();
 }
 
 async function initialize() {
@@ -192,7 +179,6 @@ async function initialize() {
           if (phone) localStorage.setItem(phoneStorageKey(auth.currentUser.uid), phone);
           else localStorage.removeItem(phoneStorageKey(auth.currentUser.uid));
         } catch { /* storage may be unavailable */ }
-        byId("account-phone").textContent = phone || auth.currentUser.phoneNumber || "未登録";
         setProfileEditing(false);
         window.dispatchEvent(new Event("profile-updated"));
         setStatus("profile-status", "表示名を更新しました。");
@@ -203,7 +189,7 @@ async function initialize() {
     byId("profile-edit-button").addEventListener("click", () => { window.location.href = "profile-edit.html"; });
 
 
-    byId("password-form").addEventListener("submit", async (event) => {
+    byId("password-form")?.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (busy) return;
       const form = event.currentTarget;
@@ -231,34 +217,6 @@ async function initialize() {
       } catch (error) {
         setStatus("password-status", safeAuthMessage(error), true);
       } finally { setBusy(button, false); }
-    });
-
-    byId("reload-data").addEventListener("click", () => { if (!busy) void loadSavedData(); });
-    byId("delete-settings").addEventListener("click", async (event) => {
-      if (busy || !window.confirm("保存した入力設定を削除しますか？")) return;
-      const button = event.currentTarget;
-      setBusy(button, true);
-      setStatus("data-status", "保存設定を削除しています…");
-      try {
-        await request("/api/account/settings", { method: "DELETE" });
-        if (await loadSavedData()) setStatus("data-status", "保存設定を削除しました。");
-      } catch (error) { setStatus("data-status", error.message, true); }
-      finally { setBusy(button, false); }
-    });
-    byId("delete-history").addEventListener("click", async (event) => {
-      if (busy || !window.confirm("履歴と対応するBefore／After画像をすべて削除します。この操作は元に戻せません。続けますか？")) return;
-      const button = event.currentTarget;
-      setBusy(button, true);
-      setStatus("data-status", "履歴と画像を削除しています…");
-      try {
-        const result = await request("/api/account/history", { method: "DELETE" });
-        if (Array.isArray(result.entries) && result.entries.length === 0) {
-          byId("history-count").textContent = "0";
-          byId("image-count").textContent = "0枚";
-        }
-        if (await loadSavedData()) setStatus("data-status", "履歴と画像をすべて削除しました。履歴0件、画像0枚です。");
-      } catch (error) { setStatus("data-status", error.message, true); }
-      finally { setBusy(button, false); }
     });
 
     byId("delete-confirmation").addEventListener("input", (event) => {
@@ -300,9 +258,6 @@ async function initialize() {
         setStatus("delete-status", "アカウントを削除しました。ログイン画面へ移動します。");
         byId("display-name").value = "";
         byId("account-email").value = "";
-        byId("settings-count").textContent = "—";
-        byId("history-count").textContent = "0";
-        byId("image-count").textContent = "0枚";
         await window.AppAuth.logout();
       } catch (error) {
         setStatus("delete-status", error.message?.startsWith("このログイン方法")
