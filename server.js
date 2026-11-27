@@ -251,17 +251,16 @@ async function handleGeminiChat(request, response) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000);
   try {
-    const result = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+    const result = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",
       headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gemini-2.5-flash", input: prompt }),
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),
       signal: controller.signal
     });
     const data = await result.json().catch(() => ({}));
-    if (!result.ok) return sendJson(response, result.status, { error: "チャット相談の生成に失敗しました。" });
-    const texts = [];
-    collectGeminiText(data, texts);
-    return sendJson(response, 200, { message: texts.join("\n") || "回答を生成できませんでした。もう一度お試しください。" });
+    if (!result.ok) return sendJson(response, result.status, { error: data?.error?.message || "チャット相談の生成に失敗しました。" });
+    const message = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+    return sendJson(response, 200, { message: message || "回答を生成できませんでした。もう一度お試しください。" });
   } catch (error) {
     return sendJson(response, error.name === "AbortError" ? 504 : 502, { error: "チャット相談がタイムアウトしました。少し時間を置いて再試行してください。" });
   } finally { clearTimeout(timeoutId); }
