@@ -48,8 +48,10 @@
     if (!name || !detail) return;
     let plan = "無料プラン";
     try { plan = localStorage.getItem("seikei-selected-plan") || plan; } catch {}
+    if (window.PlanPolicy?.currentPlanType?.() === "trial") plan = "無料トライアル";
     const details = {
       "無料プラン": "正面撮影・月10回まで",
+      "無料トライアル": "7方向・10回・チャット相談",
       "月額プラン": "月30回・7方向・広告なし",
       "年額プラン": "365回・7方向・広告なし"
     };
@@ -61,6 +63,7 @@
     try {
       if (["月額プラン", "年額プラン"].includes(button.dataset.plan)) {
         localStorage.setItem("seikei-selected-plan", button.dataset.plan);
+        if (!localStorage.getItem("meylon-trial-started-at")) localStorage.setItem("meylon-trial-started-at", String(Date.now()));
       } else {
         localStorage.removeItem("seikei-selected-plan");
       }
