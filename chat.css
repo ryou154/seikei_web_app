@@ -25,3 +25,22 @@
 .chat-summary p { margin: 6px 0 12px; }
 .chat-summary div { display: flex; gap: 8px; }
 @media (max-width: 640px) { .chat-panel { padding: 18px; } .chat-heading { display: block; } .chat-ai-badge { margin-top: 14px; } .chat-composer-tools { flex-wrap: wrap; } .chat-composer-tools small { flex-basis: 100%; order: 3; } .chat-message { max-width: 90%; } }
+
+/* ChatGPT-like conversation layout: the conversation is the primary surface. */
+.chat-layout { max-width: 900px; padding-bottom: 28px; }
+.chat-panel { padding: 0 18px 24px; border: 0; background: transparent; box-shadow: none; }
+.chat-heading { padding: 22px 0 12px; border-bottom: 1px solid var(--line); }
+.chat-heading h1 { font-size: 25px; }
+.chat-ai-badge { min-width: 138px; }
+.chat-safety, #chat-access-note { margin: 12px 0; font-size: 12px; }
+.chat-messages { min-height: 430px; max-height: none; overflow: visible; padding: 24px 0; border: 0; border-radius: 0; background: transparent; }
+.chat-message { max-width: 82%; padding: 13px 17px; border-radius: 16px; }
+.chat-message-assistant { background: transparent; border: 0; padding-left: 0; }
+.chat-message-user { background: #e8f2ff; color: #173c4e; border-radius: 16px; }
+.quick-prompts { margin: 0 0 12px; }
+.quick-prompts button { background: transparent; }
+.chat-composer { position: sticky; bottom: 12px; padding: 12px 14px; border-radius: 18px; box-shadow: 0 8px 24px rgba(32, 82, 102, .12); }
+.chat-composer textarea { min-height: 44px; }
+.chat-composer-tools { border-top: 0; padding-top: 4px; }
+.chat-attach span::before { content: "+ "; font-size: 17px; }
+.chat-composer-tools button { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
