@@ -412,6 +412,17 @@ function collectGeminiText(value, texts) {
   }
 
   if (typeof value === "object") {
+    if (typeof value.output_text === "string" && value.output_text.trim()) {
+      texts.push(value.output_text.trim());
+    }
+    if (Array.isArray(value.steps)) {
+      for (const step of value.steps) {
+        if (step?.type !== "model_output") continue;
+        for (const part of step.content || []) {
+          if (typeof part?.text === "string" && part.text.trim()) texts.push(part.text.trim());
+        }
+      }
+    }
     for (const [key, child] of Object.entries(value)) {
       if (/text|message|reason|finish|blocked|safety|detail/i.test(key)) {
         collectGeminiText(child, texts);
