@@ -1,4 +1,7 @@
-const clinicAuthMode=document.body?.dataset.clinicAuth;
+const clinicAuthMode = document.body?.dataset.clinicAuth ||
+  (/^\/clinic-partner-(login|register)\.html$/.test(location.pathname) ? "public" :
+    location.pathname === "/clinic-partner.html" ? "private" : undefined);
+const isClinicLoginPage = location.pathname === "/clinic-partner-login.html";
 const status = document.getElementById("auth-status") || document.getElementById("mypage-status");
 const main = document.getElementById("app-content");
 const isLoginPage = clinicAuthMode === "public" || location.pathname.endsWith("/login.html") ||
@@ -126,7 +129,8 @@ async function checkSession(user, forceRefresh = false) {
     completeReady(true);
     dispatch("auth-state-changed");
     dispatch("app-authorized");
-    if (isLoginPage && !clinicAuthMode) location.replace("/home.html");
+    if (isClinicLoginPage) location.replace("/clinic-partner.html");
+    else if (isLoginPage && !clinicAuthMode) location.replace("/home.html");
     return true;
   } catch (error) {
     if (currentGeneration !== generation || auth.currentUser?.uid !== user.uid) return false;
@@ -201,7 +205,7 @@ try {
       if (response.status === 401 && !forceRefresh) response = await send(true);
       if (response.status === 401 || (response.status === 403 && !preserveSessionOnForbidden)) {
         lock("ログインまたは利用権限を確認できません。ログイン画面から再試行してください。");
-        if (main) location.replace("/login.html");
+        if (main) redirectToLogin();
         throw new Error("ログインまたは利用権限を確認できません。");
       }
       return response;

@@ -16,7 +16,8 @@ const { INQUIRY_CATEGORIES, createInquiryStore, clean, normalizeCategory } = req
 const { BillingUsageError, createBillingUsageService } = require("./billing-usage");
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
-const handlePartner=createPartnerHandler({service:createPartnerService(firestore)});
+const partnerLive = process.env.CLINIC_PARTNER_ENABLE_FIRESTORE === "true";
+const handlePartner = partnerLive ? createPartnerHandler({service:createPartnerService(firestore)}) : null;
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
 const clinicAdminDatabase = createClinicAdminStore(firestore);
@@ -47,6 +48,7 @@ const mimeTypes = {
 const server = http.createServer(async (request, response) => {
   try {
     if (/^\/api\/(?:partner|reservations)(?:\/|\?|$)/.test(request.url) || /^\/api\/admin\/clinic-partners(?:\/|\?|$)/.test(request.url)) {
+      if (!handlePartner) { sendJson(response, 503, {error:"確認用モードのため、予約・所属情報はサーバーへ保存しません。"}); return; }
       const result=await handlePartner(request);sendJson(response,result.status,result.data);return;
     }
     if (imageService.matches(request.url)) {
@@ -544,7 +546,7 @@ function serveStatic(request, response) {
   // dependencies, Git metadata or server-side access policy.
   const logoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4.png");
   const latestLogoFile = decodeURIComponent("/%E3%83%AD%E3%82%B4%E6%9C%80%E6%96%B0%E7%89%88.png");
-  if (urlPath === '/clinic-portal-demo.html' || urlPath === '/clinic-booking-demo.html') {
+  if (partnerLive && (urlPath === '/clinic-portal-demo.html' || urlPath === '/clinic-booking-demo.html')) {
     const target=urlPath === '/clinic-portal-demo.html' ? '/clinic-partner.html' : '/clinic-reservation.html';
     const clinic=requestUrl.searchParams.get('clinic');
     response.writeHead(302, {Location:target+(urlPath === '/clinic-booking-demo.html' && clinic ? '?clinic='+encodeURIComponent(clinic) : ''),'Cache-Control':'no-store'});response.end();return;
@@ -563,7 +565,13 @@ function serveStatic(request, response) {
     response.end("Not found");
     return;
   }
-  const relativePath = urlPath === "/"
+  const previewFiles = {
+    "/clinic-partner.html": "clinic-portal-demo.html",
+    "/clinic-partner-login.html": "clinic-partner-login-preview.html",
+    "/clinic-partner-register.html": "clinic-partner-register-preview.html",
+    "/clinic-reservation.html": "clinic-booking-demo.html"
+  };
+  const relativePath = !partnerLive && previewFiles[urlPath] ? previewFiles[urlPath] : urlPath === "/"
     ? "index.html"
     : urlPath === "/admin/"
       ? "admin/index.html"

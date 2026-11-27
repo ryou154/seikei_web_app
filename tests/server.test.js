@@ -8,7 +8,7 @@ before(async () => {
   child = spawn(process.execPath, ["server.js"], {
     cwd: path.join(__dirname, ".."),
     env: {
-      ...process.env, PORT: "0", GEMINI_API_KEY: "",
+      ...process.env, PORT: "0", GEMINI_API_KEY: "", CLINIC_PARTNER_ENABLE_FIRESTORE: "true",
       AUTH_ALLOWED_EMAILS: "c3337@oic.jp,c3241@oic.jp,c3122@oic.jp,c3201@oic.jp"
     },
     stdio: ["ignore", "pipe", "pipe"]
