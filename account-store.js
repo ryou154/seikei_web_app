@@ -1,5 +1,6 @@
 const { Firestore } = require("@google-cloud/firestore");
 const { authorize } = require("./auth-server");
+const { getPlanPolicy } = require("./plan-policy");
 const PARTS = ["style", "eye", "nose", "face", "mouth", "forehead"];
 const FIELDS = ["gender", ...PARTS, "imageEngine", "budget", "downtime", "clinicPriority", "priority"];
 const DETAIL_OPTIONS = new Set([
@@ -136,13 +137,13 @@ function createStore(db) {
     },
     async deleteSettings(uid) { await ref(uid, "settings").delete(); },
     async history(uid) { return (await ref(uid, "history").get()).data()?.entries || []; },
-    async saveHistory(uid, entry) {
+    async saveHistory(uid, entry, historyLimit = HISTORY_LIMIT) {
       const target = ref(uid, "history");
       return db.runTransaction(async (tx) => {
         const entries = (await tx.get(target)).data()?.entries || [];
         // A stable request ID makes a retry safe after a lost response.
         if (entries.some((item) => item.id === entry.id)) return entries;
-        const next = [{ ...entry, savedAt: new Date().toISOString() }, ...entries].slice(0, HISTORY_LIMIT);
+        const next = [{ ...entry, savedAt: new Date().toISOString() }, ...entries].slice(0, Math.min(Math.max(historyLimit, 1), 50));
         tx.set(target, { schemaVersion: 1, entries: next });
         return next;
       });
@@ -229,7 +230,8 @@ function createAccountHandler({ authenticate = authorize, getStore, deleteImages
         entries = await database.history(uid);
       } else if (method === "PUT") {
         const previous = await database.history(uid);
-        entries = await database.saveHistory(uid, payload);
+        const planType = request.headers["x-meylon-plan"] || "free";
+        entries = await database.saveHistory(uid, payload, getPlanPolicy(planType).historyLimit);
         const keptIds = new Set(entries.map((entry) => entry.id));
         try {
           await deleteImages(uid, previous.filter((entry) => !keptIds.has(entry.id)));
@@ -243,7 +245,8 @@ function createAccountHandler({ authenticate = authorize, getStore, deleteImages
         try { await deleteImages(uid, removed); }
         catch (error) { console.error("Failed to clean up deleted history images", error); }
       }
-      return { status: 200, data: { entries, limit: HISTORY_LIMIT } };
+      const planType = request.headers["x-meylon-plan"] || "free";
+      return { status: 200, data: { entries, limit: getPlanPolicy(planType).historyLimit } };
     } catch (error) {
       if (error instanceof InputError || error?.status) return { status: error.status, data: { error: error.message } };
       return { status: 503, data: { error: "クラウド保存に接続できませんでした。再試行してください。続く場合はFirestoreの接続設定・権限を確認してください。" } };

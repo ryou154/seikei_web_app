@@ -65,10 +65,12 @@
   }
 
   async function request(path, options = {}) {
+    const selectedPlan = localStorage.getItem("seikei-selected-plan");
+    const planType = selectedPlan === "月額プラン" ? "monthly" : selectedPlan === "年額プラン" ? "annual" : "free";
     const response = await window.AppAuth.fetch(path, {
       ...options,
       cache: "no-store",
-      headers: options.body ? { "Content-Type": "application/json" } : undefined
+      headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), "X-Meylon-Plan": planType }
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "クラウド保存を利用できませんでした。");
