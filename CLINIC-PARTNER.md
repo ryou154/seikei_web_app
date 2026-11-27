@@ -8,6 +8,12 @@
 
 実データ連携は停止しています。将来接続するときだけ `CLINIC_PARTNER_ENABLE_FIRESTORE=true` を明示して、以下の実運用手順を使用します。既存の利用者向け機能の設定は変更しません。
 
+## Firestore専用テスト領域
+
+確認用サーバーで `CLINIC_PARTNER_ENABLE_FIRESTORE=true` と `CLINIC_PARTNER_SANDBOX_ID=テスト領域ID` を指定すると、担当者・院・予約・施術歴・監査はすべて `clinicPartnerSandboxes/{ID}` 配下へ保存します。本番の同名コレクションとは別です。画面にはテスト領域への接続中と表示します。ローカル接続ではRESTを使用します。
+
+ローカルADCで認証APIがquota project未設定になる場合は、同じGCPプロジェクトを `GOOGLE_CLOUD_QUOTA_PROJECT` に設定します。テストアカウントの新規登録・再ログイン・所属申請の保存まで確認済みです。受信できないexample.invalidを使う場合、メール到着は確認できません。実在アカウントの確認状態や所属権限を変更せず、所属承認は認証済み管理者から行います。
+
 ## 利用開始
 
 1. `/clinic-partner-register.html` でメール・パスワードのアカウントを作成します。既存のメール確認済みアカウントでも申請できます。

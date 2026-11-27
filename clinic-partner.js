@@ -42,6 +42,7 @@ async function start() {
   try {
     const result = await api("/api/partner/session");
     if (version !== generation || !current(uid)) return;
+    $("auth-status").textContent = "";
     clinic = result.clinic;
     const approved =
       result.application?.status === "approved" && clinic?.status === "active";

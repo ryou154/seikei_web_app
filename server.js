@@ -17,7 +17,10 @@ const { BillingUsageError, createBillingUsageService } = require("./billing-usag
 const firebaseConfig = require("./firebase-config");
 const firestore = new Firestore({ projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)" });
 const partnerLive = process.env.CLINIC_PARTNER_ENABLE_FIRESTORE === "true";
-const handlePartner = partnerLive ? createPartnerHandler({service:createPartnerService(firestore)}) : null;
+const partnerSandboxId = process.env.CLINIC_PARTNER_SANDBOX_ID || "";
+const partnerFirestore = partnerSandboxId ? new Firestore({projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId, databaseId: "(default)", preferRest: true}) : firestore;
+const partnerDb = require("./clinic-partner-sandbox").partnerDatabase(partnerFirestore, partnerSandboxId);
+const handlePartner = partnerLive ? createPartnerHandler({service:createPartnerService(partnerDb)}) : null;
 const accountDatabase = createStore(firestore);
 const clinicDatabase = createClinicStore(firestore);
 const clinicAdminDatabase = createClinicAdminStore(firestore);
@@ -49,7 +52,7 @@ const server = http.createServer(async (request, response) => {
   try {
     if (/^\/api\/(?:partner|reservations)(?:\/|\?|$)/.test(request.url) || /^\/api\/admin\/clinic-partners(?:\/|\?|$)/.test(request.url)) {
       if (!handlePartner) { sendJson(response, 503, {error:"確認用モードのため、予約・所属情報はサーバーへ保存しません。"}); return; }
-      const result=await handlePartner(request);sendJson(response,result.status,result.data);return;
+      const result=await handlePartner(request);sendJson(response,result.status,partnerSandboxId ? {...result.data, sandbox: true} : result.data);return;
     }
     if (imageService.matches(request.url)) {
       sendResult(response, await imageService.handle(request));

@@ -61,6 +61,11 @@ export async function api(url, { body, ...options } = {}) {
       : {}),
   });
   const data = await response.json().catch(() => ({}));
+  if (data.sandbox && !document.getElementById("partner-sandbox-notice")) {
+    const notice = el("p", "動作確認用：Firestoreの専用テスト領域に接続中です。実際の院・予約データには反映されません。", "demo-notice");
+    notice.id = "partner-sandbox-notice";
+    (document.querySelector("main") || document.body).prepend(notice);
+  }
   if (window.AppAuth?.uid !== uid) throw Error("ログイン状態が変わりました。");
   if (!response.ok) {
     const error = Error(data.error || "処理に失敗しました。");
