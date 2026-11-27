@@ -5,9 +5,14 @@ const input = document.getElementById("chat-input");
 const imageInput = document.getElementById("chat-image");
 const status = document.getElementById("chat-status");
 const conversation = [];
-content.hidden = false;
+const accessDialog = document.createElement("dialog");
+accessDialog.style.cssText = "border:1px solid #cfe3ea;border-radius:12px;padding:28px;max-width:460px;color:#173c4e;box-shadow:0 20px 60px rgba(23,60,78,.2)";
+accessDialog.innerHTML = "<h2>チャット相談は有料プラン限定です</h2><p>この画面は有料プランのユーザーのみ利用できます。</p><div><button type=\"button\" data-plan-link>有料プランに変更する</button><button type=\"button\" data-home-link>ホーム画面に戻る</button></div>";
+document.body.append(accessDialog);
+accessDialog.querySelector("[data-plan-link]").addEventListener("click", () => { location.href = "/plans.html"; });
+accessDialog.querySelector("[data-home-link]").addEventListener("click", () => { location.href = "/home.html"; });
 const accessNote = document.createElement("p"); accessNote.id = "chat-access-note"; content.querySelector("section")?.insertBefore(accessNote, messages);
-function updateAccess() { const planType = window.PlanPolicy?.currentPlanType?.() || "free"; const plan = window.PlanPolicy?.getPlanPolicy?.(planType); const allowed = Boolean(plan?.chatLimit); accessNote.textContent = allowed ? `現在のプラン：${planType === "trial" ? "無料トライアル" : planType === "annual" ? "年額プラン" : "月額プラン"}` : "無料プランではチャット相談を利用できません。プラン変更から有料プランを選択してください。"; input.disabled = !allowed; imageInput.disabled = !allowed; document.querySelector("#chat-form button")?.toggleAttribute("disabled", !allowed); }
+function updateAccess() { const planType = window.PlanPolicy?.currentPlanType?.() || "free"; const plan = window.PlanPolicy?.getPlanPolicy?.(planType); const allowed = Boolean(plan?.chatLimit); content.hidden = !allowed; if (!allowed && !accessDialog.open) accessDialog.showModal(); if (allowed && accessDialog.open) accessDialog.close(); accessNote.textContent = allowed ? `現在のプラン：${planType === "trial" ? "無料トライアル" : planType === "annual" ? "年額プラン" : "月額プラン"}` : ""; input.disabled = !allowed; imageInput.disabled = !allowed; document.querySelector("#chat-form button")?.toggleAttribute("disabled", !allowed); }
 function addMessage(role, text) { const item = document.createElement("p"); item.className = `chat-message chat-message-${role}`; item.textContent = text; messages.append(item); }
 function readImage() { const file = imageInput.files?.[0]; return file ? new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }) : Promise.resolve(null); }
 async function sendChat(event) {
