@@ -305,15 +305,29 @@ function createClinicStore(db) {
       const query = filters.prefecture
         ? collection.where("prefecture", "==", filters.prefecture)
         : collection.where("publicationStatus", "==", "published");
-      const snapshot = await query.limit(MAX_SCAN).get();
-      const clinics = snapshot.docs
-        .map((document) => ({ id: document.id, ...document.data() }))
-        .filter((clinic) => matchesFilters(clinic, filters))
-        .sort((left, right) => {
-          const byPrefecture = String(left.prefecture || "").localeCompare(String(right.prefecture || ""), "ja");
-          return byPrefecture || String(left.name || "").localeCompare(String(right.name || ""), "ja");
-        });
-      return { clinics, truncated: snapshot.size === MAX_SCAN };
+      // Exclude large extraction candidates and histories from the search query.
+      const fields = ['publicationStatus','placeId','name','prefecture','city','area','address','location','phone',
+        'officialUrl','googleMapsUrl','businessStatus','openingHours','treatments','treatmentDetails','tags',
+        'pricing','hasPricing','verificationStatus','verifiedAt','updatedAt','downtimeAndRisks'];
+      const selected = query.select(...fields);
+      const clinics = [];
+      let cursor, scanned = 0;
+      while (scanned < MAX_SCAN) {
+        const page = cursor ? selected.startAfter(cursor) : selected;
+        const snapshot = await page.limit(Math.min(20, MAX_SCAN - scanned)).get();
+        for (const document of snapshot.docs) {
+          const clinic = { id: document.id, ...document.data() };
+          if (matchesFilters(clinic, filters)) clinics.push(publicClinic(clinic.id, clinic));
+        }
+        scanned += snapshot.size;
+        if (snapshot.size < 20) break;
+        cursor = snapshot.docs.at(-1);
+      }
+      clinics.sort((left, right) => {
+        const byPrefecture = String(left.prefecture || '').localeCompare(String(right.prefecture || ''), 'ja');
+        return byPrefecture || String(left.name || '').localeCompare(String(right.name || ''), 'ja');
+      });
+      return { clinics, truncated: scanned === MAX_SCAN, publicClinics: true };
     },
     async get(id) {
       const snapshot = await collection.doc(validClinicId(id)).get();
@@ -357,7 +371,7 @@ function createClinicHandler({ authenticate = authorize, getStore, readCasePhoto
       const all = Array.isArray(result) ? result : result.clinics;
       const truncated = Array.isArray(result) ? false : Boolean(result.truncated);
       const start = (filters.page - 1) * filters.limit;
-      const clinics = all.slice(start, start + filters.limit).map((clinic) => publicClinic(clinic.id, clinic));
+      const clinics = all.slice(start, start + filters.limit).map((clinic) => result.publicClinics ? clinic : publicClinic(clinic.id, clinic));
       return {
         status: 200,
         data: {

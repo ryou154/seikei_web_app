@@ -139,6 +139,7 @@ test("Firestore query narrows by prefecture before scanning", async () => {
   };
   const query = {
     where(...args) { calls.push(["where", ...args]); return this; },
+    select(...fields) { calls.push(["select", ...fields]); return this; },
     limit(value) { calls.push(["limit", value]); return this; },
     async get() { return snapshot; }
   };
@@ -239,3 +240,16 @@ test('downtime limits include every shorter duration and the boundary day', () =
     assert.deepEqual(actual, [0, 3, 7, 14, 30].filter(days => days <= limit));
   }
 });
+
+test('search pages through large records and retains only public results', async () => {
+  const documents = Array.from({length:45},(_,i)=>({id:String(i), data:()=>({...clinics[0],name:`院${i}`,detectedHtmlData:{raw:'private history'}})}));
+  let selected, offset=0, limit;
+  const query={where(){return this;},select(...fields){selected=fields;return this;},startAfter(doc){offset=Number(doc.id)+1;return this;},limit(n){limit=n;assert.ok(n<=20);return this;},async get(){const docs=documents.slice(offset,offset+limit);return {docs,size:docs.length};}};
+  const store=createClinicStore({collection:()=>query});
+  const handler=createClinicHandler({authenticate:async()=>({uid:'viewer'}),getStore:()=>store});
+  const result=await handler(request('GET','/api/clinics?limit=50'));
+  assert.equal(result.status,200);assert.equal(result.data.pagination.total,45);
+  assert.ok(selected.includes('pricing'));assert.ok(!selected.includes('detectedHtmlData'));
+  assert.ok(result.data.clinics.every(c=>!c.pricing&&!c.detectedHtmlData&&c.treatments.length));
+});
+
